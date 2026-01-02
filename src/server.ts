@@ -1,7 +1,6 @@
 import app from './app';
-import config from './config/config';
-import { prisma } from "./config/database";
+import ENV from './config/environment.config';
 
-app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
+app.listen(ENV.port, () => {
+  console.log(`Server running on port ${ENV.port}`);
 });
