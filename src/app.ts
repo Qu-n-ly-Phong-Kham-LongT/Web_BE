@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
-import { errorHandler } from "./middlewares/errorHandler";
+import { errorHandler } from "./middlewares/error-handler";
 import { prisma } from "./config/database.config";
+import rootRouter from "./routes/root.route";
 
 const app = express();
 
@@ -23,7 +24,10 @@ checkDatabase();
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).send("OK");
 });
-2
+
+app.use("/api", rootRouter);
+
 app.use(errorHandler);
+
 
 export default app;
