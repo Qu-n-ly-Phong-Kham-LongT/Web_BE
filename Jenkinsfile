@@ -59,7 +59,7 @@ pipeline {
                 echo "[${env.ENVIRONMENT_NAME}] Building Docker image…"
 
                 sh """
-                    DOCKER_BUILDKIT=1 docker build --pull \
+                    DOCKER_BUILDKIT=0 docker build --pull \
                         -t ${env.IMAGE_TAG} .
                 """
 
