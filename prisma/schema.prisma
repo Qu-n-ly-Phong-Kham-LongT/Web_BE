@@ -6,7 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// --- ENUMS ---
 enum UserStatus {
   Active
   Inactive
@@ -67,32 +66,33 @@ enum InventoryLogType {
   Return
 }
 
-
-// --- MODELS ---
 model Role {
-  RoleID   String     @id @default(uuid()) @db.Uuid
-  RoleName UserRoleEnum?
+  RoleID   String        @id @default(uuid()) @db.Uuid
+  RoleName UserRoleEnum
+
   users    UserRole[]
 
+  @@unique([RoleName])
   @@map("Roles")
 }
 
 model User {
   UserID    String     @id @default(uuid()) @db.Uuid
-  Username  String?     @unique
-  Password  String?
-  FullName  String?
-  Phone     String?    @unique
-  Email     String?    @unique
-  Status    UserStatus? @default(Active)
-  CreatedAt DateTime?   @default(now()) @map("Created_At")
-  UpdatedAt DateTime?   @updatedAt @map("Updated_At")
-  roles     UserRole[]
+  Username  String     @unique @db.VarChar(100)
+  Password  String     @db.VarChar(255)
+  FullName  String     @db.VarChar(200)
+  Email     String?    @unique @db.VarChar(150)
+  Status    UserStatus @default(Active)
+  CreatedAt DateTime   @default(now()) @map("Created_At")
+  UpdatedAt DateTime   @updatedAt @map("Updated_At")
+
+  roles                 UserRole[]
   medicalRecords        MedicalRecord[]
   prescriptionTemplates PrescriptionTemplate[]
   serviceRequests       ServiceRequest[]
   serviceResults        ServiceResult[]
   inventoryLogs         InventoryLog[]
+
   @@map("Users")
 }
 
@@ -100,28 +100,30 @@ model UserRole {
   UserID String @db.Uuid
   RoleID String @db.Uuid
 
-  user User @relation(fields: [UserID], references: [UserID])
-  role Role @relation(fields: [RoleID], references: [RoleID])
+  user User @relation(fields: [UserID], references: [UserID], onDelete: Cascade)
+  role Role @relation(fields: [RoleID], references: [RoleID], onDelete: Restrict)
 
   @@id([UserID, RoleID])
+  @@index([UserID])
+  @@index([RoleID])
   @@map("UserRoles")
 }
 
 model Patient {
   PatientID       String            @id @default(uuid()) @db.Uuid
-  PatientCode     String?            @unique
+  PatientCode     String?           @unique
   FullName        String?
   Gender          Gender?
   DOB             DateTime?
-  PatientCategory PatientCategory?   @default(DichVu)
-  Phone           String?            @unique
+  PatientCategory PatientCategory?  @default(DichVu)
+  Phone           String?           @unique
   Email           String?
   IdentityCard    String?           @unique
   InsuranceNumber String?           @unique
   Occupation      String?
   Address         String?
-  CreatedAt       DateTime?   @default(now()) @map("Created_At")
-  UpdatedAt       DateTime?   @updatedAt @map("Updated_At")
+  CreatedAt       DateTime?         @default(now()) @map("Created_At")
+  UpdatedAt       DateTime?         @updatedAt @map("Updated_At")
   relatives       PatientRelative[]
   medicalRecords  MedicalRecord[]
 
@@ -142,19 +144,19 @@ model PatientRelative {
 }
 
 model MedicalRecord {
-  RecordID               String                @id @default(uuid()) @db.Uuid
-  RecordCode             String?               @unique
-  PatientID              String?               @db.Uuid
+  RecordID               String               @id @default(uuid()) @db.Uuid
+  RecordCode             String?              @unique
+  PatientID              String?              @db.Uuid
   patient                Patient?             @relation(fields: [PatientID], references: [PatientID])
-  DoctorID               String?               @db.Uuid
+  DoctorID               String?              @db.Uuid
   doctor                 User?                @relation(fields: [DoctorID], references: [UserID])
   Diagnoses              Json?
-  EvidenceBasedDiagnosis Boolean?              @default(false)
+  EvidenceBasedDiagnosis Boolean?             @default(false)
   DoctorAdvice           String?
   TreatmentNote          String?
-  ConsultationFee        Decimal?              @default(0)
-  Created_At             DateTime?             @default(now())
-  Updated_At             DateTime?             @updatedAt
+  ConsultationFee        Decimal?             @default(0)
+  Created_At             DateTime?            @default(now())
+  Updated_At             DateTime?            @updatedAt
   clinicalExamination    ClinicalExamination?
   prescription           Prescription?
   followUp               FollowUp?
@@ -164,9 +166,9 @@ model MedicalRecord {
 }
 
 model ClinicalExamination {
-  ExamID              String          @id @default(uuid()) @db.Uuid
-  RecordID            String?         @unique @db.Uuid
-  medicalRecord       MedicalRecord? @relation(fields: [RecordID], references: [RecordID])
+  ExamID              String           @id @default(uuid()) @db.Uuid
+  RecordID            String?          @unique @db.Uuid
+  medicalRecord       MedicalRecord?   @relation(fields: [RecordID], references: [RecordID])
   ReasonForVisit      String?
   MedicalHistory      String?
   PastMedicalHistory  String?
@@ -180,8 +182,8 @@ model ClinicalExamination {
   PregnancyWeeks      Int?
   DrugAllergies       String?
   ClinicalNotes       String?
-  ExaminedAt          DateTime?       @default(now())
-  ExaminedBy          String?         @db.Uuid
+  ExaminedAt          DateTime?        @default(now())
+  ExaminedBy          String?          @db.Uuid
 
   @@map("ClinicalExaminations")
 }
@@ -192,25 +194,25 @@ model ICD10_Dictionary {
 }
 
 model Prescription {
-  PrescriptionID String                @id @default(uuid()) @db.Uuid
-  RecordID       String?               @unique @db.Uuid
+  PrescriptionID String               @id @default(uuid()) @db.Uuid
+  RecordID       String?              @unique @db.Uuid
   medicalRecord  MedicalRecord?       @relation(fields: [RecordID], references: [RecordID])
   PdfPath        String?
   FileName       String?
   Note           String?
   TotalPrice     Decimal?
-  PaymentStatus  PaymentStatus?        @default(Unpaid)
-  Created_At     DateTime?             @default(now())
+  PaymentStatus  PaymentStatus?       @default(Unpaid)
+  Created_At     DateTime?            @default(now())
   details        PrescriptionDetail[]
 
   @@map("Prescriptions")
 }
 
 model PrescriptionDetail {
-  DetailID            String         @id @default(uuid()) @db.Uuid
-  PrescriptionID      String?        @db.Uuid
+  DetailID            String        @id @default(uuid()) @db.Uuid
+  PrescriptionID      String?       @db.Uuid
   prescription        Prescription? @relation(fields: [PrescriptionID], references: [PrescriptionID])
-  MedicineID          String?        @db.Uuid
+  MedicineID          String?       @db.Uuid
   medicine            Medicine?     @relation(fields: [MedicineID], references: [MedicineID])
   Unit                String?
   FrequencyPerDay     Int?
@@ -220,7 +222,7 @@ model PrescriptionDetail {
   Quantity            Int?
   DaysToTake          Int?
   Price               Float?
-  IsInsuranceCovered  Boolean?       @default(false)
+  IsInsuranceCovered  Boolean?      @default(false)
   AppliedExportPrice  Decimal?
   Note                String?
 
@@ -228,10 +230,10 @@ model PrescriptionDetail {
 }
 
 model PrescriptionTemplate {
-  TemplateID   String                        @id @default(uuid()) @db.Uuid
+  TemplateID   String                       @id @default(uuid()) @db.Uuid
   TemplateName String?
   Description  String?
-  CreatedBy    String?                       @db.Uuid
+  CreatedBy    String?                      @db.Uuid
   creator      User?                        @relation(fields: [CreatedBy], references: [UserID])
   details      PrescriptionTemplateDetail[]
 
@@ -243,7 +245,7 @@ model PrescriptionTemplateDetail {
   TemplateID             String?               @db.Uuid
   template               PrescriptionTemplate? @relation(fields: [TemplateID], references: [TemplateID])
   MedicineID             String?               @db.Uuid
-  medicine               Medicine?            @relation(fields: [MedicineID], references: [MedicineID])
+  medicine               Medicine?             @relation(fields: [MedicineID], references: [MedicineID])
   DefaultFrequency       Int?
   DefaultQuantityPerTime Float?
   DefaultRoute           String?
@@ -253,10 +255,10 @@ model PrescriptionTemplateDetail {
 }
 
 model FollowUp {
-  FollowUpID      String          @id @default(uuid()) @db.Uuid
-  RecordID        String?         @unique @db.Uuid
+  FollowUpID      String         @id @default(uuid()) @db.Uuid
+  RecordID        String?        @unique @db.Uuid
   medicalRecord   MedicalRecord? @relation(fields: [RecordID], references: [RecordID])
-  AppointmentDate DateTime?       @db.Date
+  AppointmentDate DateTime?      @db.Date
   Session         Session?
   Reason          String?
 
@@ -264,15 +266,15 @@ model FollowUp {
 }
 
 model ServiceNode {
-  NodeID          String         @id @default(uuid()) @db.Uuid
+  NodeID          String        @id @default(uuid()) @db.Uuid
   NodeType        NodeType?
-  ParentID        String?        @db.Uuid
+  ParentID        String?       @db.Uuid
   parent          ServiceNode?  @relation("NodeHierarchy", fields: [ParentID], references: [NodeID])
   children        ServiceNode[] @relation("NodeHierarchy")
-  Code            String?        @unique
+  Code            String?       @unique
   Name            String?
   Note            String?
-  IsActive        Boolean?       @default(true)
+  IsActive        Boolean?      @default(true)
   itemsAsCategory ServiceItem[] @relation("CategoryNode")
   itemsAsType     ServiceItem[] @relation("TypeNode")
 
@@ -284,9 +286,9 @@ model ServiceItem {
   ItemCode        String?                 @unique
   Name            String?
   CategoryID      String?                 @db.Uuid
-  category        ServiceNode?           @relation("CategoryNode", fields: [CategoryID], references: [NodeID])
+  category        ServiceNode?            @relation("CategoryNode", fields: [CategoryID], references: [NodeID])
   TypeID          String?                 @db.Uuid
-  type            ServiceNode?           @relation("TypeNode", fields: [TypeID], references: [NodeID])
+  type            ServiceNode?            @relation("TypeNode", fields: [TypeID], references: [NodeID])
   Unit            String?
   Specimen        String?
   PrepNote        String?
@@ -299,12 +301,12 @@ model ServiceItem {
 }
 
 model ServiceItemConfig {
-  ConfigID    String        @id @default(uuid()) @db.Uuid
-  ItemID      String?       @db.Uuid
+  ConfigID    String       @id @default(uuid()) @db.Uuid
+  ItemID      String?      @db.Uuid
   serviceItem ServiceItem? @relation(fields: [ItemID], references: [ItemID])
   ConfigCode  String?
   DisplayName String?
-  InputType   InputType?    @default(Boolean)
+  InputType   InputType?   @default(Boolean)
   GroupName   String?
   MetaData    Json?
 
@@ -312,24 +314,24 @@ model ServiceItemConfig {
 }
 
 model ServiceRequest {
-  RequestID        String                  @id @default(uuid()) @db.Uuid
-  RequestCode      String?                 @unique
-  RecordID         String?                 @db.Uuid
+  RequestID        String                 @id @default(uuid()) @db.Uuid
+  RequestCode      String?                @unique
+  RecordID         String?                @db.Uuid
   medicalRecord    MedicalRecord?         @relation(fields: [RecordID], references: [RecordID])
-  OrderingDoctorID String?                 @db.Uuid
+  OrderingDoctorID String?                @db.Uuid
   orderingDoctor   User?                  @relation(fields: [OrderingDoctorID], references: [UserID])
   Note             String?
-  CreatedAt        DateTime?               @default(now())
+  CreatedAt        DateTime?              @default(now())
   details          ServiceRequestDetail[]
 
   @@map("ServiceRequests")
 }
 
 model ServiceRequestDetail {
-  RequestDetailID String           @id @default(uuid()) @db.Uuid
-  RequestID       String?          @db.Uuid
+  RequestDetailID String          @id @default(uuid()) @db.Uuid
+  RequestID       String?         @db.Uuid
   serviceRequest  ServiceRequest? @relation(fields: [RequestID], references: [RequestID])
-  ItemID          String?          @db.Uuid
+  ItemID          String?         @db.Uuid
   serviceItem     ServiceItem?    @relation(fields: [ItemID], references: [ItemID])
   SelectedOptions Json?
   result          ServiceResult?
@@ -338,16 +340,16 @@ model ServiceRequestDetail {
 }
 
 model ServiceResult {
-  ResultID           String                 @id @default(uuid()) @db.Uuid
-  DetailID           String?                @unique @db.Uuid
+  ResultID           String                @id @default(uuid()) @db.Uuid
+  DetailID           String?               @unique @db.Uuid
   requestDetail      ServiceRequestDetail? @relation(fields: [DetailID], references: [RequestDetailID])
   ResultCode         String?
   Description        String?
   Conclusion         String?
   Note               String?
-  IsPDF              Boolean?               @default(false)
+  IsPDF              Boolean?              @default(false)
   PdfUrl             String?
-  PerformingDoctorID String?                @db.Uuid
+  PerformingDoctorID String?               @db.Uuid
   performingDoctor   User?                 @relation(fields: [PerformingDoctorID], references: [UserID])
   ExecutedAt         DateTime?
 
@@ -355,21 +357,21 @@ model ServiceResult {
 }
 
 model ServiceTemplate {
-  TemplateID   String                   @id @default(uuid()) @db.Uuid
+  TemplateID   String                  @id @default(uuid()) @db.Uuid
   TemplateName String?
   Description  String?
-  CreatedBy    String?                  @db.Uuid
-  IsActive     Boolean?                 @default(true)
+  CreatedBy    String?                 @db.Uuid
+  IsActive     Boolean?                @default(true)
   details      ServiceTemplateDetail[]
 
   @@map("ServiceTemplates")
 }
 
 model ServiceTemplateDetail {
-  TemplateDetailID String            @id @default(uuid()) @db.Uuid
-  TemplateID       String?           @db.Uuid
+  TemplateDetailID String           @id @default(uuid()) @db.Uuid
+  TemplateID       String?          @db.Uuid
   template         ServiceTemplate? @relation(fields: [TemplateID], references: [TemplateID])
-  ItemID           String?           @db.Uuid
+  ItemID           String?          @db.Uuid
   serviceItem      ServiceItem?     @relation(fields: [ItemID], references: [ItemID])
   Note             String?
 
@@ -377,21 +379,21 @@ model ServiceTemplateDetail {
 }
 
 model Medicine {
-  MedicineID         String           @id @default(uuid()) @db.Uuid
-  MedicineCode       String?          @unique
-  MedicineName       String?
-  ActiveIngredient   String?
-  IsInsuranceCovered Boolean?         @default(false)
-  MedicineCodeBHYT   String?
-  InsurancePrice     Decimal?
-  BaseUnit           String?
-  TotalQuantity      Int?             @default(0)
-  SellPrice          Decimal?
-  Note               String?
-  Supplier           String?
-  SideEffects        String?
-  IsActive           Boolean?         @default(true)
-  CreatedAt          DateTime?        @default(now())
+  MedicineID          String                       @id @default(uuid()) @db.Uuid
+  MedicineCode        String?                      @unique
+  MedicineName        String?
+  ActiveIngredient    String?
+  IsInsuranceCovered  Boolean?                     @default(false)
+  MedicineCodeBHYT    String?
+  InsurancePrice      Decimal?
+  BaseUnit            String?
+  TotalQuantity       Int?                         @default(0)
+  SellPrice           Decimal?
+  Note                String?
+  Supplier            String?
+  SideEffects         String?
+  IsActive            Boolean?                     @default(true)
+  CreatedAt           DateTime?                    @default(now())
   prescriptionDetails PrescriptionDetail[]
   templateDetails     PrescriptionTemplateDetail[]
   inventoryLogs       InventoryLog[]
@@ -402,14 +404,14 @@ model Medicine {
 model InventoryLog {
   LogID        String            @id @default(uuid()) @db.Uuid
   MedicineID   String?           @db.Uuid
-  medicine     Medicine?        @relation(fields: [MedicineID], references: [MedicineID])
+  medicine     Medicine?         @relation(fields: [MedicineID], references: [MedicineID])
   Type         InventoryLogType?
   Quantity     Int?
   QuantityBase Int?
   UnitPrice    Decimal?
   TotalPrice   Decimal?
   PerformedBy  String?           @db.Uuid
-  performer    User?            @relation(fields: [PerformedBy], references: [UserID])
+  performer    User?             @relation(fields: [PerformedBy], references: [UserID])
   Note         String?
   CreatedAt    DateTime?         @default(now())
 
