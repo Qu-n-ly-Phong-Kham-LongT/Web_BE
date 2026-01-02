@@ -24,12 +24,10 @@ pipeline {
                         "product": [
                             envName: "product",
                             credId : "env-phong-kham-product",
-                            port   : "5000"
                         ],
                         "staging": [
                             envName: "staging",
                             credId : "env-phong-kham-staging",
-                            port   : "5001"
                         ]
                     ]
 
@@ -43,7 +41,6 @@ pipeline {
                     echo "[Init] ENVIRONMENT_NAME = ${env.ENVIRONMENT_NAME}"
                     echo "[Init] IMAGE_TAG        = ${env.IMAGE_TAG}"
                     echo "[Init] ENV_CRED_ID      = ${env.ENV_CRED_ID}"
-                    echo "[Init] APP_PORT         = ${env.APP_PORT}"
                 }
             }
         }
@@ -125,7 +122,6 @@ pipeline {
                         --restart unless-stopped \
                         --env-file ./.env.deploy \
                         --network at-net \
-                        -p ${APP_PORT}:${APP_PORT} \
                         -v "\$HOST_PUBLIC_DIR:/app/public:rw" \
                         ${IMAGE_TAG}
 
