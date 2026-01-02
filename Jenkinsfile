@@ -23,21 +23,26 @@ pipeline {
                     def branchMap = [
                         "product": [
                             envName: "product",
-                            credId : "env-phong-kham-product"
+                            credId : "env-phong-kham-product",
+                            port   : "5000"
                         ],
                         "staging": [
                             envName: "staging",
-                            credId : "env-phong-kham-staging"
+                            credId : "env-phong-kham-staging",
+                            port   : "5001"
                         ]
                     ]
+
 
                     env.ENVIRONMENT_NAME = branchMap[BR].envName
                     env.ENV_CRED_ID      = branchMap[BR].credId
                     env.IMAGE_TAG        = "${env.APP_NAME}:${env.ENVIRONMENT_NAME}-${env.BUILD_NUMBER}"
+                    env.APP_PORT = branchMap[BR].port
 
                     echo "[Init] ENVIRONMENT_NAME = ${env.ENVIRONMENT_NAME}"
                     echo "[Init] IMAGE_TAG        = ${env.IMAGE_TAG}"
                     echo "[Init] ENV_CRED_ID      = ${env.ENV_CRED_ID}"
+                    echo "[Init] APP_PORT         = ${env.APP_PORT}"
                 }
             }
         }
@@ -123,10 +128,11 @@ pipeline {
 
                 echo "--- Starting new container"
                 docker run -d \
-                --name \${APP_NAME_UNIQUE} \
+                --name ${APP_NAME_UNIQUE} \
                 --restart unless-stopped \
                 --env-file ./.env.deploy \
-                -v "\$HOST_PUBLIC_DIR:/app/public:rw" \
+                -p ${APP_PORT}:${APP_PORT} \
+                -v "$HOST_PUBLIC_DIR:/app/public:rw" \
                 ${IMAGE_TAG}
 
                 echo "--- Deploy OK"
