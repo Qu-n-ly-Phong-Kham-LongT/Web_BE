@@ -124,6 +124,7 @@ pipeline {
                         --name "${APP_NAME_UNIQUE}" \
                         --restart unless-stopped \
                         --env-file ./.env.deploy \
+                        --network at-net \
                         -p ${APP_PORT}:${APP_PORT} \
                         -v "\$HOST_PUBLIC_DIR:/app/public:rw" \
                         ${IMAGE_TAG}
