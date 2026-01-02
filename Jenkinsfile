@@ -38,6 +38,7 @@ pipeline {
                     env.ENV_CRED_ID      = branchMap[BR].credId
                     env.IMAGE_TAG        = "${env.APP_NAME}:${env.ENVIRONMENT_NAME}-${env.BUILD_NUMBER}"
                     env.APP_PORT = branchMap[BR].port
+                    env.APP_NAME_UNIQUE  = "${env.APP_NAME}-${env.ENVIRONMENT_NAME}"
 
                     echo "[Init] ENVIRONMENT_NAME = ${env.ENVIRONMENT_NAME}"
                     echo "[Init] IMAGE_TAG        = ${env.IMAGE_TAG}"
@@ -98,49 +99,42 @@ pipeline {
         }
 
         stage('Deploy') {
-        steps {
-            withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
-            sh """
-                set -e
+            steps {
+                withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
+                    sh """
+                        set -e
 
-                echo "--- Copying .env from Jenkins credentials"
-                cp "\$ENV_FILE" ./.env.deploy
+                        echo "--- Copying .env from Jenkins credentials"
+                        cp "\$ENV_FILE" ./.env.deploy
 
-                APP_NAME_UNIQUE="${APP_NAME}-${ENVIRONMENT_NAME}"
-                HOST_PUBLIC_DIR="/data/${APP_NAME}/${ENVIRONMENT_NAME}/public"
+                        HOST_PUBLIC_DIR="/data/${APP_NAME}/${ENVIRONMENT_NAME}/public"
+                        mkdir -p "\$HOST_PUBLIC_DIR"
 
-                echo "--- Prepare host public folder (no subfolders)"
-                mkdir -p "\$HOST_PUBLIC_DIR"
+                        APP_UID=\$(docker run --rm ${IMAGE_TAG} sh -lc 'id -u')
+                        APP_GID=\$(docker run --rm ${IMAGE_TAG} sh -lc 'id -g')
 
-                # Lấy UID/GID của user chạy app trong container
-                APP_UID=\$(docker run --rm ${IMAGE_TAG} sh -lc 'id -u')
-                APP_GID=\$(docker run --rm ${IMAGE_TAG} sh -lc 'id -g')
-                echo "--- Container UID:GID = \$APP_UID:\$APP_GID"
+                        docker run --rm -v /data/${APP_NAME}/${ENVIRONMENT_NAME}:/mnt alpine:3.20 sh -lc "
+                        set -e
+                        install -d -m 775 -o \$APP_UID -g \$APP_GID /mnt/public
+                        "
 
-                # Chuẩn hoá quyền host folder theo UID/GID container
-                docker run --rm -v /data/${APP_NAME}/${ENVIRONMENT_NAME}:/mnt alpine:3.20 sh -lc "
-                set -e
-                install -d -m 775 -o \$APP_UID -g \$APP_GID /mnt/public
-                "
+                        docker rm -f "${APP_NAME_UNIQUE}" 2>/dev/null || true
 
-                echo "--- Stopping old container"
-                docker rm -f \${APP_NAME_UNIQUE} 2>/dev/null || true
+                        docker run -d \
+                        --name "${APP_NAME_UNIQUE}" \
+                        --restart unless-stopped \
+                        --env-file ./.env.deploy \
+                        -p ${APP_PORT}:${APP_PORT} \
+                        -v "\$HOST_PUBLIC_DIR:/app/public:rw" \
+                        ${IMAGE_TAG}
 
-                echo "--- Starting new container"
-                docker run -d \
-                --name ${APP_NAME_UNIQUE} \
-                --restart unless-stopped \
-                --env-file ./.env.deploy \
-                -p ${APP_PORT}:${APP_PORT} \
-                -v "$HOST_PUBLIC_DIR:/app/public:rw" \
-                ${IMAGE_TAG}
-
-                echo "--- Deploy OK"
-                rm -f ./.env.deploy
-            """
+                        rm -f ./.env.deploy
+                        echo "--- Deploy OK"
+                    """
+                }
             }
         }
-        }
+
 
         stage('Cleanup') {
             steps {
