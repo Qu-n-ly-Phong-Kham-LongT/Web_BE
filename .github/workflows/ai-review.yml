@@ -1,4 +1,4 @@
-name: AI Code Review
+name: Gemini 2.0 Code Reviewer
 
 on:
   pull_request:
@@ -24,95 +24,84 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Google Generative AI Library
+      - name: Install Dependencies
         run: npm install @google/generative-ai
 
       - name: Get Code Diff
         id: diff
         run: |
-          # Lấy sự khác biệt giữa nhánh PR và nhánh base (dev)
+          # Lấy diff giữa nhánh hiện tại và nhánh dev
           git diff origin/${{ github.base_ref }}...HEAD > diff.txt
-          echo "DIFF_FILE=diff.txt" >> $GITHUB_ENV
+          # Kiểm tra nếu file diff quá lớn (Gemini 2.0 chịu được nhưng nên tránh file rác)
+          if [ ! -s diff.txt ]; then
+            echo "EMPTY_DIFF=true" >> $GITHUB_ENV
+          fi
 
-      - name: Run Gemini Review Script
-        id: gemini
+      - name: Run Gemini 2.0 Review
+        if: env.EMPTY_DIFF != 'true'
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           node -e "
           const { GoogleGenerativeAI } = require('@google/generative-ai');
           const fs = require('fs');
 
           async function run() {
-            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            try {
+              const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+              
+              // Sử dụng model Gemini 2.0 Flash Lite
+              // Nếu bị 404, hãy thử: 'gemini-2.0-flash-lite-preview-02-05'
+              const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
-            const diff = fs.readFileSync('diff.txt', 'utf8');
-            if (!diff) {
-              console.log('No changes detected.');
-              return;
+              const diff = fs.readFileSync('diff.txt', 'utf8');
+
+              const prompt = \`
+              Bạn là một Senior Backend Engineer review code cho dự án ExpressJS + TypeScript Modular.
+              Nhiệm vụ: Review file diff dưới đây và đưa ra đánh giá.
+
+              Quy tắc cấu trúc dự án:
+              - Phải tách biệt: Controller (vào/ra), Service (logic nghiệp vụ), Repository (truy vấn DB).
+              - Dùng Interface/Type cho mọi dữ liệu, không dùng 'any'.
+              - Error Handling phải tập trung, không lạm dụng console.log.
+              - Tuân thủ chuẩn RESTful API.
+              - Phải kiểm tra và validate dữ liệu đầu vào.
+              - Phải kiểm tra middleware xác thực/ủy quyền.
+
+              Yêu cầu định dạng phản hồi:
+              1. **Tổng quan**: (Ngắn gọn)
+              2. **Điểm tốt**: (Nếu có)
+              3. **Vấn đề & Giải pháp**: Liệt kê các lỗi kèm code ví dụ để fix.
+
+              Nội dung diff:
+              \\\n\\\`\\\`\\\`diff\\\n\${diff}\\\n\\\`\\\`\\\`
+              \`;
+
+              const result = await model.generateContent(prompt);
+              const response = await result.response;
+              fs.writeFileSync('review_result.md', response.text());
+            } catch (error) {
+              console.error(error);
+              fs.writeFileSync('review_result.md', '❌ Error during AI Review: ' + error.message);
+              process.exit(1);
             }
-
-            const prompt = \`
-            Bạn là một chuyên gia Senior Backend Developer (ExpressJS, TypeScript).
-            Hãy review đoạn code diff dưới đây từ một Pull Request vào nhánh 'dev'.
-            Dự án sử dụng cấu trúc Modular (Controller, Service, Repository).
-
-            Tiêu chí review:
-            1. Cấu trúc: Logic nghiệp vụ phải ở Service, không để ở Controller.
-            2. TypeScript: Kiểm tra kiểu dữ liệu, tránh dùng 'any', ưu tiên Interface/Type rõ ràng.
-            3. Error Handling: Kiểm tra try-catch, trung tâm xử lý lỗi (ErrorHandler middleware).
-            4. Performance: Tránh các lỗi N+1 query, await trong vòng lặp không cần thiết.
-            5. Security: Kiểm tra validate đầu vào (Zod/Joi), tránh SQL Injection.
-
-            Yêu cầu kết quả trả về:
-            - Đánh giá tổng quan.
-            - Danh sách các lỗi/điểm cần cải thiện.
-            - Giải pháp code cụ thể cho từng vấn đề.
-            - Trả về bằng tiếng Việt.
-
-            Nội dung diff:
-            \\\`\\\`\\\`
-            \${diff}
-            \\\`\\\`\\\`
-            \`;
-
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-            
-            fs.writeFileSync('review_result.md', text);
           }
           run();
           "
 
-      - name: Create Issue with Review Result
+      - name: Create Review Issue
+        if: success()
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const reviewBody = fs.readFileSync('review_result.md', 'utf8');
-            const prNumber = context.payload.pull_request.number;
-            const prUrl = context.payload.pull_request.html_url;
-
+            if (!fs.existsSync('review_result.md')) return;
+            const body = fs.readFileSync('review_result.md', 'utf8');
+            
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `🔍 Code Review Report for PR #${prNumber}`,
-              body: `## 🤖 AI Review Analysis for PR #${prNumber}\n\n${reviewBody}\n\n--- \n🔗 **Linked PR:** ${prUrl}`,
-              labels: ['ai-review', 'needs-fix']
-            });
-
-      - name: Post Comment to PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.payload.pull_request.number;
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: "🚀 **AI Review đã hoàn tất!** Một Issue chi tiết đã được tạo để theo dõi các lỗi và giải pháp. Vui lòng kiểm tra tab Issues."
+              title: `🛡️ Review Code PR #${context.issue.number} (Gemini 2.0)`,
+              body: `Kết quả review tự động cho PR này:\n\n${body}`,
+              labels: ['ai-review']
             });
