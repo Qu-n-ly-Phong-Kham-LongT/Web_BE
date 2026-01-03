@@ -81,7 +81,7 @@ model Clinic {
   Address    String? @db.VarChar(255)
   Phone      String? @db.VarChar(255)
   Email      String? @unique @db.VarChar(150)
-
+  ClinicCode String? @unique @db.VarChar(100)
   users User[]
 
   @@map("Clinics")

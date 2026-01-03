@@ -17,6 +17,7 @@ export const seedAdmin = async () => {
       Email: DEFAULT_CLINIC_EMAIL,
       Address: "N/A",
       Phone: null,
+      ClinicCode: "PKH",
     },
   });
 
