@@ -1,5 +1,6 @@
 import ENV from "../config/environment.config";
 import AuthSwagger from "./auth.swagger";
+import PatientSwagger from "./patient.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -9,6 +10,7 @@ const swaggerDocument = {
   },
   paths: {
     ...AuthSwagger,
+    ...PatientSwagger,
   },
   components: {
     securitySchemes: {
