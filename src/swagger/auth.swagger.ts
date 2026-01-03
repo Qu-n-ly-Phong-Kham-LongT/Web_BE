@@ -1,5 +1,4 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { UserResponseSchema } from "../modules/auth/dtos/user.response.dto";
 import { LoginResponseSchema } from "../modules/auth/dtos/login.response.dto";
 
 const AuthSwagger = {
@@ -53,32 +52,6 @@ const AuthSwagger = {
       },
       responses: {
         200: { description: "Logout successful" },
-      },
-    },
-  },
-
-  "/api/auth/users/{id}": {
-    get: {
-      tags: ["Auth"],
-      summary: "Lấy thông tin người dùng theo ID",
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "ID của người dùng cần lấy thông tin",
-        },
-      ],
-      responses: {
-        200: {
-          description: "User retrieved successfully",
-          content: {
-            "application/json": {
-              schema: joiToSwagger(UserResponseSchema),
-            },
-          },
-        },
       },
     },
   },

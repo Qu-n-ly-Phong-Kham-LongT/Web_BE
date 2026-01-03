@@ -15,27 +15,6 @@ export class AuthRepository {
     });
   }
 
-  public async createUser(
-    username: string,
-    password: string,
-    clinicId: string,
-    fullName?: string,
-    email?: string | null) 
-    {
-    return await prisma.user.create({
-      data: {
-        Username: username,
-        Password: password,
-        FullName: fullName ?? username,
-        Email: email ?? null,
-        clinicId: clinicId,
-      },
-      include: {
-        clinic: true,
-      },
-    });
-  }
-
   public async findUserById(id: string) {
     return await prisma.user.findUnique({
       where: { UserID: id },
