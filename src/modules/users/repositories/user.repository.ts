@@ -50,13 +50,27 @@ export class UserRepository {
     });
   }
 
-  //   public async updateUser(
-  //     id: string,
-  //     updateData: UpdateUserRepo
-  //   ): Promise<User> {
-  //     return await prisma.user.update({
-  //       where: { UserID: id },
-  //       data: updateData,
-  //     });
-  //   }
+    // public async updateUser(
+    //   id: string,
+    //   updateData: UserWithRoles
+    // ): Promise<User> {
+    //   return await prisma.user.update({
+    //     where: { UserID: id },
+    //     data: updateData,
+    //   });
+    // }
+
+    public async findUserById(id: string) {
+    return await prisma.user.findUnique({
+      where: { UserID: id },
+      include: {
+        clinic: true,
+        roles: {
+          include: {
+            role: true,
+          }
+        }
+      }
+    });
+  }
 }

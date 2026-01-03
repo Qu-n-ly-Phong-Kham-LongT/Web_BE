@@ -15,6 +15,7 @@ const UserSwagger = {
           },
         },
       },
+      security: [{ bearerAuth: [] }],
       responses: {
         201: {
           description: "Tạo user thành công",
@@ -30,6 +31,38 @@ const UserSwagger = {
       },
     },
   },
+
+    "/api/users/{id}": {
+    get: {
+        summary: "Lấy thông tin người dùng theo ID",
+        tags: ["Users"],
+        parameters: [
+        {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+            type: "string",
+            },
+            description: "ID của người dùng cần lấy thông tin",
+        },
+        ],
+        security: [{ bearerAuth: [] }],
+        responses: {
+        200: {
+            description: "Lấy thông tin người dùng thành công",
+            content: {
+            "application/json": {
+                schema: joiToSwagger(CreateUserResponseSchema),
+            },
+            },
+        },
+        404: { description: "Người dùng không tồn tại" },
+        401: { description: "Unauthorized" },
+        403: { description: "Forbidden" },
+        },
+    },
+    },
 };
 
 export default UserSwagger;

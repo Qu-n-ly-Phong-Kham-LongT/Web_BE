@@ -15,20 +15,6 @@ export class AuthRepository {
     });
   }
 
-  public async findUserById(id: string) {
-    return await prisma.user.findUnique({
-      where: { UserID: id },
-      include: {
-        clinic: true,
-        roles: {
-          include: {
-            role: true,
-          }
-        }
-      }
-    });
-  }
-
   public async createRefreshToken(userId: string, token: string, expiresAt: Date) {
     return await prisma.refreshToken.create({
       data: {

@@ -24,3 +24,26 @@ export const validateBody =
     req.body = value;
     next();
   };
+
+export const validateParams =
+  (schema: Joi.ObjectSchema): RequestHandler =>
+  (req, _res, next) => {
+    const { value, error } = schema.validate(req.params, {
+      abortEarly: false,
+      stripUnknown: true,
+      convert: true,
+    });
+
+    if (error) {
+      throw new BaseError(400, "Validation failed", {
+        details: error.details.map((d) => ({
+          field: d.path.join("."),
+          message: d.message,
+          type: d.type,
+        })),
+      });
+    }
+
+    req.params = value;
+    next();
+  };

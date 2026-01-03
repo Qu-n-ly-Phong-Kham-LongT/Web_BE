@@ -6,9 +6,11 @@ import { LoginRequestDto } from "../dtos/login.request.dto";
 import { AuthRepository } from "../repositories/auth.repository";
 import { RefreshResponseDto } from "../dtos/refresh.response.dto";
 import { UserStatus } from "@prisma/client";
+import { UserRepository } from "../../users/repositories/user.repository";
 
 export class AuthService {
   private authRepository = new AuthRepository();
+  private userRepository = new UserRepository();
 
   public async loginUser(
     loginRequest: LoginRequestDto
@@ -84,7 +86,7 @@ export class AuthService {
       throw new BaseError(401, "Refresh token không hợp lệ.");
     }
 
-    const user = await this.authRepository.findUserById(decoded.userId);
+    const user = await this.userRepository.findUserById(decoded.userId);
     if (!user) {
       throw new BaseError(401, "Refresh token không hợp lệ.");
     }

@@ -21,10 +21,13 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(createData.password, 10);
     const rolesAssigned = createData.roles || [UserRoleEnum.Doctor];
 
-    const newUser = await this.userRepository.createUser({
-      ...createData,
-      password: hashedPassword,
-    }, rolesAssigned);
+    const newUser = await this.userRepository.createUser(
+      {
+        ...createData,
+        password: hashedPassword,
+      },
+      rolesAssigned
+    );
 
     if (!newUser) {
       throw new BaseError(500, "Tạo người dùng thất bại.");
@@ -39,6 +42,26 @@ export class UserService {
       status: newUser.Status as unknown as number,
       createdAt: newUser.CreatedAt,
       roles: newUser.roles.map((ur: any) => ur.role.RoleName),
+    };
+
+    return response;
+  }
+
+  public async getUserById(id: string): Promise<CreateUserResponseDto | null> {
+    const user = await this.userRepository.findUserById(id);
+    if (!user) {
+      return null;
+    }
+
+    const response: CreateUserResponseDto = {
+      id: user.UserID,
+      username: user.Username,
+      fullname: user.FullName,
+      email: user.Email ?? null,
+      clinicId: user.clinicId,
+      status: user.Status as unknown as number,
+      createdAt: user.CreatedAt,
+      roles: user.roles.map((ur: any) => ur.role.RoleName),
     };
 
     return response;
