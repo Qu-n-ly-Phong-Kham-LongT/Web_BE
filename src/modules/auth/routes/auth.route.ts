@@ -1,22 +1,29 @@
 import { Router } from "express";
 import { AuthController } from "../controllers/auth.controller";
 import { validateBody } from "../../../middlewares/validate";
-import { RegisterRequestSchema } from "../dtos/register.request.dto";
+import { LoginRequestSchema } from "../dtos/login.request.dto";
+import { RefreshRequestSchema } from "../dtos/refresh.request.dto";
 
 const authRouter = Router();
 
 const authController = new AuthController();
 
 authRouter.post(
-    "/register",
-    validateBody(RegisterRequestSchema),
-    authController.register
+    "/login",
+    validateBody(LoginRequestSchema),
+    authController.login
 );
 
-authRouter.get(
-    "/users/:id",
-    authController.getUserById
+authRouter.post(
+    "/refresh",
+    validateBody(RefreshRequestSchema),
+    authController.refresh
 );
 
+authRouter.post(
+    "/logout",
+    validateBody(RefreshRequestSchema),
+    authController.logout
+);
 
 export default authRouter;

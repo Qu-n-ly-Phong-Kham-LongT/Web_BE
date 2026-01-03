@@ -1,5 +1,6 @@
 import ENV from "../config/environment.config";
 import AuthSwagger from "./auth.swagger";
+import UserSwagger from "./user.swagger";
 import PatientSwagger from "./patient.swagger";
 
 const swaggerDocument = {
@@ -10,6 +11,7 @@ const swaggerDocument = {
   },
   paths: {
     ...AuthSwagger,
+    ...UserSwagger,
     ...PatientSwagger,
   },
   components: {

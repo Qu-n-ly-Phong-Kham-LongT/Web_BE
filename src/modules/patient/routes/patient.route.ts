@@ -3,6 +3,7 @@ import { PatientController } from "../controllers/patient.controller";
 import { validateBody } from "../../../middlewares/validate";
 import { CreatePatientRequestSchema } from "../dtos/create-patient.request.dto";
 import { UpdatePatientRequestSchema } from "../dtos/update-patient.request.dto";
+import { authenticate } from "../../../middlewares/auth.middleware";
 
 const patientRouter = Router();
 

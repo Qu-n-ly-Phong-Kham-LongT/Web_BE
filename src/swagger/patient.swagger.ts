@@ -40,7 +40,7 @@ const PatientSwagger = {
           description: "Page number",
         },
         {
-          name: "pageSize",
+          name: "size",
           in: "query",
           required: false,
           schema: { type: "integer", default: 10 },

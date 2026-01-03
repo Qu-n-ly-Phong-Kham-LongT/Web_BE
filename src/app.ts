@@ -1,11 +1,13 @@
 import express, { Request, Response } from "express";
-import { errorHandler } from "./middlewares/error-handler";
-import { prisma } from "./config/database.config";
-import rootRouter from "./routes/root.route";
-import swaggerUi from "swagger-ui-express";
-import swaggerDocument from "./swagger/index";
 import basicAuth from "express-basic-auth";
+import swaggerUi from "swagger-ui-express";
 import ENV from "./config/environment.config";
+import { prisma } from "./config/database.config";
+import { errorHandler } from "./middlewares/error-handler";
+import rootRouter from "./routes/root.route";
+import swaggerDocument from "./swagger/index";
+import { BaseError } from "./utils/base-error.util";
+import { runSeeds } from "./seed";
 
 const app = express();
 
@@ -14,18 +16,24 @@ app.use(express.urlencoded({ extended: true }));
 
 const checkDatabase = async () => {
   try {
-    await await prisma.$connect();
+    await prisma.$connect();
     console.log("Database connected successfully");
   } catch (err: any) {
-    console.error("Database connection failed");
-    console.error(err);
-    process.exit(1); // dừng app nếu DB lỗi
+    const dbError =
+      err instanceof BaseError
+        ? err
+        : new BaseError(500, "Database connection failed", err);
+    console.error(dbError);
+    process.exit(1); // stop app if DB fails
   }
-}
+};
 
-checkDatabase();
+(async () => {
+  await checkDatabase();
+  await runSeeds();
+})();
 
-app.get("/health", (req: Request, res: Response) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.status(200).send("OK");
 });
 
@@ -42,6 +50,5 @@ app.use(
 app.use("/api", rootRouter);
 
 app.use(errorHandler);
-
 
 export default app;

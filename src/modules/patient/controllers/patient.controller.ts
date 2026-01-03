@@ -34,10 +34,10 @@ export class PatientController {
     res: Response
   ) => {
     const page = parseInt(req.query.page as string) || 1;
-    const pageSize = parseInt(req.query.pageSize as string) || 10;
+    const size = parseInt(req.query.pageSize as string) || 10;
     const search = req.query.search as string | undefined;
 
-    let result: PatientListResponseDto = await this.patientService.getPatients(page, pageSize, search);
+    let result: PatientListResponseDto = await this.patientService.getPatients(page, size, search);
     return successResponse(res, 200, result.patients, "Patient list retrieved successfully", result.pagination);
   };
 
