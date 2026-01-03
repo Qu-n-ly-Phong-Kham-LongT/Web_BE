@@ -26,9 +26,4 @@ authRouter.post(
     authController.logout
 );
 
-authRouter.get(
-    "/users/:id",
-    authController.getUserById
-);
-
 export default authRouter;

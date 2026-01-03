@@ -3,7 +3,6 @@ import Joi from "joi";
 export interface UserResponseDto {
   id: string;
   fullName: string | null;
-  
   createdAt: Date | null;
 }
 

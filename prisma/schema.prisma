@@ -15,7 +15,6 @@ enum UserRoleEnum {
   Manager
   Doctor
   Admin
-  Staff
 }
 
 enum Gender {

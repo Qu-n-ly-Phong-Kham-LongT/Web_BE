@@ -1,7 +1,6 @@
 import { AuthService } from "../services/auth.service";
 import { Request, Response } from "express";
 import { successResponse } from "../../../utils/response.util";
-import { UserResponseDto } from "../dtos/user.response.dto";
 import { LoginRequestDto } from "../dtos/login.request.dto";
 import { LoginResponseDto } from "../dtos/login.response.dto";
 import { RefreshRequestDto } from "../dtos/refresh.request.dto";
@@ -15,7 +14,7 @@ export class AuthController {
     res: Response<LoginResponseDto>
   ) => {
     const { username, password } = req.body;
-    const result = await this.authService.loginUser(username, password);
+    const result = await this.authService.loginUser({ username, password });
     return successResponse(res, 200, result, "Đăng nhập thành công");
   };
 
@@ -35,19 +34,5 @@ export class AuthController {
     const { refreshToken } = req.body;
     await this.authService.logoutUser(refreshToken);
     return successResponse(res, 200, {}, "Đăng xuất thành công");
-  };
-
-  public getUserById = async (
-    req: Request,
-    res: Response
-  ) => {
-    const { id } = req.params;
-    let result: UserResponseDto | null = await this.authService.getUserById(id);
-    return successResponse(
-      res,
-      200,
-      result,
-      "Get user by ID not implemented yet"
-    );
   };
 }
