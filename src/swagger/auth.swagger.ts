@@ -1,44 +1,73 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { RegisterRequestSchema } from "../modules/auth/dtos/register.request.dto";
-import { RegisterResponseSchema } from "../modules/auth/dtos/register.response.dto";
 import { UserResponseSchema } from "../modules/auth/dtos/user.response.dto";
+import { LoginResponseSchema } from "../modules/auth/dtos/login.response.dto";
 
 const AuthSwagger = {
-  "/api/auth/register": {
+  "/api/auth/login": {
     post: {
       tags: ["Auth"],
-      summary: "Register new user",
+      summary: "Đăng nhập người dùng",
       requestBody: {
         required: true,
         content: {
           "application/json": {
-            schema: joiToSwagger(RegisterRequestSchema),
+            schema: {
+              type: "object",
+              properties: {
+                username: { type: "string" },
+                password: { type: "string" },
+              },
+            },
           },
         },
       },
       responses: {
-        201: {
-          description: "User registered successfully",
+        200: {
+          description: "Login successful",
           content: {
             "application/json": {
-              schema: joiToSwagger(RegisterResponseSchema),
+              schema: joiToSwagger(LoginResponseSchema),
             },
           },
         },
       },
     },
   },
+
+  "/api/auth/logout": {
+    post: {
+      tags: ["Auth"],
+      summary: "Đăng xuất người dùng",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                refreshToken: { type: "string" },
+              },
+            },
+          },
+        },  
+      },
+      responses: {
+        200: { description: "Logout successful" },
+      },
+    },
+  },
+
   "/api/auth/users/{id}": {
     get: {
       tags: ["Auth"],
-      summary: "Get user by ID",
+      summary: "Lấy thông tin người dùng theo ID",
       parameters: [
         {
           name: "id",
           in: "path",
           required: true,
           schema: { type: "string" },
-          description: "ID of the user to retrieve",
+          description: "ID của người dùng cần lấy thông tin",
         },
       ],
       responses: {
@@ -53,7 +82,6 @@ const AuthSwagger = {
       },
     },
   },
-
 };
 
 export default AuthSwagger;
