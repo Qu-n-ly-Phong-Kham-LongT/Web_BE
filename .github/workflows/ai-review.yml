@@ -1,0 +1,118 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Google Generative AI Library
+        run: npm install @google/generative-ai
+
+      - name: Get Code Diff
+        id: diff
+        run: |
+          # Lấy sự khác biệt giữa nhánh PR và nhánh base (dev)
+          git diff origin/${{ github.base_ref }}...HEAD > diff.txt
+          echo "DIFF_FILE=diff.txt" >> $GITHUB_ENV
+
+      - name: Run Gemini Review Script
+        id: gemini
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          node -e "
+          const { GoogleGenerativeAI } = require('@google/generative-ai');
+          const fs = require('fs');
+
+          async function run() {
+            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+            const diff = fs.readFileSync('diff.txt', 'utf8');
+            if (!diff) {
+              console.log('No changes detected.');
+              return;
+            }
+
+            const prompt = \`
+            Bạn là một chuyên gia Senior Backend Developer (ExpressJS, TypeScript).
+            Hãy review đoạn code diff dưới đây từ một Pull Request vào nhánh 'dev'.
+            Dự án sử dụng cấu trúc Modular (Controller, Service, Repository).
+
+            Tiêu chí review:
+            1. Cấu trúc: Logic nghiệp vụ phải ở Service, không để ở Controller.
+            2. TypeScript: Kiểm tra kiểu dữ liệu, tránh dùng 'any', ưu tiên Interface/Type rõ ràng.
+            3. Error Handling: Kiểm tra try-catch, trung tâm xử lý lỗi (ErrorHandler middleware).
+            4. Performance: Tránh các lỗi N+1 query, await trong vòng lặp không cần thiết.
+            5. Security: Kiểm tra validate đầu vào (Zod/Joi), tránh SQL Injection.
+
+            Yêu cầu kết quả trả về:
+            - Đánh giá tổng quan.
+            - Danh sách các lỗi/điểm cần cải thiện.
+            - Giải pháp code cụ thể cho từng vấn đề.
+            - Trả về bằng tiếng Việt.
+
+            Nội dung diff:
+            \\\`\\\`\\\`
+            \${diff}
+            \\\`\\\`\\\`
+            \`;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            
+            fs.writeFileSync('review_result.md', text);
+          }
+          run();
+          "
+
+      - name: Create Issue with Review Result
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const reviewBody = fs.readFileSync('review_result.md', 'utf8');
+            const prNumber = context.payload.pull_request.number;
+            const prUrl = context.payload.pull_request.html_url;
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔍 Code Review Report for PR #${prNumber}`,
+              body: `## 🤖 AI Review Analysis for PR #${prNumber}\n\n${reviewBody}\n\n--- \n🔗 **Linked PR:** ${prUrl}`,
+              labels: ['ai-review', 'needs-fix']
+            });
+
+      - name: Post Comment to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: "🚀 **AI Review đã hoàn tất!** Một Issue chi tiết đã được tạo để theo dõi các lỗi và giải pháp. Vui lòng kiểm tra tab Issues."
+            });
