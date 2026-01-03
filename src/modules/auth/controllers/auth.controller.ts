@@ -1,20 +1,40 @@
 import { AuthService } from "../services/auth.service";
 import { Request, Response } from "express";
 import { successResponse } from "../../../utils/response.util";
-import { RegisterRequestDto } from "../dtos/register.request.dto";
-import { RegisterResponseDto } from "../dtos/register.response.dto";
 import { UserResponseDto } from "../dtos/user.response.dto";
+import { LoginRequestDto } from "../dtos/login.request.dto";
+import { LoginResponseDto } from "../dtos/login.response.dto";
+import { RefreshRequestDto } from "../dtos/refresh.request.dto";
+import { RefreshResponseDto } from "../dtos/refresh.response.dto";
 
 export class AuthController {
   private authService = new AuthService();
 
-  public register = async (
-    req: Request<{}, {}, RegisterRequestDto>,
-    res: Response<RegisterResponseDto>
+  public login = async (
+    req: Request<{}, {}, LoginRequestDto>,
+    res: Response<LoginResponseDto>
   ) => {
-    const { email, password } = req.body;
-    let result: RegisterResponseDto = await this.authService.registerUser(email, password);
-    return successResponse(res, 201, result, "User registered successfully");
+    const { username, password } = req.body;
+    const result = await this.authService.loginUser(username, password);
+    return successResponse(res, 200, result, "Đăng nhập thành công");
+  };
+
+  public refresh = async (
+    req: Request<{}, {}, RefreshRequestDto>,
+    res: Response<RefreshResponseDto>
+  ) => {
+    const { refreshToken } = req.body;
+    const result = await this.authService.refreshToken(refreshToken);
+    return successResponse(res, 200, result, "Làm mới token thành công");
+  };
+
+  public logout = async (
+    req: Request<{}, {}, RefreshRequestDto>,
+    res: Response<void>
+  ) => {
+    const { refreshToken } = req.body;
+    await this.authService.logoutUser(refreshToken);
+    return successResponse(res, 200, {}, "Đăng xuất thành công");
   };
 
   public getUserById = async (
