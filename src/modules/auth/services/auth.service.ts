@@ -5,7 +5,7 @@ import { LoginResponseDto } from "../dtos/login.response.dto";
 import { LoginRequestDto } from "../dtos/login.request.dto";
 import { AuthRepository } from "../repositories/auth.repository";
 import { RefreshResponseDto } from "../dtos/refresh.response.dto";
-import { UserStatus } from "@prisma/client";
+import { UserRoleEnum, UserStatus } from "@prisma/client";
 import { UserRepository } from "../../users/repositories/user.repository";
 
 export class AuthService {
@@ -34,12 +34,19 @@ export class AuthService {
       throw new BaseError(401, "Tài khoản hoặc mật khẩu không chính xác.");
     }
 
+    const hasAdminRole = (user.roles || []).some(
+      (ur: any) => ur.role?.roleName === UserRoleEnum.Admin
+    );
+    if (!user.clinicId && !hasAdminRole) {
+      throw new BaseError(404, "Tài khoản chưa gắn phòng khám.");
+    }
+
     const payload: IJwtPayload = {
       userId: user.userId,
       roles: (user.roles || [])
         .map((ur: any) => ur.role?.roleName)
         .filter((r: string | undefined): r is string => Boolean(r)),
-      clinicId: user.clinicId,
+      clinicId: user.clinicId ?? null,
     };
 
     const accessToken = jwtUtils.generateAccessToken(payload);
@@ -95,12 +102,19 @@ export class AuthService {
       throw new BaseError(403, "Tài khoản bị khóa.");
     }
 
+    const hasAdminRole = (user.roles || []).some(
+      (ur: any) => ur.role?.roleName === UserRoleEnum.Admin
+    );
+    if (!user.clinicId && !hasAdminRole) {
+      throw new BaseError(404, "Tài khoản chưa gắn phòng khám.");
+    }
+
     const payload: IJwtPayload = {
       userId: user.userId,
       roles: (user.roles || [])
         .map((ur: any) => ur.role?.roleName)
         .filter((r: string | undefined): r is string => Boolean(r)),
-      clinicId: user.clinicId,
+      clinicId: user.clinicId ?? null,
     };
 
     const newAccessToken = jwtUtils.generateAccessToken(payload);
@@ -109,7 +123,7 @@ export class AuthService {
     const newDecoded = jwtUtils.decodeToken(newRefreshToken);
     const newExpSeconds = newDecoded?.exp;
     if (!newExpSeconds) {
-      throw new BaseError(500, "Refresh token generate failed");
+      throw new BaseError(500, "Refresh token tạo thất bại.");
     }
 
     await this.authRepository.revokeRefreshToken(refreshToken);

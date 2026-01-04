@@ -4,7 +4,7 @@ import { jwtConfigs } from "../config/jwt.config";
 export interface IJwtPayload {
   userId: string;
   roles?: string[];
-  clinicId: string;
+  clinicId: string | null;
   exp?: number;
 }
 
