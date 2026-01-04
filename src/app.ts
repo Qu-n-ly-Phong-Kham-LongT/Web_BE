@@ -9,15 +9,17 @@ import swaggerDocument from "./swagger/index";
 import { BaseError } from "./utils/base-error.util";
 import { runSeeds } from "./seed";
 import { corsMiddleware } from "./middlewares/cors.middleware";
+import { apiLimiter } from "./middlewares/rate-limit.middleware";
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
 
 const checkDatabase = async () => {
   try {
-    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
     console.log("Database connected successfully");
   } catch (err: any) {
     const dbError =
@@ -52,7 +54,7 @@ app.use(
   swaggerUi.setup(swaggerDocument)
 );
 
-app.use("/api", rootRouter);
+app.use("/api", apiLimiter, rootRouter);
 
 app.use(errorHandler);
 
