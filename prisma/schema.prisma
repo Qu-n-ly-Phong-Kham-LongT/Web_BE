@@ -421,3 +421,14 @@ model PrescriptionTemplateDetail {
   defaultRoute           String?
   defaultTiming          String?
 }
+
+model File {
+  FileID       String   @id @default(dbgenerated("uuid_generate_v4()"))
+
+  RelativePath String
+  Type         String  
+  MimeType     String   
+
+  Size         Int
+  CreatedAt    DateTime @default(now())
+}

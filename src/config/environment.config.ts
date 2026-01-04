@@ -9,6 +9,8 @@ interface _ENV {
   swaggerPassword: string;
   databaseUrl: string;
   cors: string[];
+  rateLimitWindowMs: number;
+  rateLimitMax: number;
 }
 
 const parseCors = (): string[] => {
@@ -26,6 +28,8 @@ const ENV: _ENV = {
   swaggerPassword: process.env.SWAGGER_PASSWORD || 'admin',
   databaseUrl: process.env.DATABASE_URL || '',
   cors: parseCors(),
+  rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX) || 100,
 };
 
 export default ENV;
