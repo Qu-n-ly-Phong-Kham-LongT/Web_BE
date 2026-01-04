@@ -3,7 +3,7 @@ import { jwtUtils } from "../utils/jwt.util";
 import { BaseError } from "../utils/base-error.util";
 import { IJwtPayload } from "../utils/jwt.util";
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest<P = {}, ResBody = any, ReqBody = any, ReqQuery = any>  extends Request<P, ResBody, ReqBody, ReqQuery> {
     payload?: IJwtPayload;
 }
 
