@@ -6,6 +6,9 @@ import { UpdatePatientRequestDto } from "../dtos/update-patient.request.dto";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { PatientListResponseDto } from "../dtos/patient-list.response.dto";
 import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
+import { PatientRelativeResponseDto } from "../dtos/patient-relative.response.dto";
+import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
+import { UpdatePatientRelativeRequestDto } from "../dtos/update-patient-relative.request.dto";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 
 export class PatientController {
@@ -32,10 +35,7 @@ export class PatientController {
     if (!clinicId) {
       return successResponse(res, 401, null, "Clinic ID not found in token");
     }
-    let result: PatientResponseDto | null = await this.patientService.getPatientById(id, clinicId);
-    if (!result) {
-      return successResponse(res, 404, null, "Không tìm thấy bệnh nhân");
-    }
+    let result: PatientResponseDto = await this.patientService.getPatientById(id, clinicId);
     return successResponse(res, 200, result, "Lấy thông tin bệnh nhân thành công");
   };
 
@@ -44,7 +44,7 @@ export class PatientController {
     res: Response
   ) => {
     const page = parseInt(req.query.page as string) || 1;
-    const size = parseInt(req.query.pageSize as string) || 10;
+    const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
     const clinicId = req.payload?.clinicId;
     if (!clinicId) {
@@ -74,6 +74,59 @@ export class PatientController {
   ) => {
     let result: PatientEnumResponseDto = await this.patientService.getPatientEnums();
     return successResponse(res, 200, result, "Lấy danh sách enum thành công");
+  };
+
+  // Patient Relative methods
+  public createRelative = async (
+    req: AuthenticatedRequest<{ patientId: string }, {}, CreatePatientRelativeRequestDto>,
+    res: Response
+  ) => {
+    const { patientId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientRelativeResponseDto = await this.patientService.createRelative(patientId, req.body, clinicId);
+    return successResponse(res, 201, result, "Tạo thông tin người thân thành công");
+  };
+
+  public getRelativeById = async (
+    req: AuthenticatedRequest<{ relativeId: string }>,
+    res: Response
+  ) => {
+    const { relativeId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientRelativeResponseDto = await this.patientService.getRelativeById(relativeId, clinicId);
+    return successResponse(res, 200, result, "Lấy thông tin người thân thành công");
+  };
+
+  public getRelativesByPatientId = async (
+    req: AuthenticatedRequest<{ patientId: string }>,
+    res: Response
+  ) => {
+    const { patientId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientRelativeResponseDto[] = await this.patientService.getRelativesByPatientId(patientId, clinicId);
+    return successResponse(res, 200, result, "Lấy danh sách người thân thành công");
+  };
+
+  public updateRelative = async (
+    req: AuthenticatedRequest<{ relativeId: string }, {}, UpdatePatientRelativeRequestDto>,
+    res: Response
+  ) => {
+    const { relativeId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientRelativeResponseDto = await this.patientService.updateRelative(relativeId, req.body, clinicId);
+    return successResponse(res, 200, result, "Cập nhật thông tin người thân thành công");
   };
 
 }
