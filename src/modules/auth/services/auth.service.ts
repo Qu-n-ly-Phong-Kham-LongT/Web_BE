@@ -19,25 +19,25 @@ export class AuthService {
       loginRequest.username
     );
     if (!user) {
-      throw new BaseError(401, "Tài khoản hoặc mật khẩu không đúng.");
+      throw new BaseError(401, "Tài khoản không tồn tại.");
     }
 
-    if (user.Status === UserStatus.Inactive) {
-      throw new BaseError(403, "Tài khoản đã bị vô hiệu hóa.");
+    if (user.status === UserStatus.Inactive) {
+      throw new BaseError(403, "Tài khoản bị khóa.");
     }
 
     const isPasswordMatch = await bcrypt.compare(
       loginRequest.password,
-      user.Password
+      user.password
     );
     if (!isPasswordMatch) {
-      throw new BaseError(401, "Tài khoản hoặc mật khẩu không đúng.");
+      throw new BaseError(401, "Tài khoản hoặc mật khẩu không chính xác.");
     }
 
     const payload: IJwtPayload = {
-      userId: user.UserID,
+      userId: user.userId,
       roles: (user.roles || [])
-        .map((ur: any) => ur.role?.RoleName)
+        .map((ur: any) => ur.role?.roleName)
         .filter((r: string | undefined): r is string => Boolean(r)),
       clinicId: user.clinicId,
     };
@@ -52,7 +52,7 @@ export class AuthService {
     }
 
     await this.authRepository.createRefreshToken(
-      user.UserID,
+      user.userId,
       refreshToken,
       new Date(expSeconds * 1000)
     );
@@ -67,7 +67,7 @@ export class AuthService {
   public async logoutUser(refreshToken: string): Promise<void> {
     const tokenRecord =
       await this.authRepository.findRefreshToken(refreshToken);
-    if (!tokenRecord || tokenRecord.IsRevoked) {
+    if (!tokenRecord || tokenRecord.isRevoked) {
       return;
     }
     await this.authRepository.revokeRefreshToken(refreshToken);
@@ -80,8 +80,8 @@ export class AuthService {
       await this.authRepository.findRefreshToken(refreshToken);
     if (
       !tokenRecord ||
-      tokenRecord.IsRevoked ||
-      tokenRecord.ExpiresAt < new Date()
+      tokenRecord.isRevoked ||
+      tokenRecord.expiresAt < new Date()
     ) {
       throw new BaseError(401, "Refresh token không hợp lệ.");
     }
@@ -91,14 +91,14 @@ export class AuthService {
       throw new BaseError(401, "Refresh token không hợp lệ.");
     }
 
-    if (user.Status === UserStatus.Inactive) {
-      throw new BaseError(403, "Tài khoản đã bị vô hiệu hóa.");
+    if (user.status === UserStatus.Inactive) {
+      throw new BaseError(403, "Tài khoản bị khóa.");
     }
 
     const payload: IJwtPayload = {
-      userId: user.UserID,
+      userId: user.userId,
       roles: (user.roles || [])
-        .map((ur: any) => ur.role?.RoleName)
+        .map((ur: any) => ur.role?.roleName)
         .filter((r: string | undefined): r is string => Boolean(r)),
       clinicId: user.clinicId,
     };
@@ -114,7 +114,7 @@ export class AuthService {
 
     await this.authRepository.revokeRefreshToken(refreshToken);
     await this.authRepository.createRefreshToken(
-      user.UserID,
+      user.userId,
       newRefreshToken,
       new Date(newExpSeconds * 1000)
     );
