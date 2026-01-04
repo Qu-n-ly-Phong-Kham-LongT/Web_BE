@@ -3,7 +3,7 @@ import type { CorsOptions } from "cors";
 
 export const corsMiddleware = (allowedOrigins: string[]) =>
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (allowedOrigins.length === 0) return callback(null, true);
 
       if (!origin) return callback(null, true);

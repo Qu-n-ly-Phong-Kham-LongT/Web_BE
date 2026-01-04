@@ -1,5 +1,7 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { LoginResponseSchema } from "../modules/auth/dtos/login.response.dto";
+import { RefreshRequestSchema } from "../modules/auth/dtos/refresh.request.dto";
+import { RefreshResponseSchema } from "../modules/auth/dtos/refresh.response.dto";
 
 const AuthSwagger = {
   "/api/auth/login": {
@@ -48,10 +50,35 @@ const AuthSwagger = {
               },
             },
           },
-        },  
+        },
       },
       responses: {
         200: { description: "Logout successful" },
+      },
+    },
+  },
+
+  "/api/auth/refresh": {
+    post: {
+      tags: ["Auth"],
+      summary: "Làm mới access/refresh token",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: joiToSwagger(RefreshRequestSchema),
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Refresh successful",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(RefreshResponseSchema),
+            },
+          },
+        },
       },
     },
   },

@@ -1,9 +1,6 @@
 import { Prisma, User, UserRoleEnum } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
-import { UserEntity } from "../entities/user.entity";
 
-export type CreateUserRepo = Omit<UserEntity, "id" | "createdAt" | "updatedAt">;
-export type UpdateUserRepo = Partial<CreateUserRepo>;
 export type UserWithRoles = Prisma.UserGetPayload<{
   include: {
     clinic: true;
@@ -18,24 +15,25 @@ export type UserWithRoles = Prisma.UserGetPayload<{
 export class UserRepository {
   public async findUserByUsername(username: string): Promise<User | null> {
     return await prisma.user.findUnique({
-      where: { Username: username },
+      where: { username: username },
     });
   }
 
   public async createUser(
-    createData: CreateUserRepo,
+    createData: Prisma.UserUncheckedCreateInput,
     roles: UserRoleEnum[]
   ): Promise<UserWithRoles> {
     return await prisma.user.create({
       data: {
-        Username: createData.username,
-        Password: createData.password,
-        FullName: createData.fullname,
-        Email: createData.email ?? null,
+        username: createData.username,
+        password: createData.password,
+        fullName: createData.fullName,
+        email: createData.email ?? null,
         clinicId: createData.clinicId,
+        status: createData.status,
         roles: {
           create: roles.map((role) => ({
-            role: { connect: { RoleName: role } },
+            role: { connect: { roleName: role } },
           })),
         },
       },
@@ -50,27 +48,27 @@ export class UserRepository {
     });
   }
 
-    // public async updateUser(
-    //   id: string,
-    //   updateData: UserWithRoles
-    // ): Promise<User> {
-    //   return await prisma.user.update({
-    //     where: { UserID: id },
-    //     data: updateData,
-    //   });
-    // }
+  public async updateUser(
+    id: string,
+    updateData: Prisma.UserUncheckedUpdateInput
+  ): Promise<User> {
+    return await prisma.user.update({
+      where: { userId: id },
+      data: updateData,
+    });
+  }
 
-    public async findUserById(id: string) {
+  public async findUserById(id: string) {
     return await prisma.user.findUnique({
-      where: { UserID: id },
+      where: { userId: id },
       include: {
         clinic: true,
         roles: {
           include: {
             role: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 }
