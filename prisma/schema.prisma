@@ -72,13 +72,15 @@ model Role {
 }
 
 model Clinic {
-  clinicId       String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  clinicName     String?         @db.VarChar(255)
-  address        String?         @db.VarChar(255)
-  phone          String?         @db.VarChar(255)
-  email          String?         @unique @db.VarChar(150)
-  clinicCode     String?         @unique @db.VarChar(100)
-  users          User[]
+  clinicId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicName String? @db.VarChar(255)
+  address    String? @db.VarChar(255)
+  phone      String? @db.VarChar(255)
+  email      String  @unique @db.VarChar(150)
+  clinicCode String? @unique @default(dbgenerated("generate_clinic_code()")) @db.VarChar(100)
+
+  users User[]
+
   patients       Patient[]
   medicines      Medicine[]
   medicalRecords MedicalRecord[]
@@ -94,8 +96,8 @@ model User {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
 
-  clinicId String @db.Uuid
-  clinic   Clinic @relation(fields: [clinicId], references: [clinicId])
+  clinicId String? @db.Uuid
+  clinic   Clinic? @relation(fields: [clinicId], references: [clinicId])
 
   roles                 UserRole[]
   medicalRecords        MedicalRecord[]
@@ -331,16 +333,16 @@ model ServiceRequestDetail {
 }
 
 model ServiceResult {
-  resultId           String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  detailId           String?               @unique @db.Uuid
+  resultId           String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  detailId           String?          @unique @db.Uuid
   resultCode         String?
   description        String?
   conclusion         String?
   note               String?
-  isPdf              Boolean?              @default(false)
+  isPdf              Boolean?         @default(false)
   pdfUrl             String?
-  performingDoctorId String?               @db.Uuid
-  performingDoctor   User?                 @relation(fields: [performingDoctorId], references: [userId])
+  performingDoctorId String?          @db.Uuid
+  performingDoctor   User?            @relation(fields: [performingDoctorId], references: [userId])
   executedAt         DateTime?
   serviceRequests    ServiceRequest[]
 }

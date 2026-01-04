@@ -5,7 +5,7 @@ export interface CreateUserRequestDto {
   username: string;
   password: string;
   fullname: string;
-  email?: string | null;
+  email?: string;
   clinicId: string;
   roles: UserRoleEnum[];
 }
@@ -17,8 +17,8 @@ export interface ChangeUserPasswordDto {
 
 export interface UpdateUserRequestDto {
   fullname?: string;
-  email?: string | null;
-  clinicId?: string;
+  email?: string;
+  clinicId: string;
   status?: string;
   roles?: UserRoleEnum[];
 }
@@ -123,3 +123,4 @@ export const CreateUserRequestSchema = Joi.object<CreateUserRequestDto>({
     "any.invalid": "Roles phải là mảng hoặc chuỗi (phân tách bởi dấu phẩy)",
   }),
 });
+

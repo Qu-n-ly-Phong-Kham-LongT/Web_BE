@@ -6,7 +6,7 @@ export interface UserResponseDto {
     username: string;
     fullname: string;
     email: string | null;
-    clinicId: string;
+    clinicId: string | null;
     status: number;
     createdAt: Date;
     roles: UserRoleEnum[]; 

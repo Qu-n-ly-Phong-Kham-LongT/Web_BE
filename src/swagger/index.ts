@@ -3,6 +3,7 @@ import AuthSwagger from "./auth.swagger";
 import UserSwagger from "./user.swagger";
 import PatientSwagger from "./patient.swagger";
 import FileSwagger from "./file.swagger";
+import ClinicSwagger from "./clinic.swagger";
 import PatientRelativeSwagger from "./patient-relative.swagger";
 
 const swaggerDocument = {
@@ -17,6 +18,7 @@ const swaggerDocument = {
     ...PatientSwagger,
     ...PatientRelativeSwagger,
     ...FileSwagger,
+    ...ClinicSwagger,
   },
   components: {
     securitySchemes: {
