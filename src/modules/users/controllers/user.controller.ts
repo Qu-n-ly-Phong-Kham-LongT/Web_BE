@@ -1,7 +1,12 @@
 import { UserService } from "../services/user.service";
 import { Request, Response, NextFunction } from "express";
 import { successResponse } from "../../../utils/response.util";
-import { CreateUserRequestDto } from "../dtos/create-user.request.dto";
+import {
+  ChangeUserPasswordDto,
+  CreateUserRequestDto,
+  UpdateUserRequestDto,
+} from "../dtos/user.request.dto";
+import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 
 export class UserController {
   private userService = new UserService();
@@ -11,14 +16,10 @@ export class UserController {
     res: Response,
     next: NextFunction
   ) => {
-    try {
       const createData = req.body;
       const result = await this.userService.createUser(createData);
       return successResponse(res, 201, result, "Tạo người dùng thành công");
-    } catch (err) {
-      next(err);
-    }
-  };
+    } 
 
   public getUserById = async (
     req: Request<{ id: string }, {}, {}>,
@@ -26,11 +27,79 @@ export class UserController {
     next: NextFunction
   ) => {
     try {
-        const result = await this.userService.getUserById(req.params.id);
-        if (!result) {
-            return successResponse(res, 404, null, "Người dùng không tồn tại");
-        }
-        return successResponse(res, 200, result, "Lấy thông tin người dùng thành công");
+      const result = await this.userService.getUserById(req.params.id);
+      return successResponse(
+        res,
+        200,
+        result,
+        "Lấy thông tin người dùng thành công"
+      );
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public updateUser = async (
+    req: Request<{ id: string }, {}, UpdateUserRequestDto>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      await this.userService.updateUser(id, updateData);
+      return successResponse(res, 200, null, "Cập nhật người dùng thành công");
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public changePassword = async (
+    req: AuthenticatedRequest<{}, {}, ChangeUserPasswordDto>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId = req.payload?.userId;
+      if (!userId) {
+        return successResponse(
+          res,
+          401,
+          null,
+          "Unauthorized: Người dùng chưa đăng nhập"
+        );
+      }
+
+      const { oldPassword, newPassword } = req.body;
+      await this.userService.changePassword(userId, oldPassword, newPassword);
+      return successResponse(res, 200, null, "Đổi mật khẩu thành công");
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  public getMyProfile = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const userId = req.payload?.userId;
+      if (!userId) {
+        return successResponse(res, 401, null, "Unauthorized: Chưa đăng nhập");
+      }
+
+      const result = await this.userService.getUserById(userId);
+      if (!result) {
+        return successResponse(res, 404, null, "Người dùng không tồn tại");
+      }
+
+      return successResponse(
+        res,
+        200,
+        result,
+        "Lấy thông tin người dùng thành công"
+      );
     } catch (err) {
       next(err);
     }

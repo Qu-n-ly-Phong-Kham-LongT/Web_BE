@@ -1,7 +1,7 @@
 import { UserRoleEnum } from "@prisma/client";
 import joi from "joi";
 
-export interface CreateUserResponseDto {
+export interface UserResponseDto {
     id: string;
     username: string;
     fullname: string;
@@ -11,7 +11,7 @@ export interface CreateUserResponseDto {
     createdAt: Date;
     roles: UserRoleEnum[]; 
 }
-export const CreateUserResponseSchema = joi.object<CreateUserResponseDto>({
+export const UserResponseSchema = joi.object<UserResponseDto>({
     id: joi.string().description("User ID"),
     username: joi.string().description("Username of the user"),
     fullname: joi.string().description("Full name of the user"),
