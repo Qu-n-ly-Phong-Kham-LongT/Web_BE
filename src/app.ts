@@ -8,6 +8,7 @@ import rootRouter from "./routes/root.route";
 import swaggerDocument from "./swagger/index";
 import { BaseError } from "./utils/base-error.util";
 import { runSeeds } from "./seed";
+import { corsMiddleware } from "./middlewares/cors.middleware";
 
 const app = express();
 
@@ -27,6 +28,10 @@ const checkDatabase = async () => {
     process.exit(1); // stop app if DB fails
   }
 };
+
+const ALLOWED_CORS_ORIGIN = ENV.cors;
+
+app.use(corsMiddleware(ALLOWED_CORS_ORIGIN));
 
 (async () => {
   await checkDatabase();
