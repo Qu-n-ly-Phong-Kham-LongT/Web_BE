@@ -3,6 +3,17 @@ import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 
 export class PatientRepository {
+  private buildClinicCodeFilter(clinicCode?: string): { PatientCode: { startsWith: string } } | {} {
+    if (clinicCode) {
+      return {
+        PatientCode: {
+          startsWith: clinicCode,
+        },
+      };
+    }
+    return {};
+  }
+
   public async findLatestPatient() {
     return await prisma.patient.findFirst({
       where: {
@@ -40,20 +51,31 @@ export class PatientRepository {
     });
   }
 
-  public async findPatientById(id: string) {
-    return await prisma.patient.findUnique({
-      where: { PatientID: id },
+  public async findPatientById(id: string, clinicCode?: string) {
+    const where: any = {
+      PatientID: id,
+      ...this.buildClinicCodeFilter(clinicCode),
+    };
+    return await prisma.patient.findFirst({
+      where,
     });
   }
 
   public async findPatients(
     page: number = 1,
     pageSize: number = 10,
-    search?: string
+    search?: string,
+    clinicCode?: string
   ) {
     const skip = (page - 1) * pageSize;
+    
+    const baseWhere: any = {
+      ...this.buildClinicCodeFilter(clinicCode),
+    };
+
     const where = search
       ? {
+          ...baseWhere,
           OR: [
             { FullName: { contains: search, mode: "insensitive" as const } },
             { PatientCode: { contains: search, mode: "insensitive" as const } },
@@ -62,7 +84,7 @@ export class PatientRepository {
             { IdentityCard: { contains: search, mode: "insensitive" as const } },
           ],
         }
-      : {};
+      : baseWhere;
 
     const [patients, totalItems] = await Promise.all([
       prisma.patient.findMany({
@@ -77,16 +99,25 @@ export class PatientRepository {
     return { patients, totalItems };
   }
 
-  public async updatePatient(id: string, data: Prisma.PatientUpdateInput) {
+  public async updatePatient(id: string, data: Prisma.PatientUpdateInput, clinicCode?: string) {
+    const where: any = {
+      PatientID: id,
+      ...this.buildClinicCodeFilter(clinicCode),
+    };
+    
+    // First check if patient exists with clinic code filter
+    const existing = await prisma.patient.findFirst({
+      where,
+    });
+    
+    if (!existing) {
+      return null;
+    }
+    
+    // Update the patient
     return await prisma.patient.update({
       where: { PatientID: id },
       data: data,
-    });
-  }
-
-  public async deletePatient(id: string) {
-    return await prisma.patient.delete({
-      where: { PatientID: id },
     });
   }
 
@@ -96,21 +127,33 @@ export class PatientRepository {
     });
   }
 
-  public async findPatientByPhone(phone: string) {
-    return await prisma.patient.findUnique({
-      where: { Phone: phone },
+  public async findPatientByPhone(phone: string, clinicCode?: string) {
+    const where: any = {
+      Phone: phone,
+      ...this.buildClinicCodeFilter(clinicCode),
+    };
+    return await prisma.patient.findFirst({
+      where,
     });
   }
 
-  public async findPatientByIdentityCard(identityCard: string) {
-    return await prisma.patient.findUnique({
-      where: { IdentityCard: identityCard },
+  public async findPatientByIdentityCard(identityCard: string, clinicCode?: string) {
+    const where: any = {
+      IdentityCard: identityCard,
+      ...this.buildClinicCodeFilter(clinicCode),
+    };
+    return await prisma.patient.findFirst({
+      where,
     });
   }
 
-  public async findPatientByInsuranceNumber(insuranceNumber: string) {
-    return await prisma.patient.findUnique({
-      where: { InsuranceNumber: insuranceNumber },
+  public async findPatientByInsuranceNumber(insuranceNumber: string, clinicCode?: string) {
+    const where: any = {
+      InsuranceNumber: insuranceNumber,
+      ...this.buildClinicCodeFilter(clinicCode),
+    };
+    return await prisma.patient.findFirst({
+      where,
     });
   }
 }

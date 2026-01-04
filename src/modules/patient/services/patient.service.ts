@@ -9,27 +9,43 @@ import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
 import { PatientRepository } from "../repositories/patient.repository";
 import { createPagination } from "../../../utils/pagination.util";
 import { generatePatientCode } from "../../../utils/patient-code.util";
+import { prisma } from "../../../config/database.config";
 
 export class PatientService {
   private patientRepository = new PatientRepository();
 
+  private async getClinicCode(clinicId: string): Promise<string> {
+    const clinic = await prisma.clinic.findUnique({
+      where: { ClinicID: clinicId },
+      select: { ClinicCode: true },
+    });
+
+    if (!clinic || !clinic.ClinicCode) {
+      throw new BaseError(404, "Clinic code not found");
+    }
+
+    return clinic.ClinicCode;
+  }
+
   public async createPatient(data: CreatePatientRequestDto, clinicId: string): Promise<PatientResponseDto> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    
     if (data.phone) {
-      let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone);
+      let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone, clinicCode);
       if (existingByPhone) {
         throw new BaseError(400, "Số điện thoại đã tồn tại");
       }
     }
 
     if (data.identityCard) {
-      let existingByIdentityCard = await this.patientRepository.findPatientByIdentityCard(data.identityCard);
+      let existingByIdentityCard = await this.patientRepository.findPatientByIdentityCard(data.identityCard, clinicCode);
       if (existingByIdentityCard) {
         throw new BaseError(400, "CMND/CCCD đã tồn tại");
       }
     }
 
     if (data.insuranceNumber) {
-      let existingByInsurance = await this.patientRepository.findPatientByInsuranceNumber(data.insuranceNumber);
+      let existingByInsurance = await this.patientRepository.findPatientByInsuranceNumber(data.insuranceNumber, clinicCode);
       if (existingByInsurance) {
         throw new BaseError(400, "Số thẻ BHYT đã tồn tại");
       }
@@ -40,8 +56,9 @@ export class PatientService {
     return this.mapToResponseDto(result);
   }
 
-  public async getPatientById(id: string): Promise<PatientResponseDto | null> {
-    let patient = await this.patientRepository.findPatientById(id);
+  public async getPatientById(id: string, clinicId: string): Promise<PatientResponseDto | null> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    let patient = await this.patientRepository.findPatientById(id, clinicCode);
     if (!patient) {
       return null;
     }
@@ -51,9 +68,11 @@ export class PatientService {
   public async getPatients(
     page: number = 1,
     size: number = 10,
-    search?: string
+    search: string | undefined,
+    clinicId: string
   ): Promise<PatientListResponseDto> {
-    let { patients, totalItems } = await this.patientRepository.findPatients(page, size, search);
+    const clinicCode = await this.getClinicCode(clinicId);
+    let { patients, totalItems } = await this.patientRepository.findPatients(page, size, search, clinicCode);
 
     let pagination = createPagination(page, size, totalItems);
 
@@ -63,8 +82,9 @@ export class PatientService {
     };
   }
 
-  public async updatePatient(id: string, data: UpdatePatientRequestDto): Promise<PatientResponseDto> {
-    let existingPatient = await this.patientRepository.findPatientById(id);
+  public async updatePatient(id: string, data: UpdatePatientRequestDto, clinicId: string): Promise<PatientResponseDto> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    let existingPatient = await this.patientRepository.findPatientById(id, clinicCode);
     if (!existingPatient) {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
@@ -88,7 +108,7 @@ export class PatientService {
     }
 
     if (data.phone !== undefined && data.phone !== existingPatient.Phone) {
-      let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone);
+      let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone, clinicCode);
       if (existingByPhone) {
         throw new BaseError(400, "Số điện thoại đã tồn tại");
       }
@@ -101,7 +121,7 @@ export class PatientService {
 
     if (data.identityCard !== undefined && data.identityCard !== existingPatient.IdentityCard) {
       if (data.identityCard !== null) {
-        let existingByIdentityCard = await this.patientRepository.findPatientByIdentityCard(data.identityCard);
+        let existingByIdentityCard = await this.patientRepository.findPatientByIdentityCard(data.identityCard, clinicCode);
         if (existingByIdentityCard) {
           throw new BaseError(400, "CMND/CCCD đã tồn tại");
         }
@@ -111,7 +131,7 @@ export class PatientService {
 
     if (data.insuranceNumber !== undefined && data.insuranceNumber !== existingPatient.InsuranceNumber) {
       if (data.insuranceNumber !== null) {
-        let existingByInsurance = await this.patientRepository.findPatientByInsuranceNumber(data.insuranceNumber);
+        let existingByInsurance = await this.patientRepository.findPatientByInsuranceNumber(data.insuranceNumber, clinicCode);
         if (existingByInsurance) {
           throw new BaseError(400, "Số thẻ BHYT đã tồn tại");
         }
@@ -127,17 +147,11 @@ export class PatientService {
       updateData.Address = data.address;
     }
 
-    let result = await this.patientRepository.updatePatient(id, updateData);
-    return this.mapToResponseDto(result);
-  }
-
-  public async deletePatient(id: string): Promise<void> {
-    let existingPatient = await this.patientRepository.findPatientById(id);
-    if (!existingPatient) {
+    let result = await this.patientRepository.updatePatient(id, updateData, clinicCode);
+    if (!result) {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
-
-    await this.patientRepository.deletePatient(id);
+    return this.mapToResponseDto(result);
   }
 
   public async getPatientEnums(): Promise<PatientEnumResponseDto> {
