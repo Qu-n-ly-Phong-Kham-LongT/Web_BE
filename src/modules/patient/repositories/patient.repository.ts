@@ -6,18 +6,18 @@ export class PatientRepository {
   public async findLatestPatient() {
     return await prisma.patient.findFirst({
       where: {
-        PatientCode: {
+        patientCode: {
           startsWith: "HS",
         },
       },
-      orderBy: { CreatedAt: "desc" },
-      select: { PatientCode: true },
+      orderBy: { createdAt: "desc" },
+      select: { patientCode: true },
     });
   }
 
   public async existsByCode(code: string): Promise<boolean> {
     let count = await prisma.patient.count({
-      where: { PatientCode: code },
+      where: { patientCode: code },
     });
     return count > 0;
   }
@@ -25,24 +25,24 @@ export class PatientRepository {
   public async createPatient(data: CreatePatientRequestDto, patientCode: string) {
     return await prisma.patient.create({
       data: {
-        PatientCode: patientCode,
-        FullName: data.fullName,
-        Gender: data.gender ?? null,
-        DOB: new Date(data.dob),
-        PatientCategory: data.patientCategory ?? null,
-        Phone: data.phone,
-        Email: data.email ?? null,
-        IdentityCard: data.identityCard ?? null,
-        InsuranceNumber: data.insuranceNumber ?? null,
-        Occupation: data.occupation ?? null,
-        Address: data.address ?? null,
+        patientCode: patientCode,
+        fullName: data.fullName,
+        gender: data.gender ?? null,
+        dob: new Date(data.dob),
+        patientCategory: data.patientCategory ?? null,
+        phone: data.phone,
+        email: data.email ?? null,
+        identityCard: data.identityCard ?? null,
+        insuranceNumber: data.insuranceNumber ?? null,
+        occupation: data.occupation ?? null,
+        address: data.address ?? null,
       },
     });
   }
 
   public async findPatientById(id: string) {
     return await prisma.patient.findUnique({
-      where: { PatientID: id },
+      where: { patientId: id },
     });
   }
 
@@ -55,11 +55,11 @@ export class PatientRepository {
     const where = search
       ? {
           OR: [
-            { FullName: { contains: search, mode: "insensitive" as const } },
-            { PatientCode: { contains: search, mode: "insensitive" as const } },
-            { Phone: { contains: search, mode: "insensitive" as const } },
-            { Email: { contains: search, mode: "insensitive" as const } },
-            { IdentityCard: { contains: search, mode: "insensitive" as const } },
+            { fullName: { contains: search, mode: "insensitive" as const } },
+            { patientCode: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { identityCard: { contains: search, mode: "insensitive" as const } },
           ],
         }
       : {};
@@ -69,7 +69,7 @@ export class PatientRepository {
         where,
         skip,
         take: pageSize,
-        orderBy: { CreatedAt: "desc" },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.patient.count({ where }),
     ]);
@@ -79,38 +79,38 @@ export class PatientRepository {
 
   public async updatePatient(id: string, data: Prisma.PatientUpdateInput) {
     return await prisma.patient.update({
-      where: { PatientID: id },
+      where: { patientId: id },
       data: data,
     });
   }
 
   public async deletePatient(id: string) {
     return await prisma.patient.delete({
-      where: { PatientID: id },
+      where: { patientId: id },
     });
   }
 
   public async findPatientByCode(patientCode: string) {
     return await prisma.patient.findUnique({
-      where: { PatientCode: patientCode },
+      where: { patientCode: patientCode },
     });
   }
 
   public async findPatientByPhone(phone: string) {
     return await prisma.patient.findUnique({
-      where: { Phone: phone },
+      where: { phone: phone },
     });
   }
 
   public async findPatientByIdentityCard(identityCard: string) {
     return await prisma.patient.findUnique({
-      where: { IdentityCard: identityCard },
+      where: { identityCard: identityCard },
     });
   }
 
   public async findPatientByInsuranceNumber(insuranceNumber: string) {
     return await prisma.patient.findUnique({
-      where: { InsuranceNumber: insuranceNumber },
+      where: { insuranceNumber: insuranceNumber },
     });
   }
 }

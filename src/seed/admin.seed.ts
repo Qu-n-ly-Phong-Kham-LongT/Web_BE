@@ -10,52 +10,52 @@ const DEFAULT_CLINIC_EMAIL = process.env.SEED_CLINIC_EMAIL || "default.clinic@ex
 
 export const seedAdmin = async () => {
   const clinic = await prisma.clinic.upsert({
-    where: { Email: DEFAULT_CLINIC_EMAIL },
+    where: { email: DEFAULT_CLINIC_EMAIL },
     update: {},
     create: {
-      ClinicName: "Default Clinic",
-      Email: DEFAULT_CLINIC_EMAIL,
-      Address: "N/A",
-      Phone: null,
-      ClinicCode: "PKH",
+      clinicName: "Default Clinic",
+      email: DEFAULT_CLINIC_EMAIL,
+      address: "N/A",
+      phone: null,
+      clinicCode: "PKH",
     },
   });
 
   await Promise.all([
     prisma.role.upsert({
-      where: { RoleName: UserRoleEnum.Admin },
+      where: { roleName: UserRoleEnum.Admin },
       update: {},
-      create: { RoleName: UserRoleEnum.Admin },
+      create: { roleName: UserRoleEnum.Admin },
     }),
     prisma.role.upsert({
-      where: { RoleName: UserRoleEnum.Doctor },
+      where: { roleName: UserRoleEnum.Doctor },
       update: {},
-      create: { RoleName: UserRoleEnum.Doctor },
+      create: { roleName: UserRoleEnum.Doctor },
     }),
     prisma.role.upsert({
-      where: { RoleName: UserRoleEnum.Manager },
+      where: { roleName: UserRoleEnum.Manager },
       update: {},
-      create: { RoleName: UserRoleEnum.Manager },
+      create: { roleName: UserRoleEnum.Manager },
     }),
   ]);
 
   const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
 
   await prisma.user.upsert({
-    where: { Username: DEFAULT_ADMIN_USERNAME },
+    where: { username: DEFAULT_ADMIN_USERNAME },
     update: {},
     create: {
-      Username: DEFAULT_ADMIN_USERNAME,
-      Password: hashedPassword,
-      FullName: "System Admin",
-      Email: DEFAULT_ADMIN_EMAIL,
-      Status: UserStatus.Active,
-      clinicId: clinic.ClinicID,
+      username: DEFAULT_ADMIN_USERNAME,
+      password: hashedPassword,
+      fullName: "System Admin",
+      email: DEFAULT_ADMIN_EMAIL,
+      status: UserStatus.Active,
+      clinicId: clinic.clinicId,
       roles: {
         create: [
           {
             role: {
-              connect: { RoleName: UserRoleEnum.Admin },
+              connect: { roleName: UserRoleEnum.Admin },
             },
           },
         ],
