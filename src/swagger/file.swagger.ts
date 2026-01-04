@@ -1,6 +1,6 @@
 import { FileType } from "../constants/file-type.constant";
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { DeleteFileRequestSchema } from '../modules/file/dtos/delete-file.request.dto';
+import { DeleteFileRequestSchema } from "../modules/file/dtos/delete-file.request.dto";
 
 const FileSwagger = {
   "/api/files/upload": {
@@ -8,6 +8,7 @@ const FileSwagger = {
       tags: ["Files"],
       summary: "Upload file",
       description: "Upload a file to the server",
+      security: [{ BearerAuth: [] }],
       parameters: [
         {
           name: "type",
@@ -15,7 +16,7 @@ const FileSwagger = {
           required: true,
           schema: {
             type: "string",
-            enum: Object.values(FileType)
+            enum: Object.values(FileType),
           },
           description: "Type of the file to be uploaded",
         },
@@ -47,7 +48,10 @@ const FileSwagger = {
                 type: "object",
                 properties: {
                   statusCode: { type: "number", example: 200 },
-                  message: { type: "string", example: "File uploaded successfully" },
+                  message: {
+                    type: "string",
+                    example: "File uploaded successfully",
+                  },
                   data: {
                     type: "object",
                     properties: {
@@ -79,6 +83,7 @@ const FileSwagger = {
       tags: ["Files"],
       summary: "Delete file",
       description: "Delete a file from the server by its relative path",
+      security: [{ BearerAuth: [] }],
       requestBody: {
         required: true,
         content: {
@@ -89,7 +94,7 @@ const FileSwagger = {
       },
       responses: {
         200: {
-          description: "File deleted successfully"
+          description: "File deleted successfully",
         },
       },
     },
