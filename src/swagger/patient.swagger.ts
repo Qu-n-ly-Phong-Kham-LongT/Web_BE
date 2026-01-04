@@ -3,12 +3,13 @@ import { CreatePatientRequestSchema } from "../modules/patient/dtos/create-patie
 import { UpdatePatientRequestSchema } from "../modules/patient/dtos/update-patient.request.dto";
 import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
 import { PatientListResponseSchema } from "../modules/patient/dtos/patient-list.response.dto";
+import { PatientEnumResponseSchema } from "../modules/patient/dtos/patient-enum.response.dto";
 
 const PatientSwagger = {
   "/api/patients": {
     post: {
       tags: ["Patient"],
-      summary: "Create new patient",
+      summary: "Tạo mới bệnh nhân",
       requestBody: {
         required: true,
         content: {
@@ -17,9 +18,10 @@ const PatientSwagger = {
           },
         },
       },
+      security: [{ bearerAuth: [] }],
       responses: {
         201: {
-          description: "Patient created successfully",
+          description: "Tạo bệnh nhân thành công",
           content: {
             "application/json": {
               schema: joiToSwagger(PatientResponseSchema),
@@ -30,33 +32,34 @@ const PatientSwagger = {
     },
     get: {
       tags: ["Patient"],
-      summary: "Get list of patients",
+      summary: "Lấy danh sách bệnh nhân",
       parameters: [
         {
           name: "page",
           in: "query",
           required: false,
           schema: { type: "integer", default: 1 },
-          description: "Page number",
+          description: "Số trang",
         },
         {
           name: "size",
           in: "query",
           required: false,
           schema: { type: "integer", default: 10 },
-          description: "Number of items per page",
+          description: "Số lượng mỗi trang",
         },
         {
           name: "search",
           in: "query",
           required: false,
           schema: { type: "string" },
-          description: "Search by name, code, phone, email, or identity card",
+          description: "Tìm kiếm theo tên, mã, số điện thoại, email hoặc CMND/CCCD",
         },
       ],
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Patients retrieved successfully",
+          description: "Lấy danh sách bệnh nhân thành công",
           content: {
             "application/json": {
               schema: joiToSwagger(PatientListResponseSchema),
@@ -69,19 +72,20 @@ const PatientSwagger = {
   "/api/patients/{id}": {
     get: {
       tags: ["Patient"],
-      summary: "Get patient by ID",
+      summary: "Lấy thông tin bệnh nhân theo ID",
       parameters: [
         {
           name: "id",
           in: "path",
           required: true,
           schema: { type: "string" },
-          description: "ID of the patient to retrieve",
+          description: "ID của bệnh nhân cần lấy",
         },
       ],
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Patient retrieved successfully",
+          description: "Lấy thông tin bệnh nhân thành công",
           content: {
             "application/json": {
               schema: joiToSwagger(PatientResponseSchema),
@@ -92,14 +96,14 @@ const PatientSwagger = {
     },
     put: {
       tags: ["Patient"],
-      summary: "Update patient",
+      summary: "Cập nhật thông tin bệnh nhân",
       parameters: [
         {
           name: "id",
           in: "path",
           required: true,
           schema: { type: "string" },
-          description: "ID of the patient to update",
+          description: "ID của bệnh nhân cần cập nhật",
         },
       ],
       requestBody: {
@@ -110,9 +114,10 @@ const PatientSwagger = {
           },
         },
       },
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Patient updated successfully",
+          description: "Cập nhật thông tin bệnh nhân thành công",
           content: {
             "application/json": {
               schema: joiToSwagger(PatientResponseSchema),
@@ -121,21 +126,21 @@ const PatientSwagger = {
         },
       },
     },
-    delete: {
+  },
+  "/api/patients/enums": {
+    get: {
       tags: ["Patient"],
-      summary: "Delete patient",
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "ID of the patient to delete",
-        },
-      ],
+      summary: "Lấy danh sách enum bệnh nhân",
+      description: "Lấy tất cả giá trị enum của bệnh nhân",
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Patient deleted successfully",
+          description: "Lấy danh sách enum bệnh nhân thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(PatientEnumResponseSchema),
+            },
+          },
         },
       },
     },

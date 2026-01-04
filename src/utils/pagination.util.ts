@@ -1,13 +1,13 @@
 export const createPagination = (
     currentPage: number,
-    pageSize: number,
+    size: number,
     totalItems: number
 ) => {
-    const totalPages = Math.ceil(totalItems / pageSize);
+    const totalPages = Math.ceil(totalItems / size);
 
     return {
         currentPage,
-        pageSize,
+        size,
         totalItems,
         totalPages,
     };
