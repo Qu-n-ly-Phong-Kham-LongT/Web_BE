@@ -4,10 +4,10 @@ import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 
 export class PatientRepository {
-  private buildClinicCodeFilter(clinicCode?: string): { PatientCode: { startsWith: string } } | {} {
+  private buildClinicCodeFilter(clinicCode?: string): { patientCode: { startsWith: string } } | {} {
     if (clinicCode) {
       return {
-        PatientCode: {
+        patientCode: {
           startsWith: clinicCode,
         },
       };
@@ -18,17 +18,17 @@ export class PatientRepository {
   public async createPatient(data: CreatePatientRequestDto, patientCode: string): Promise<Patient> {
     return await prisma.patient.create({
       data: {
-        PatientCode: patientCode,
-        FullName: data.fullName,
-        Gender: data.gender ?? null,
-        DOB: new Date(data.dob),
-        PatientCategory: data.patientCategory ?? null,
-        Phone: data.phone,
-        Email: data.email ?? null,
-        IdentityCard: data.identityCard ?? null,
-        InsuranceNumber: data.insuranceNumber ?? null,
-        Occupation: data.occupation ?? null,
-        Address: data.address ?? null,
+        patientCode: patientCode,
+        fullName: data.fullName,
+        gender: data.gender ?? null,
+        dob: new Date(data.dob),
+        patientCategory: data.patientCategory ?? null,
+        phone: data.phone,
+        email: data.email ?? null,
+        identityCard: data.identityCard ?? null,
+        insuranceNumber: data.insuranceNumber ?? null,
+        occupation: data.occupation ?? null,
+        address: data.address ?? null,
       },
     });
   }
@@ -36,7 +36,7 @@ export class PatientRepository {
   public async findPatientById(id: string, clinicCode?: string): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
-        PatientID: id,
+        patientId: id,
         ...this.buildClinicCodeFilter(clinicCode),
       },
     });
@@ -58,11 +58,11 @@ export class PatientRepository {
       ? {
           ...baseWhere,
           OR: [
-            { FullName: { contains: search, mode: "insensitive" as const } },
-            { PatientCode: { contains: search, mode: "insensitive" as const } },
-            { Phone: { contains: search, mode: "insensitive" as const } },
-            { Email: { contains: search, mode: "insensitive" as const } },
-            { IdentityCard: { contains: search, mode: "insensitive" as const } },
+            { fullName: { contains: search, mode: "insensitive" as const } },
+            { patientCode: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { identityCard: { contains: search, mode: "insensitive" as const } },
           ],
         }
       : baseWhere;
@@ -72,7 +72,7 @@ export class PatientRepository {
         where,
         skip,
         take: size,
-        orderBy: { CreatedAt: "desc" },
+        orderBy: { createdAt: "desc" },
       }),
       prisma.patient.count({ where }),
     ]);
@@ -84,7 +84,7 @@ export class PatientRepository {
     // First check if patient exists with clinic code filter
     const existing = await prisma.patient.findFirst({
       where: {
-        PatientID: id,
+        patientId: id,
         ...this.buildClinicCodeFilter(clinicCode),
       },
     });
@@ -95,21 +95,21 @@ export class PatientRepository {
     
     // Update the patient
     return await prisma.patient.update({
-      where: { PatientID: id },
+      where: { patientId: id },
       data: data,
     });
   }
 
   public async findPatientByCode(patientCode: string): Promise<Patient | null> {
     return await prisma.patient.findUnique({
-      where: { PatientCode: patientCode },
+      where: { patientCode: patientCode },
     });
   }
 
   public async findPatientByPhone(phone: string, clinicCode?: string): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
-        Phone: phone,
+        phone: phone,
         ...this.buildClinicCodeFilter(clinicCode),
       },
     });
@@ -118,7 +118,7 @@ export class PatientRepository {
   public async findPatientByIdentityCard(identityCard: string, clinicCode?: string): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
-        IdentityCard: identityCard,
+        identityCard: identityCard,
         ...this.buildClinicCodeFilter(clinicCode),
       },
     });
@@ -127,7 +127,7 @@ export class PatientRepository {
   public async findPatientByInsuranceNumber(insuranceNumber: string, clinicCode?: string): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
-        InsuranceNumber: insuranceNumber,
+        insuranceNumber: insuranceNumber,
         ...this.buildClinicCodeFilter(clinicCode),
       },
     });
@@ -137,12 +137,12 @@ export class PatientRepository {
   public async createRelative(patientId: string, data: CreatePatientRelativeRequestDto): Promise<PatientRelative> {
     return await prisma.patientRelative.create({
       data: {
-        PatientID: patientId,
-        FullName: data.fullName,
-        Phone: data.phone,
-        Relationship: data.relationship ?? null,
-        IdentityCard: data.identityCard ?? null,
-        Address: data.address ?? null,
+        patientId: patientId,
+        fullName: data.fullName,
+        phone: data.phone,
+        relationship: data.relationship ?? null,
+        identityCard: data.identityCard ?? null,
+        address: data.address ?? null,
       },
     });
   }
@@ -150,9 +150,9 @@ export class PatientRepository {
   public async findRelativeById(relativeId: string, clinicCode: string): Promise<PatientRelative | null> {
     return await prisma.patientRelative.findFirst({
       where: {
-        RelativeID: relativeId,
+        relativeId: relativeId,
         patient: {
-          PatientCode: {
+          patientCode: {
             startsWith: clinicCode,
           },
         },
@@ -162,13 +162,13 @@ export class PatientRepository {
 
   public async findRelativesByPatientId(patientId: string): Promise<PatientRelative[]> {
     return await prisma.patientRelative.findMany({
-      where: { PatientID: patientId },
+      where: { patientId: patientId },
     });
   }
 
   public async updateRelative(relativeId: string, data: Prisma.PatientRelativeUpdateInput): Promise<PatientRelative> {
     return await prisma.patientRelative.update({
-      where: { RelativeID: relativeId },
+      where: { relativeId: relativeId },
       data: data,
     });
   }

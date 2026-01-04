@@ -19,15 +19,15 @@ export class PatientService {
 
   private async getClinicCode(clinicId: string): Promise<string> {
     const clinic = await prisma.clinic.findUnique({
-      where: { ClinicID: clinicId },
-      select: { ClinicCode: true },
+      where: { clinicId: clinicId },
+      select: { clinicCode: true },
     });
 
-    if (!clinic || !clinic.ClinicCode) {
+    if (!clinic || !clinic.clinicCode) {
       throw new BaseError(404, "Clinic code not found");
     }
 
-    return clinic.ClinicCode;
+    return clinic.clinicCode;
   }
 
   public async createPatient(data: CreatePatientRequestDto, clinicId: string): Promise<PatientResponseDto> {
@@ -95,59 +95,59 @@ export class PatientService {
     const updateData: Prisma.PatientUpdateInput = {};
 
     if (data.fullName !== undefined) {
-      updateData.FullName = data.fullName;
+      updateData.fullName = data.fullName;
     }
 
     if (data.gender !== undefined) {
-      updateData.Gender = data.gender;
+      updateData.gender = data.gender;
     }
 
     if (data.dob !== undefined) {
-      updateData.DOB = new Date(data.dob);
+      updateData.dob = new Date(data.dob);
     }
 
     if (data.patientCategory !== undefined) {
-      updateData.PatientCategory = data.patientCategory;
+      updateData.patientCategory = data.patientCategory;
     }
 
-    if (data.phone !== undefined && data.phone !== existingPatient.Phone) {
+    if (data.phone !== undefined && data.phone !== existingPatient.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone, clinicCode);
       if (existingByPhone) {
         throw new BaseError(400, "Số điện thoại đã tồn tại");
       }
-      updateData.Phone = data.phone;
+      updateData.phone = data.phone;
     }
 
     if (data.email !== undefined) {
-      updateData.Email = data.email;
+      updateData.email = data.email;
     }
 
-    if (data.identityCard !== undefined && data.identityCard !== existingPatient.IdentityCard) {
+    if (data.identityCard !== undefined && data.identityCard !== existingPatient.identityCard) {
       if (data.identityCard !== null) {
         let existingByIdentityCard = await this.patientRepository.findPatientByIdentityCard(data.identityCard, clinicCode);
         if (existingByIdentityCard) {
           throw new BaseError(400, "CMND/CCCD đã tồn tại");
         }
       }
-      updateData.IdentityCard = data.identityCard;
+      updateData.identityCard = data.identityCard;
     }
 
-    if (data.insuranceNumber !== undefined && data.insuranceNumber !== existingPatient.InsuranceNumber) {
+    if (data.insuranceNumber !== undefined && data.insuranceNumber !== existingPatient.insuranceNumber) {
       if (data.insuranceNumber !== null) {
         let existingByInsurance = await this.patientRepository.findPatientByInsuranceNumber(data.insuranceNumber, clinicCode);
         if (existingByInsurance) {
           throw new BaseError(400, "Số thẻ BHYT đã tồn tại");
         }
       }
-      updateData.InsuranceNumber = data.insuranceNumber;
+      updateData.insuranceNumber = data.insuranceNumber;
     }
 
     if (data.occupation !== undefined) {
-      updateData.Occupation = data.occupation;
+      updateData.occupation = data.occupation;
     }
 
     if (data.address !== undefined) {
-      updateData.Address = data.address;
+      updateData.address = data.address;
     }
 
     let result = await this.patientRepository.updatePatient(id, updateData, clinicCode);
@@ -215,23 +215,23 @@ export class PatientService {
     const updateData: Prisma.PatientRelativeUpdateInput = {};
 
     if (data.fullName !== undefined) {
-      updateData.FullName = data.fullName;
+      updateData.fullName = data.fullName;
     }
 
     if (data.phone !== undefined) {
-      updateData.Phone = data.phone;
+      updateData.phone = data.phone;
     }
 
     if (data.relationship !== undefined) {
-      updateData.Relationship = data.relationship;
+      updateData.relationship = data.relationship;
     }
 
     if (data.identityCard !== undefined) {
-      updateData.IdentityCard = data.identityCard;
+      updateData.identityCard = data.identityCard;
     }
 
     if (data.address !== undefined) {
-      updateData.Address = data.address;
+      updateData.address = data.address;
     }
 
     const result = await this.patientRepository.updateRelative(relativeId, updateData);
@@ -240,32 +240,32 @@ export class PatientService {
 
   private mapToResponseDto(patient: Patient): PatientResponseDto {
     return {
-      patientID: patient.PatientID,
-      patientCode: patient.PatientCode ?? "",
-      fullName: patient.FullName ?? "",
-      gender: patient.Gender,
-      dob: patient.DOB ? patient.DOB.toISOString() : "",
-      patientCategory: patient.PatientCategory,
-      phone: patient.Phone ?? "",
-      email: patient.Email,
-      identityCard: patient.IdentityCard,
-      insuranceNumber: patient.InsuranceNumber,
-      occupation: patient.Occupation,
-      address: patient.Address,
-      createdAt: patient.CreatedAt ? patient.CreatedAt.toISOString() : "",
-      updatedAt: patient.UpdatedAt ? patient.UpdatedAt.toISOString() : "",
+      patientID: patient.patientId,
+      patientCode: patient.patientCode ?? "",
+      fullName: patient.fullName ?? "",
+      gender: patient.gender,
+      dob: patient.dob ? patient.dob.toISOString() : "",
+      patientCategory: patient.patientCategory,
+      phone: patient.phone ?? "",
+      email: patient.email,
+      identityCard: patient.identityCard,
+      insuranceNumber: patient.insuranceNumber,
+      occupation: patient.occupation,
+      address: patient.address,
+      createdAt: patient.createdAt ? patient.createdAt.toISOString() : "",
+      updatedAt: patient.updatedAt ? patient.updatedAt.toISOString() : "",
     };
   }
 
   private mapRelativeToResponseDto(relative: PatientRelative): PatientRelativeResponseDto {
     return {
-      relativeID: relative.RelativeID,
-      patientID: relative.PatientID ?? "",
-      fullName: relative.FullName ?? "",
-      phone: relative.Phone ?? "",
-      relationship: relative.Relationship,
-      identityCard: relative.IdentityCard,
-      address: relative.Address,
+      relativeID: relative.relativeId,
+      patientID: relative.patientId ?? "",
+      fullName: relative.fullName ?? "",
+      phone: relative.phone ?? "",
+      relationship: relative.relationship,
+      identityCard: relative.identityCard,
+      address: relative.address,
     };
   }
 }
