@@ -5,6 +5,7 @@ import PatientSwagger from "./patient.swagger";
 import FileSwagger from "./file.swagger";
 import ClinicSwagger from "./clinic.swagger";
 import PatientRelativeSwagger from "./patient-relative.swagger";
+import Icd10Swagger from "./icd10.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -19,6 +20,7 @@ const swaggerDocument = {
     ...PatientRelativeSwagger,
     ...FileSwagger,
     ...ClinicSwagger,
+    ...Icd10Swagger,
   },
   components: {
     securitySchemes: {
