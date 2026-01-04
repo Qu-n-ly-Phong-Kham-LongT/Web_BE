@@ -5,15 +5,25 @@ import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 import { UpdatePatientRequestDto } from "../dtos/update-patient.request.dto";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { PatientListResponseDto } from "../dtos/patient-list.response.dto";
+import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
+// import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
+import { IJwtPayload } from "../../../utils/jwt.util";
 
+interface AuthenticatedRequest<ReqBody = any> extends Request<{}, any, ReqBody> {
+  payload?: IJwtPayload;
+}
 export class PatientController {
   private patientService = new PatientService();
 
   public createPatient = async (
-    req: Request<{}, {}, CreatePatientRequestDto>,
+    req: AuthenticatedRequest<CreatePatientRequestDto>,
     res: Response
   ) => {
-    let result: PatientResponseDto = await this.patientService.createPatient(req.body);
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    let result: PatientResponseDto = await this.patientService.createPatient(req.body, clinicId);
     return successResponse(res, 201, result, "Create patient successfully");
   };
 
@@ -50,12 +60,12 @@ export class PatientController {
     return successResponse(res, 200, result, "Patient information updated successfully");
   };
 
-  public deletePatient = async (
+  public getPatientEnums = async (
     req: Request,
     res: Response
   ) => {
-    const { id } = req.params;
-    await this.patientService.deletePatient(id);
-    return successResponse(res, 200, null, "Patient deleted successfully");
+    let result: PatientEnumResponseDto = await this.patientService.getPatientEnums();
+    return successResponse(res, 200, result, "Patient enums retrieved successfully");
   };
+
 }

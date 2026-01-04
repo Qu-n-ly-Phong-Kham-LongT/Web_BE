@@ -11,29 +11,34 @@ const patientController = new PatientController();
 
 patientRouter.post(
     "/",
+    authenticate,
     validateBody(CreatePatientRequestSchema),
     patientController.createPatient
 );
 
 patientRouter.get(
     "/",
+    authenticate,
     patientController.getPatients
 );
 
 patientRouter.get(
     "/:id",
+    authenticate,
     patientController.getPatientById
 );
 
 patientRouter.put(
     "/:id",
+    authenticate,
     validateBody(UpdatePatientRequestSchema),
     patientController.updatePatient
 );
 
-patientRouter.delete(
-    "/:id",
-    patientController.deletePatient
+patientRouter.get(
+    "/enums",
+    authenticate,
+    patientController.getPatientEnums
 );
 
 export default patientRouter;

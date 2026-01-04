@@ -1,19 +1,19 @@
-import { Patient, Prisma } from "@prisma/client";
+import { Patient, Prisma, Gender, PatientCategory } from "@prisma/client";
 
 import { BaseError } from "../../../utils/base-error.util";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 import { UpdatePatientRequestDto } from "../dtos/update-patient.request.dto";
 import { PatientListResponseDto } from "../dtos/patient-list.response.dto";
+import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
 import { PatientRepository } from "../repositories/patient.repository";
 import { createPagination } from "../../../utils/pagination.util";
 import { generatePatientCode } from "../../../utils/patient-code.util";
-import { formatDate, formatDateTime } from "../../../utils/date.util";
 
 export class PatientService {
   private patientRepository = new PatientRepository();
 
-  public async createPatient(data: CreatePatientRequestDto): Promise<PatientResponseDto> {
+  public async createPatient(data: CreatePatientRequestDto, clinicId: string): Promise<PatientResponseDto> {
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone);
       if (existingByPhone) {
@@ -35,7 +35,7 @@ export class PatientService {
       }
     }
 
-    let patientCode = await generatePatientCode();
+    let patientCode = await generatePatientCode(clinicId);
     let result = await this.patientRepository.createPatient(data, patientCode);
     return this.mapToResponseDto(result);
   }
@@ -140,13 +140,20 @@ export class PatientService {
     await this.patientRepository.deletePatient(id);
   }
 
+  public async getPatientEnums(): Promise<PatientEnumResponseDto> {
+    return {
+      gender: Object.values(Gender),
+      patientCategory: Object.values(PatientCategory),
+    };
+  }
+
   private mapToResponseDto(patient: Patient): PatientResponseDto {
     return {
       patientID: patient.PatientID,
       patientCode: patient.PatientCode ?? "",
       fullName: patient.FullName ?? "",
       gender: patient.Gender,
-      dob: formatDate(patient.DOB),
+      dob: patient.DOB ? patient.DOB.toISOString() : "",
       patientCategory: patient.PatientCategory,
       phone: patient.Phone ?? "",
       email: patient.Email,
@@ -154,8 +161,8 @@ export class PatientService {
       insuranceNumber: patient.InsuranceNumber,
       occupation: patient.Occupation,
       address: patient.Address,
-      createdAt: formatDateTime(patient.CreatedAt),
-      updatedAt: formatDateTime(patient.UpdatedAt),
+      createdAt: patient.CreatedAt ? patient.CreatedAt.toISOString() : "",
+      updatedAt: patient.UpdatedAt ? patient.UpdatedAt.toISOString() : "",
     };
   }
 }

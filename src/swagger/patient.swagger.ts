@@ -3,6 +3,7 @@ import { CreatePatientRequestSchema } from "../modules/patient/dtos/create-patie
 import { UpdatePatientRequestSchema } from "../modules/patient/dtos/update-patient.request.dto";
 import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
 import { PatientListResponseSchema } from "../modules/patient/dtos/patient-list.response.dto";
+import { PatientEnumResponseSchema } from "../modules/patient/dtos/patient-enum.response.dto";
 
 const PatientSwagger = {
   "/api/patients": {
@@ -17,6 +18,7 @@ const PatientSwagger = {
           },
         },
       },
+      security: [{ bearerAuth: [] }],
       responses: {
         201: {
           description: "Patient created successfully",
@@ -54,6 +56,7 @@ const PatientSwagger = {
           description: "Search by name, code, phone, email, or identity card",
         },
       ],
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
           description: "Patients retrieved successfully",
@@ -79,6 +82,7 @@ const PatientSwagger = {
           description: "ID of the patient to retrieve",
         },
       ],
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
           description: "Patient retrieved successfully",
@@ -110,6 +114,7 @@ const PatientSwagger = {
           },
         },
       },
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
           description: "Patient updated successfully",
@@ -121,21 +126,21 @@ const PatientSwagger = {
         },
       },
     },
-    delete: {
+  },
+  "/api/patients/enums": {
+    get: {
       tags: ["Patient"],
-      summary: "Delete patient",
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "ID of the patient to delete",
-        },
-      ],
+      summary: "Get patient enums",
+      description: "Get all enum values for Gender and PatientCategory",
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Patient deleted successfully",
+          description: "Patient enums retrieved successfully",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(PatientEnumResponseSchema),
+            },
+          },
         },
       },
     },
