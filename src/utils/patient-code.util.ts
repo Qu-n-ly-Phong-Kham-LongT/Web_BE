@@ -5,11 +5,11 @@ import { BaseError } from "./base-error.util";
 export async function generatePatientCode(clinicId: string): Promise<string> {
   // Get clinic code from database
   const clinic = await prisma.clinic.findUnique({
-    where: { ClinicID: clinicId },
-    select: { ClinicCode: true },
+    where: { clinicId: clinicId },
+    select: { clinicCode: true },
   });
 
-  if (!clinic || !clinic.ClinicCode) {
+  if (!clinic || !clinic.clinicCode) {
     throw new BaseError(404, "Clinic code not found");
   }
 
@@ -18,11 +18,11 @@ export async function generatePatientCode(clinicId: string): Promise<string> {
   const lastFourDigits = timeString.slice(-4);
 
   // Combine clinic code + last 4 digits
-  const patientCode = `${clinic.ClinicCode}${lastFourDigits}`;
+  const patientCode = `${clinic.clinicCode}${lastFourDigits}`;
 
   // Ensure uniqueness
   let existing = await prisma.patient.findUnique({
-    where: { PatientCode: patientCode },
+    where: { patientCode: patientCode },
   });
 
   let finalCode = patientCode;
@@ -30,9 +30,9 @@ export async function generatePatientCode(clinicId: string): Promise<string> {
   
   while (existing) {
     // If code exists, append a counter to make it unique
-    finalCode = `${clinic.ClinicCode}${lastFourDigits}${counter}`;
+    finalCode = `${clinic.clinicCode}${lastFourDigits}${counter}`;
     existing = await prisma.patient.findUnique({
-      where: { PatientCode: finalCode },
+      where: { patientCode: finalCode },
     });
     counter++;
   }
