@@ -7,6 +7,8 @@ import ClinicSwagger from "./clinic.swagger";
 import PatientRelativeSwagger from "./patient-relative.swagger";
 import PatientAllergySwagger from "./patient-allergy.swagger";
 import Icd10Swagger from "./icd10.swagger";
+import MedicalRecordSwagger from "./medical-record.swagger";
+import ClinicalExaminationSwagger from "./clinical-examination.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -23,6 +25,8 @@ const swaggerDocument = {
     ...FileSwagger,
     ...ClinicSwagger,
     ...Icd10Swagger,
+    ...MedicalRecordSwagger,
+    ...ClinicalExaminationSwagger,
   },
   components: {
     securitySchemes: {

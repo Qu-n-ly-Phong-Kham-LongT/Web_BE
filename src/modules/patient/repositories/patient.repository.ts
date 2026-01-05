@@ -174,15 +174,20 @@ export class PatientRepository {
     });
   }
 
-  // Patient Allergy methods
-  public async createAllergies(patientId: string, allergies: CreatePatientAllergyItemDto[]): Promise<{ count: number }> {
-    return await prisma.patientAllergy.createMany({
-      data: allergies.map((allergy) => ({
-        patientId: patientId,
-        reaction: allergy.reaction ?? null,
-        note: allergy.note ?? null,
-      })),
-    });
+  // Patient Allergy methods (JSON data)
+  public async replaceAllergies(patientId: string, allergies: CreatePatientAllergyItemDto[]): Promise<void> {
+    await prisma.patientAllergy.deleteMany({ where: { patientId } });
+    if (allergies.length > 0) {
+      await prisma.patientAllergy.createMany({
+        data: allergies.map((allergy) => ({
+          patientId,
+          data: {
+            drug: allergy.drug,
+            reaction: allergy.reaction ?? null,
+          },
+        })),
+      });
+    }
   }
 
   public async findAllergyById(allergyId: string, clinicCode: string): Promise<PatientAllergy | null> {

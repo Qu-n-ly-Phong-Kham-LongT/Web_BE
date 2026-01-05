@@ -17,3 +17,23 @@ export const ClinicResponseSchema = Joi.object<ClinicResponseDto>({
   email: Joi.string().email().allow(null),
   clinicCode: Joi.string().allow(null),
 }).required();
+
+export interface ClinicListResponseDto {
+  clinics: ClinicResponseDto[];
+  pagination: {
+    currentPage: number;
+    size: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
+export const ClinicListResponseSchema = Joi.object<ClinicListResponseDto>({
+  clinics: Joi.array().items(ClinicResponseSchema).description("Danh sách phòng khám"),
+  pagination: Joi.object({
+    currentPage: Joi.number().description("Trang hiện tại"),
+    size: Joi.number().description("Số bản ghi mỗi trang"),
+    totalItems: Joi.number().description("Tổng số bản ghi"),
+    totalPages: Joi.number().description("Tổng số trang"),
+  }).required(),
+}).required();
