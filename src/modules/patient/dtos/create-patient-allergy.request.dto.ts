@@ -1,8 +1,8 @@
 import Joi from "joi";
 
 export interface CreatePatientAllergyItemDto {
+  drug: string;
   reaction?: string;
-  note?: string;
 }
 
 export interface CreatePatientAllergyRequestDto {
@@ -10,16 +10,16 @@ export interface CreatePatientAllergyRequestDto {
 }
 
 export const CreatePatientAllergyItemSchema = Joi.object<CreatePatientAllergyItemDto>({
-  reaction: Joi.string().optional().messages({
-    "string.empty": "Phản ứng dị ứng không được để trống",
+  drug: Joi.string().trim().min(1).required().messages({
+    "string.empty": "Thuốc dị ứng là bắt buộc",
+    "any.required": "Thuốc dị ứng là bắt buộc",
   }),
-  note: Joi.string().optional(),
+  reaction: Joi.string().trim().allow("", null).optional(),
 });
 
 export const CreatePatientAllergyRequestSchema = Joi.object<CreatePatientAllergyRequestDto>({
   allergies: Joi.array().items(CreatePatientAllergyItemSchema).min(1).required().messages({
-    "array.min": "Danh sách dị ứng không được để trống",
-    "any.required": "Danh sách dị ứng là bắt buộc",
+    "array.min": "Cần ít nhất 1 thuốc dị ứng",
+    "any.required": "Danh sách thuốc dị ứng là bắt buộc",
   }),
 }).required();
-

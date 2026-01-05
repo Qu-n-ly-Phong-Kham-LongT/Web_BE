@@ -1,7 +1,9 @@
+import { Clinic } from "@prisma/client";
 import { ClinicRepository } from "../repositories/clinic.repository";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicRequestDto } from "../dtos/clinic.request.dto";
-import { ClinicResponseDto } from "../dtos/clinic.response.dto";
+import { ClinicListResponseDto, ClinicResponseDto } from "../dtos/clinic.response.dto";
+import { createPagination } from "../../../utils/pagination.util";
 
 export class ClinicService {
   private clinicRepository = new ClinicRepository();
@@ -60,5 +62,30 @@ export class ClinicService {
       phone: updateData.phone,
       email: updateData.email,
     });
+  }
+
+  public async getClinics(
+    page: number = 1,
+    size: number = 10,
+    search?: string
+  ): Promise<ClinicListResponseDto> {
+    const { clinics, totalItems } = await this.clinicRepository.findClinics(page, size, search);
+    const pagination = createPagination(page, size, totalItems);
+
+    return {
+      clinics: clinics.map((clinic) => this.mapToResponse(clinic)),
+      pagination,
+    };
+  }
+
+  private mapToResponse(clinic: Clinic): ClinicResponseDto {
+    return {
+      clinicId: clinic.clinicId,
+      clinicName: clinic.clinicName,
+      address: clinic.address,
+      phone: clinic.phone,
+      email: clinic.email,
+      clinicCode: clinic.clinicCode,
+    };
   }
 }

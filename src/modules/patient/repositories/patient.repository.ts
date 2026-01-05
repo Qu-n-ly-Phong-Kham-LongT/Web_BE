@@ -1,8 +1,10 @@
-import { Prisma, Patient, PatientRelative, PatientAllergy } from "@prisma/client";
+import { Prisma, Patient, PatientRelative, PatientAllergy, PrismaClient } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { CreatePatientAllergyItemDto } from "../dtos/create-patient-allergy.request.dto";
+
+type TransactionClient = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
 export class PatientRepository {
   private buildClinicCodeFilter(clinicCode?: string): { patientCode: { startsWith: string } } | {} {
@@ -16,8 +18,9 @@ export class PatientRepository {
     return {};
   }
 
-  public async createPatient(data: CreatePatientRequestDto, patientCode: string): Promise<Patient> {
-    return await prisma.patient.create({
+  public async createPatient(data: CreatePatientRequestDto, patientCode: string, tx?: TransactionClient): Promise<Patient> {
+    const client = tx || prisma;
+    return await client.patient.create({
       data: {
         patientCode: patientCode,
         fullName: data.fullName,
@@ -135,16 +138,21 @@ export class PatientRepository {
   }
 
   // Patient Relative methods
-  public async createRelative(patientId: string, data: CreatePatientRelativeRequestDto): Promise<PatientRelative> {
-    return await prisma.patientRelative.create({
-      data: {
+  public async createRelatives(
+    patientId: string,
+    relatives: CreatePatientRelativeRequestDto[],
+    tx?: TransactionClient
+  ): Promise<{ count: number }> {
+    const client = tx || prisma;
+    return await client.patientRelative.createMany({
+      data: relatives.map((relative) => ({
         patientId: patientId,
-        fullName: data.fullName,
-        phone: data.phone,
-        relationship: data.relationship ?? null,
-        identityCard: data.identityCard ?? null,
-        address: data.address ?? null,
-      },
+        fullName: relative.fullName,
+        phone: relative.phone,
+        relationship: relative.relationship ?? null,
+        identityCard: relative.identityCard ?? null,
+        address: relative.address ?? null,
+      })),
     });
   }
 
@@ -167,6 +175,12 @@ export class PatientRepository {
     });
   }
 
+  public async findRelativeByIdentityCard(identityCard: string): Promise<PatientRelative | null> {
+    return await prisma.patientRelative.findFirst({
+      where: { identityCard: identityCard },
+    });
+  }
+
   public async updateRelative(relativeId: string, data: Prisma.PatientRelativeUpdateInput): Promise<PatientRelative> {
     return await prisma.patientRelative.update({
       where: { relativeId: relativeId },
@@ -174,15 +188,20 @@ export class PatientRepository {
     });
   }
 
-  // Patient Allergy methods
-  public async createAllergies(patientId: string, allergies: CreatePatientAllergyItemDto[]): Promise<{ count: number }> {
-    return await prisma.patientAllergy.createMany({
-      data: allergies.map((allergy) => ({
-        patientId: patientId,
-        reaction: allergy.reaction ?? null,
-        note: allergy.note ?? null,
-      })),
-    });
+  // Patient Allergy methods (JSON data)
+  public async replaceAllergies(patientId: string, allergies: CreatePatientAllergyItemDto[]): Promise<void> {
+    await prisma.patientAllergy.deleteMany({ where: { patientId } });
+    if (allergies.length > 0) {
+      await prisma.patientAllergy.createMany({
+        data: allergies.map((allergy) => ({
+          patientId,
+          data: {
+            drug: allergy.drug,
+            reaction: allergy.reaction ?? null,
+          },
+        })),
+      });
+    }
   }
 
   public async findAllergyById(allergyId: string, clinicCode: string): Promise<PatientAllergy | null> {

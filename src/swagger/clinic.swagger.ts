@@ -1,5 +1,5 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { ClinicResponseSchema } from "../modules/clinic/dtos/clinic.response.dto";
+import { ClinicListResponseSchema, ClinicResponseSchema } from "../modules/clinic/dtos/clinic.response.dto";
 
 const ClinicSwagger = {
   "/api/clinics": {
@@ -41,6 +41,46 @@ const ClinicSwagger = {
         401: { description: "Unauthorized" },
         403: { description: "Forbidden" },
         409: { description: "Email/clinic đã tồn tại" },
+      },
+    },
+    get: {
+      tags: ["Clinics"],
+      summary: "Lấy danh sách phòng khám",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 1 },
+          description: "Số trang",
+        },
+        {
+          name: "size",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 10 },
+          description: "Số bản ghi mỗi trang",
+        },
+        {
+          name: "search",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Search",
+        },
+      ],
+      responses: {
+        200: {
+          description: "Lấy danh sách phòng khám thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(ClinicListResponseSchema),
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        403: { description: "Forbidden" },
       },
     },
   },
