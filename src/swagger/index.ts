@@ -6,6 +6,8 @@ import FileSwagger from "./file.swagger";
 import ClinicSwagger from "./clinic.swagger";
 import PatientAllergySwagger from "./patient-allergy.swagger";
 import Icd10Swagger from "./icd10.swagger";
+import MedicalRecordSwagger from "./medical-record.swagger";
+import ClinicalExaminationSwagger from "./clinical-examination.swagger";
 import MedicineSwagger from "./medicine.swagger";
 
 const swaggerDocument = {
@@ -22,6 +24,8 @@ const swaggerDocument = {
     ...FileSwagger,
     ...ClinicSwagger,
     ...Icd10Swagger,
+    ...MedicalRecordSwagger,
+    ...ClinicalExaminationSwagger,
     ...MedicineSwagger,
   },
   components: {

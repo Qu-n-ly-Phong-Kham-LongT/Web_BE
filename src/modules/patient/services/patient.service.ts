@@ -1,5 +1,4 @@
 import { Patient, Prisma, Gender, PatientCategory, PatientRelative, PatientAllergy } from "@prisma/client";
-
 import { BaseError } from "../../../utils/base-error.util";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
@@ -10,7 +9,7 @@ import { PatientRelativeResponseDto } from "../dtos/patient-relative.response.dt
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRelativeRequestDto } from "../dtos/update-patient-relative.request.dto";
 import { PatientAllergyResponseDto } from "../dtos/patient-allergy.response.dto";
-import { CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.request.dto";
+import { CreatePatientAllergyItemDto, CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.request.dto";
 import { UpdatePatientAllergyRequestDto } from "../dtos/update-patient-allergy.request.dto";
 import { PatientRepository } from "../repositories/patient.repository";
 import { createPagination } from "../../../utils/pagination.util";
@@ -300,7 +299,7 @@ export class PatientService {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
 
-    await this.patientRepository.createAllergies(patientId, data.allergies);
+    await this.patientRepository.replaceAllergies(patientId, data.allergies);
     
     // Fetch all allergies for the patient to return the created ones
     const allergies = await this.patientRepository.findAllergiesByPatientId(patientId);
@@ -339,15 +338,13 @@ export class PatientService {
       throw new BaseError(404, "Không tìm thấy thông tin dị ứng");
     }
 
-    const updateData: Prisma.PatientAllergyUpdateInput = {};
-
-    if (data.reaction !== undefined) {
-      updateData.reaction = data.reaction;
-    }
-
-    if (data.note !== undefined) {
-      updateData.note = data.note;
-    }
+    const updateData: Prisma.PatientAllergyUpdateInput = {
+      data: {
+        ...(existingAllergy.data as any),
+        ...(data.drug !== undefined ? { drug: data.drug } : {}),
+        ...(data.reaction !== undefined ? { reaction: data.reaction } : {}),
+      },
+    };
 
     const result = await this.patientRepository.updateAllergy(allergyId, updateData);
     return this.mapAllergyToResponseDto(result);
@@ -364,11 +361,12 @@ export class PatientService {
   }
 
   private mapAllergyToResponseDto(allergy: PatientAllergy): PatientAllergyResponseDto {
+    const payload = (allergy.data as any) || {};
     return {
       allergyID: allergy.allergyId,
       patientID: allergy.patientId,
-      reaction: allergy.reaction,
-      note: allergy.note,
+      drug: payload.drug ?? null,
+      reaction: payload.reaction ?? null,
     };
   }
 }

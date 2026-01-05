@@ -8,7 +8,7 @@ const FileSwagger = {
       tags: ["Files"],
       summary: "Upload file",
       description: "Upload a file to the server",
-      security: [{ BearerAuth: [] }],
+      security: [{ bearerAuth: [] }],
       parameters: [
         {
           name: "type",
@@ -83,7 +83,7 @@ const FileSwagger = {
       tags: ["Files"],
       summary: "Delete file",
       description: "Delete a file from the server by its relative path",
-      security: [{ BearerAuth: [] }],
+      security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
         content: {

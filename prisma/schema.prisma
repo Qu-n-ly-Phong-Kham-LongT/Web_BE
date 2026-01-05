@@ -171,13 +171,12 @@ model PatientAllergy {
   allergyId String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   patientId String  @db.Uuid
   patient   Patient @relation(fields: [patientId], references: [patientId])
-  reaction  String?
-  note      String?
+  data      Json?
 }
 
 model MedicalRecord {
   recordId               String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  recordCode             String?              @unique
+  recordCode             String?              @unique @default(dbgenerated("generate_record_code()"))
   patientId              String?              @db.Uuid
   patient                Patient?             @relation(fields: [patientId], references: [patientId])
   doctorId               String?              @db.Uuid
@@ -193,8 +192,13 @@ model MedicalRecord {
   prescription           Prescription?
   followUp               FollowUp?
   serviceRequests        ServiceRequest[]
-  clinic                 Clinic?              @relation(fields: [clinicClinicId], references: [clinicId])
-  clinicClinicId         String?              @db.Uuid
+  clinic                 Clinic?              @relation(fields: [clinicId], references: [clinicId])
+  clinicId               String?              @db.Uuid
+}
+
+model MedicalRecordSequence {
+  monthKey   String @id @db.VarChar(4)
+  currentVal Int    @default(0)
 }
 
 model ClinicalExamination {
@@ -212,13 +216,12 @@ model ClinicalExamination {
   clinicalExamination String?
   pregnancyStatus     PregnancyStatus? @default(None)
   pregnancyWeeks      Int?
-  drugAllergies       String?
   clinicalNotes       String?
   examinedAt          DateTime?        @default(now())
   examinedBy          String?          @db.Uuid
   examiner            User?            @relation("ExaminedByUser", fields: [examinedBy], references: [userId])
-  userUserId          String?          @db.Uuid
-  user                User?            @relation(fields: [userUserId], references: [userId])
+  userId              String?          @db.Uuid
+  user                User?            @relation(fields: [userId], references: [userId])
 }
 
 model Icd10Dictionary {
@@ -426,12 +429,12 @@ model PrescriptionTemplateDetail {
 }
 
 model File {
-  FileID       String   @id @default(dbgenerated("uuid_generate_v4()"))
+  FileID String @id @default(dbgenerated("uuid_generate_v4()"))
 
   RelativePath String
-  Type         String  
-  MimeType     String   
+  Type         String
+  MimeType     String
 
-  Size         Int
-  CreatedAt    DateTime @default(now())
+  Size      Int
+  CreatedAt DateTime @default(now())
 }

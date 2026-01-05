@@ -23,6 +23,13 @@ ClinicRouter.post(
   clinicController.createClinic
 );
 
+ClinicRouter.get(
+  "/",
+  authenticate,
+  authorize([UserRoleEnum.Admin, UserRoleEnum.Manager, UserRoleEnum.Doctor]),
+  clinicController.getClinics
+);
+
 ClinicRouter.put(
   "/:id",
   authenticate,

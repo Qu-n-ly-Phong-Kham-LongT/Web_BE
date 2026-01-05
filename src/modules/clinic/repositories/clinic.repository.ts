@@ -31,4 +31,36 @@ export class ClinicRepository {
       data: updateData,
     });
   }
+
+  public async findClinics(
+    page: number = 1,
+    size: number = 10,
+    search?: string
+  ): Promise<{ clinics: Clinic[]; totalItems: number }> {
+    const skip = (page - 1) * size;
+
+    const where = search
+      ? {
+          OR: [
+            { clinicName: { contains: search, mode: "insensitive" as const } },
+            { address: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { clinicCode: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
+
+    const [clinics, totalItems] = await Promise.all([
+      prisma.clinic.findMany({
+        where,
+        skip,
+        take: size,
+        orderBy: { clinicCode: "asc" },
+      }),
+      prisma.clinic.count({ where }),
+    ]);
+
+    return { clinics, totalItems };
+  }
 }
