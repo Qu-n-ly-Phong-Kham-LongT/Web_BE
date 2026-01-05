@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { CreatePatientRelativeRequestDto, CreatePatientRelativeRequestSchema } from "./create-patient-relative.request.dto";
 
 export interface CreatePatientRequestDto {
   fullName: string;
@@ -11,6 +12,7 @@ export interface CreatePatientRequestDto {
   insuranceNumber?: string;
   occupation?: string;
   address?: string;
+  relatives?: CreatePatientRelativeRequestDto[];
 }
 
 export const CreatePatientRequestSchema = Joi.object<CreatePatientRequestDto>({
@@ -48,5 +50,6 @@ export const CreatePatientRequestSchema = Joi.object<CreatePatientRequestDto>({
     }),
   occupation: Joi.string().optional(),
   address: Joi.string().optional(),
+  relatives: Joi.array().items(CreatePatientRelativeRequestSchema).optional(),
 }).required();
 
