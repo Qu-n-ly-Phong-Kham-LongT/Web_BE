@@ -9,6 +9,9 @@ import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
 import { PatientRelativeResponseDto } from "../dtos/patient-relative.response.dto";
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRelativeRequestDto } from "../dtos/update-patient-relative.request.dto";
+import { PatientAllergyResponseDto } from "../dtos/patient-allergy.response.dto";
+import { CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.request.dto";
+import { UpdatePatientAllergyRequestDto } from "../dtos/update-patient-allergy.request.dto";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 
 export class PatientController {
@@ -76,6 +79,7 @@ export class PatientController {
     return successResponse(res, 200, result, "Lấy danh sách enum thành công");
   };
 
+  
   // Patient Relative methods
   public createRelative = async (
     req: AuthenticatedRequest<{ patientId: string }, {}, CreatePatientRelativeRequestDto>,
@@ -127,6 +131,73 @@ export class PatientController {
     }
     const result: PatientRelativeResponseDto = await this.patientService.updateRelative(relativeId, req.body, clinicId);
     return successResponse(res, 200, result, "Cập nhật thông tin người thân thành công");
+  };
+
+
+  // Patient Allergy methods
+  public createAllergies = async (
+    req: AuthenticatedRequest<{ patientId: string }, {}, CreatePatientAllergyRequestDto>,
+    res: Response
+  ) => {
+    const { patientId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientAllergyResponseDto[] = await this.patientService.createAllergies(patientId, req.body, clinicId);
+    return successResponse(res, 201, result, "Tạo thông tin dị ứng thành công");
+  };
+
+  public getAllergyById = async (
+    req: AuthenticatedRequest<{ allergyId: string }>,
+    res: Response
+  ) => {
+    const { allergyId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientAllergyResponseDto = await this.patientService.getAllergyById(allergyId, clinicId);
+    return successResponse(res, 200, result, "Lấy thông tin dị ứng thành công");
+  };
+
+  public getAllergiesByPatientId = async (
+    req: AuthenticatedRequest<{ patientId: string }>,
+    res: Response
+  ) => {
+    const { patientId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientAllergyResponseDto[] = await this.patientService.getAllergiesByPatientId(patientId, clinicId);
+    return successResponse(res, 200, result, "Lấy danh sách dị ứng thành công");
+  };
+
+  public updateAllergy = async (
+    req: AuthenticatedRequest<{ allergyId: string }, {}, UpdatePatientAllergyRequestDto>,
+    res: Response
+  ) => {
+    const { allergyId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    const result: PatientAllergyResponseDto = await this.patientService.updateAllergy(allergyId, req.body, clinicId);
+    return successResponse(res, 200, result, "Cập nhật thông tin dị ứng thành công");
+  };
+
+  public deleteAllergy = async (
+    req: AuthenticatedRequest<{ allergyId: string }>,
+    res: Response
+  ) => {
+    const { allergyId } = req.params;
+    const clinicId = req.payload?.clinicId;
+    if (!clinicId) {
+      return successResponse(res, 401, null, "Clinic ID not found in token");
+    }
+    await this.patientService.deleteAllergy(allergyId, clinicId);
+    return successResponse(res, 200, null, "Xóa thông tin dị ứng thành công");
   };
 
 }

@@ -5,6 +5,8 @@ import { CreatePatientRequestSchema } from "../dtos/create-patient.request.dto";
 import { UpdatePatientRequestSchema } from "../dtos/update-patient.request.dto";
 import { CreatePatientRelativeRequestSchema } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRelativeRequestSchema } from "../dtos/update-patient-relative.request.dto";
+import { CreatePatientAllergyRequestSchema } from "../dtos/create-patient-allergy.request.dto";
+import { UpdatePatientAllergyRequestSchema } from "../dtos/update-patient-allergy.request.dto";
 import { authenticate } from "../../../middlewares/auth.middleware";
 
 const patientRouter = Router();
@@ -43,7 +45,8 @@ patientRouter.get(
     patientController.getPatientEnums
 );
 
-// Patient Relative routes - must come before /:id to avoid route conflicts
+
+// Patient Relative routes
 patientRouter.post(
     "/:patientId/relatives",
     authenticate,
@@ -68,6 +71,40 @@ patientRouter.put(
     authenticate,
     validateBody(UpdatePatientRelativeRequestSchema),
     patientController.updateRelative
+);
+
+
+// Patient Allergy routes
+patientRouter.post(
+    "/:patientId/allergies",
+    authenticate,
+    validateBody(CreatePatientAllergyRequestSchema),
+    patientController.createAllergies
+);
+
+patientRouter.get(
+    "/:patientId/allergies",
+    authenticate,
+    patientController.getAllergiesByPatientId
+);
+
+patientRouter.get(
+    "/allergies/:allergyId",
+    authenticate,
+    patientController.getAllergyById
+);
+
+patientRouter.put(
+    "/allergies/:allergyId",
+    authenticate,
+    validateBody(UpdatePatientAllergyRequestSchema),
+    patientController.updateAllergy
+);
+
+patientRouter.delete(
+    "/allergies/:allergyId",
+    authenticate,
+    patientController.deleteAllergy
 );
 
 export default patientRouter;
