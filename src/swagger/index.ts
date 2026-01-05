@@ -5,6 +5,7 @@ import PatientSwagger from "./patient.swagger";
 import FileSwagger from "./file.swagger";
 import ClinicSwagger from "./clinic.swagger";
 import PatientRelativeSwagger from "./patient-relative.swagger";
+import PatientAllergySwagger from "./patient-allergy.swagger";
 import Icd10Swagger from "./icd10.swagger";
 
 const swaggerDocument = {
@@ -18,6 +19,7 @@ const swaggerDocument = {
     ...UserSwagger,
     ...PatientSwagger,
     ...PatientRelativeSwagger,
+    ...PatientAllergySwagger,
     ...FileSwagger,
     ...ClinicSwagger,
     ...Icd10Swagger,

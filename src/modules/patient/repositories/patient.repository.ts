@@ -1,7 +1,8 @@
-import { Prisma, Patient, PatientRelative } from "@prisma/client";
+import { Prisma, Patient, PatientRelative, PatientAllergy } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
+import { CreatePatientAllergyItemDto } from "../dtos/create-patient-allergy.request.dto";
 
 export class PatientRepository {
   private buildClinicCodeFilter(clinicCode?: string): { patientCode: { startsWith: string } } | {} {
@@ -170,6 +171,49 @@ export class PatientRepository {
     return await prisma.patientRelative.update({
       where: { relativeId: relativeId },
       data: data,
+    });
+  }
+
+  // Patient Allergy methods
+  public async createAllergies(patientId: string, allergies: CreatePatientAllergyItemDto[]): Promise<{ count: number }> {
+    return await prisma.patientAllergy.createMany({
+      data: allergies.map((allergy) => ({
+        patientId: patientId,
+        reaction: allergy.reaction ?? null,
+        note: allergy.note ?? null,
+      })),
+    });
+  }
+
+  public async findAllergyById(allergyId: string, clinicCode: string): Promise<PatientAllergy | null> {
+    return await prisma.patientAllergy.findFirst({
+      where: {
+        allergyId: allergyId,
+        patient: {
+          patientCode: {
+            startsWith: clinicCode,
+          },
+        },
+      },
+    });
+  }
+
+  public async findAllergiesByPatientId(patientId: string): Promise<PatientAllergy[]> {
+    return await prisma.patientAllergy.findMany({
+      where: { patientId: patientId },
+    });
+  }
+
+  public async updateAllergy(allergyId: string, data: Prisma.PatientAllergyUpdateInput): Promise<PatientAllergy> {
+    return await prisma.patientAllergy.update({
+      where: { allergyId: allergyId },
+      data: data,
+    });
+  }
+
+  public async deleteAllergy(allergyId: string): Promise<PatientAllergy> {
+    return await prisma.patientAllergy.delete({
+      where: { allergyId: allergyId },
     });
   }
 }
