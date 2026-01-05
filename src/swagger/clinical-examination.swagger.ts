@@ -4,7 +4,7 @@ import { ClinicalExaminationRequestSchema } from "../modules/clinical-examinatio
 const ClinicalExaminationSwagger = {
   "/api/medical-records/{recordId}/clinical-examinations": {
     put: {
-      tags: ["Khám lâm sàng"],
+      tags: ["Clinical Examinations"],
       summary: "Lưu (tạo/cập nhật) khám lâm sàng cho bệnh án",
       security: [{ bearerAuth: [] }],
       parameters: [
