@@ -1,8 +1,10 @@
-import { Prisma, Patient, PatientRelative, PatientAllergy } from "@prisma/client";
+import { Prisma, Patient, PatientRelative, PatientAllergy, PrismaClient } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { CreatePatientAllergyItemDto } from "../dtos/create-patient-allergy.request.dto";
+
+type TransactionClient = Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
 
 export class PatientRepository {
   private buildClinicCodeFilter(clinicCode?: string): { patientCode: { startsWith: string } } | {} {
@@ -16,8 +18,9 @@ export class PatientRepository {
     return {};
   }
 
-  public async createPatient(data: CreatePatientRequestDto, patientCode: string): Promise<Patient> {
-    return await prisma.patient.create({
+  public async createPatient(data: CreatePatientRequestDto, patientCode: string, tx?: TransactionClient): Promise<Patient> {
+    const client = tx || prisma;
+    return await client.patient.create({
       data: {
         patientCode: patientCode,
         fullName: data.fullName,
@@ -135,16 +138,21 @@ export class PatientRepository {
   }
 
   // Patient Relative methods
-  public async createRelative(patientId: string, data: CreatePatientRelativeRequestDto): Promise<PatientRelative> {
-    return await prisma.patientRelative.create({
-      data: {
+  public async createRelatives(
+    patientId: string,
+    relatives: CreatePatientRelativeRequestDto[],
+    tx?: TransactionClient
+  ): Promise<{ count: number }> {
+    const client = tx || prisma;
+    return await client.patientRelative.createMany({
+      data: relatives.map((relative) => ({
         patientId: patientId,
-        fullName: data.fullName,
-        phone: data.phone,
-        relationship: data.relationship ?? null,
-        identityCard: data.identityCard ?? null,
-        address: data.address ?? null,
-      },
+        fullName: relative.fullName,
+        phone: relative.phone,
+        relationship: relative.relationship ?? null,
+        identityCard: relative.identityCard ?? null,
+        address: relative.address ?? null,
+      })),
     });
   }
 
@@ -164,6 +172,12 @@ export class PatientRepository {
   public async findRelativesByPatientId(patientId: string): Promise<PatientRelative[]> {
     return await prisma.patientRelative.findMany({
       where: { patientId: patientId },
+    });
+  }
+
+  public async findRelativeByIdentityCard(identityCard: string): Promise<PatientRelative | null> {
+    return await prisma.patientRelative.findFirst({
+      where: { identityCard: identityCard },
     });
   }
 

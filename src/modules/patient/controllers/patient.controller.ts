@@ -7,7 +7,6 @@ import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { PatientListResponseDto } from "../dtos/patient-list.response.dto";
 import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
 import { PatientRelativeResponseDto } from "../dtos/patient-relative.response.dto";
-import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRelativeRequestDto } from "../dtos/update-patient-relative.request.dto";
 import { PatientAllergyResponseDto } from "../dtos/patient-allergy.response.dto";
 import { CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.request.dto";
@@ -81,19 +80,6 @@ export class PatientController {
 
   
   // Patient Relative methods
-  public createRelative = async (
-    req: AuthenticatedRequest<{ patientId: string }, {}, CreatePatientRelativeRequestDto>,
-    res: Response
-  ) => {
-    const { patientId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
-    const result: PatientRelativeResponseDto = await this.patientService.createRelative(patientId, req.body, clinicId);
-    return successResponse(res, 201, result, "Tạo thông tin người thân thành công");
-  };
-
   public getRelativeById = async (
     req: AuthenticatedRequest<{ relativeId: string }>,
     res: Response

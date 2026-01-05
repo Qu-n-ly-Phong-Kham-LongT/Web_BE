@@ -3,7 +3,6 @@ import { PatientController } from "../controllers/patient.controller";
 import { validateBody } from "../../../middlewares/validate";
 import { CreatePatientRequestSchema } from "../dtos/create-patient.request.dto";
 import { UpdatePatientRequestSchema } from "../dtos/update-patient.request.dto";
-import { CreatePatientRelativeRequestSchema } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRelativeRequestSchema } from "../dtos/update-patient-relative.request.dto";
 import { CreatePatientAllergyRequestSchema } from "../dtos/create-patient-allergy.request.dto";
 import { UpdatePatientAllergyRequestSchema } from "../dtos/update-patient-allergy.request.dto";
@@ -27,6 +26,12 @@ patientRouter.get(
 );
 
 patientRouter.get(
+    "/enums",
+    authenticate,
+    patientController.getPatientEnums
+);
+
+patientRouter.get(
     "/:id",
     authenticate,
     patientController.getPatientById
@@ -39,21 +44,8 @@ patientRouter.put(
     patientController.updatePatient
 );
 
-patientRouter.get(
-    "/enums",
-    authenticate,
-    patientController.getPatientEnums
-);
-
 
 // Patient Relative routes
-patientRouter.post(
-    "/:patientId/relatives",
-    authenticate,
-    validateBody(CreatePatientRelativeRequestSchema),
-    patientController.createRelative
-);
-
 patientRouter.get(
     "/:patientId/relatives",
     authenticate,
