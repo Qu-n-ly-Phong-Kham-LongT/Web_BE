@@ -370,6 +370,7 @@ model Medicine {
   medicineCode        String?                      @unique
   medicineName        String?
   activeIngredient    String?
+  registrationNo      String?
   isInsuranceCovered  Boolean?                     @default(false)
   medicineCodeBhyt    String?
   insurancePrice      Decimal?

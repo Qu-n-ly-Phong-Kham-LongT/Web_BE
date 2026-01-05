@@ -57,8 +57,39 @@ export class PatientService {
       }
     }
 
+    // Validate duplicate identityCard in relatives array
+    if (data.relatives?.length) {
+      const identityCards = data.relatives.map((r) => r.identityCard).filter((card): card is string => !!card);
+      if (new Set(identityCards).size !== identityCards.length) {
+        throw new BaseError(400, "CMND/CCCD không được trùng lặp trong danh sách người thân");
+      }
+      
+      // Validate identityCard of relatives in database
+      for (const relative of data.relatives) {
+        if (relative.identityCard) {
+          let existingRelative = await this.patientRepository.findRelativeByIdentityCard(relative.identityCard);
+          if (existingRelative) {
+            throw new BaseError(400, "CMND/CCCD của người thân đã tồn tại");
+          }
+        }
+      }
+    }
+
     let patientCode = await generatePatientCode(clinicId);
-    let result = await this.patientRepository.createPatient(data, patientCode);
+    
+    // Use transaction to create patient and relatives atomically
+    const result = await prisma.$transaction(async (tx) => {
+      // Create patient
+      const patient = await this.patientRepository.createPatient(data, patientCode, tx);
+
+      // Create relatives if provided
+      if (data.relatives?.length) {
+        await this.patientRepository.createRelatives(patient.patientId, data.relatives, tx);
+      }
+
+      return patient;
+    });
+
     return this.mapToResponseDto(result);
   }
 
@@ -168,21 +199,6 @@ export class PatientService {
   }
 
   // Patient Relative methods
-  public async createRelative(
-    patientId: string,
-    data: CreatePatientRelativeRequestDto,
-    clinicId: string
-  ): Promise<PatientRelativeResponseDto> {
-    const clinicCode = await this.getClinicCode(clinicId);
-    const patient = await this.patientRepository.findPatientById(patientId, clinicCode);
-    if (!patient) {
-      throw new BaseError(404, "Không tìm thấy bệnh nhân");
-    }
-
-    const result = await this.patientRepository.createRelative(patientId, data);
-    return this.mapRelativeToResponseDto(result);
-  }
-
   public async getRelativeById(relativeId: string, clinicId: string): Promise<PatientRelativeResponseDto> {
     const clinicCode = await this.getClinicCode(clinicId);
     const relative = await this.patientRepository.findRelativeById(relativeId, clinicCode);
