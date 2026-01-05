@@ -1,4 +1,4 @@
-import { Patient, Prisma, Gender, PatientCategory, PatientRelative } from "@prisma/client";
+import { Patient, Prisma, Gender, PatientCategory, PatientRelative, PatientAllergy } from "@prisma/client";
 
 import { BaseError } from "../../../utils/base-error.util";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
@@ -9,6 +9,9 @@ import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
 import { PatientRelativeResponseDto } from "../dtos/patient-relative.response.dto";
 import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRelativeRequestDto } from "../dtos/update-patient-relative.request.dto";
+import { PatientAllergyResponseDto } from "../dtos/patient-allergy.response.dto";
+import { CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.request.dto";
+import { UpdatePatientAllergyRequestDto } from "../dtos/update-patient-allergy.request.dto";
 import { PatientRepository } from "../repositories/patient.repository";
 import { createPagination } from "../../../utils/pagination.util";
 import { generatePatientCode } from "../../../utils/patient-code.util";
@@ -266,6 +269,90 @@ export class PatientService {
       relationship: relative.relationship,
       identityCard: relative.identityCard,
       address: relative.address,
+    };
+  }
+
+  // Patient Allergy methods
+  public async createAllergies(
+    patientId: string,
+    data: CreatePatientAllergyRequestDto,
+    clinicId: string
+  ): Promise<PatientAllergyResponseDto[]> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    const patient = await this.patientRepository.findPatientById(patientId, clinicCode);
+    if (!patient) {
+      throw new BaseError(404, "Không tìm thấy bệnh nhân");
+    }
+
+    await this.patientRepository.createAllergies(patientId, data.allergies);
+    
+    // Fetch all allergies for the patient to return the created ones
+    const allergies = await this.patientRepository.findAllergiesByPatientId(patientId);
+    return allergies.map((allergy) => this.mapAllergyToResponseDto(allergy));
+  }
+
+  public async getAllergyById(allergyId: string, clinicId: string): Promise<PatientAllergyResponseDto> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    const allergy = await this.patientRepository.findAllergyById(allergyId, clinicCode);
+    if (!allergy) {
+      throw new BaseError(404, "Không tìm thấy thông tin dị ứng");
+    }
+    
+    return this.mapAllergyToResponseDto(allergy);
+  }
+
+  public async getAllergiesByPatientId(patientId: string, clinicId: string): Promise<PatientAllergyResponseDto[]> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    const patient = await this.patientRepository.findPatientById(patientId, clinicCode);
+    if (!patient) {
+      throw new BaseError(404, "Không tìm thấy bệnh nhân");
+    }
+
+    const allergies = await this.patientRepository.findAllergiesByPatientId(patientId);
+    return allergies.map((allergy) => this.mapAllergyToResponseDto(allergy));
+  }
+
+  public async updateAllergy(
+    allergyId: string,
+    data: UpdatePatientAllergyRequestDto,
+    clinicId: string
+  ): Promise<PatientAllergyResponseDto> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    const existingAllergy = await this.patientRepository.findAllergyById(allergyId, clinicCode);
+    if (!existingAllergy) {
+      throw new BaseError(404, "Không tìm thấy thông tin dị ứng");
+    }
+
+    const updateData: Prisma.PatientAllergyUpdateInput = {};
+
+    if (data.reaction !== undefined) {
+      updateData.reaction = data.reaction;
+    }
+
+    if (data.note !== undefined) {
+      updateData.note = data.note;
+    }
+
+    const result = await this.patientRepository.updateAllergy(allergyId, updateData);
+    return this.mapAllergyToResponseDto(result);
+  }
+
+  public async deleteAllergy(allergyId: string, clinicId: string): Promise<void> {
+    const clinicCode = await this.getClinicCode(clinicId);
+    const existingAllergy = await this.patientRepository.findAllergyById(allergyId, clinicCode);
+    if (!existingAllergy) {
+      throw new BaseError(404, "Không tìm thấy thông tin dị ứng");
+    }
+
+    await this.patientRepository.deleteAllergy(allergyId);
+  }
+
+  private mapAllergyToResponseDto(allergy: PatientAllergy): PatientAllergyResponseDto {
+    return {
+      allergyID: allergy.allergyId,
+      patientID: allergy.patientId,
+      reaction: allergy.reaction,
+      note: allergy.note,
     };
   }
 }
