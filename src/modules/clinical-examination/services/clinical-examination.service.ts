@@ -1,28 +1,26 @@
-import { ClinicalExamination, Prisma } from "@prisma/client";
-import { ClinicalExaminationRequestDto } from "../dtos/clinical-examination.request.dto";
+import { ClinicalExamination, PatientAllergy, Prisma } from "@prisma/client";
+import { prisma } from "../../../config/database.config";
+import { ClinicalExaminationRequestDto, AllergyItemDto } from "../dtos/clinical-examination.request.dto";
 import { ClinicalExaminationRepository } from "../repositories/clinical-examination.repository";
 import { MedicalRecordRepository } from "../../medical-record/repositories/medical-record.repository";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
 import { BaseError } from "../../../utils/base-error.util";
-import { PatientAllergyResponseDto } from "../../patient/dtos/patient-allergy.response.dto";
+import { ClinicalExaminationResponseDto } from "../dtos/clinical-examination.response.dto";
 
 export class ClinicalExaminationService {
-  private clinicalExaminationRepository = new ClinicalExaminationRepository();
   private medicalRecordRepository = new MedicalRecordRepository();
+  private clinicalExaminationRepository = new ClinicalExaminationRepository();
   private patientRepository = new PatientRepository();
 
   public async upsertClinicalExamination(
     payload: ClinicalExaminationRequestDto,
     doctorId: string,
     clinicId: string
-  ): Promise<{ examination: ClinicalExamination; allergies: PatientAllergyResponseDto[] }> {
+  ): Promise<ClinicalExaminationResponseDto> {
     const record = await this.medicalRecordRepository.findById(payload.recordId);
     if (!record) throw new BaseError(404, "Không tìm thấy bệnh án");
     if (record.clinicId && record.clinicId !== clinicId) {
       throw new BaseError(403, "Bệnh án không thuộc phòng khám của bạn");
-    }
-    if (record.doctorId && record.doctorId !== doctorId) {
-      throw new BaseError(403, "Chỉ bác sĩ phụ trách mới được khám lâm sàng hồ sơ này");
     }
 
     const examData: Prisma.ClinicalExaminationUncheckedCreateInput = {
@@ -43,28 +41,68 @@ export class ClinicalExaminationService {
       clinicalNotes: payload.clinicalNotes ?? null,
     };
 
-    const existing = await this.clinicalExaminationRepository.findByRecordId(payload.recordId);
-    const examination = existing
-      ? await this.clinicalExaminationRepository.updateByRecordId(
-          payload.recordId,
-          examData as Prisma.ClinicalExaminationUncheckedUpdateInput
-        )
-      : await this.clinicalExaminationRepository.createExamination(examData);
+    const { savedExam, allergyRecords } = await prisma.$transaction(async (tx) => {
+      const existingExam = await this.clinicalExaminationRepository.findByRecordId(payload.recordId, tx);
 
-    let allergies: PatientAllergyResponseDto[] = [];
-    if (record.patientId) {
-      if (payload.allergies) {
-        await this.patientRepository.replaceAllergies(record.patientId, payload.allergies);
+      const savedExam = existingExam
+        ? await this.clinicalExaminationRepository.updateByRecordId(
+            payload.recordId,
+            examData as Prisma.ClinicalExaminationUncheckedUpdateInput,
+            tx
+          )
+        : await this.clinicalExaminationRepository.createExamination(examData, tx);
+
+      let allergyRecords: PatientAllergy[] = [];
+      if (record.patientId) {
+        if (payload.allergies) {
+          const saved = await this.patientRepository.upsertAllergies(record.patientId, payload.allergies, tx);
+          allergyRecords = [saved];
+        } else {
+          allergyRecords = await this.patientRepository.findAllergiesByPatientId(record.patientId, tx);
+        }
       }
-      const stored = await this.patientRepository.findAllergiesByPatientId(record.patientId);
-      allergies = stored.map((a) => ({
-        allergyID: a.allergyId,
-        patientID: a.patientId,
-        drug: (a.data as any)?.drug ?? null,
-        reaction: (a.data as any)?.reaction ?? null,
-      }));
+
+      return { savedExam, allergyRecords };
+    });
+
+    return this.mapToClinicalExaminationResponse(savedExam, allergyRecords);
+  }
+
+  private mapToClinicalExaminationResponse(
+    exam: ClinicalExamination,
+    allergies: PatientAllergy[]
+  ): ClinicalExaminationResponseDto {
+    const allergyItems: AllergyItemDto[] = [];
+    for (const record of allergies || []) {
+      const data = (record.data as any) || [];
+      if (Array.isArray(data)) {
+        data.forEach((item: any) => {
+          allergyItems.push({
+            drug: item?.drug ?? "",
+            reaction: item?.reaction ?? null,
+          });
+        });
+      }
     }
 
-    return { examination, allergies };
+    return {
+      examId: exam.examId,
+      recordId: exam.recordId ?? "",
+      reasonForVisit: exam.reasonForVisit ?? null,
+      medicalHistory: exam.medicalHistory ?? null,
+      pastMedicalHistory: exam.pastMedicalHistory ?? null,
+      clinicalExamination: exam.clinicalExamination ?? null,
+      heartRate: exam.heartRate ?? null,
+      bloodPressure: exam.bloodPressure ?? null,
+      temperature: exam.temperature ?? null,
+      height: exam.height ?? null,
+      weight: exam.weight ?? null,
+      pregnancyStatus: exam.pregnancyStatus ?? null,
+      pregnancyWeeks: exam.pregnancyWeeks ?? null,
+      clinicalNotes: exam.clinicalNotes ?? null,
+      examinedAt: exam.examinedAt ?? null,
+      examinedBy: exam.examinedBy ?? null,
+      allergies: allergyItems,
+    };
   }
 }
