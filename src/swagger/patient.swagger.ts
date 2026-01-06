@@ -174,7 +174,7 @@ const PatientSwagger = {
   },
   "/api/patients/daily-queue": {
     get: {
-      tags: ["Patient"],
+      tags: ["Core Businesses"],
       summary: "Lấy danh sách hàng đợi khám trong ngày",
       description: "Danh sách bệnh nhân có mặt trong ngày tại phòng khám, kèm trạng thái chờ/đang khám/hoàn tất.",
       parameters: [
