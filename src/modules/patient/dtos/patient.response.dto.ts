@@ -46,6 +46,7 @@ export interface PatientQueueItemDto {
   patientCode: string;
   todayRecordId: string | null;
   fullName: string | null;
+  identityCard: string | null;
   gender: Gender;
   age: number;
   phone: string;
