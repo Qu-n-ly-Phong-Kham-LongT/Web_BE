@@ -47,9 +47,11 @@ enum NodeType {
 }
 
 enum InputType {
-  Boolean
   Text
+  Number
   Select
+  Boolean
+  LongText
 }
 
 enum Session {
@@ -93,8 +95,8 @@ model User {
   fullName  String     @db.VarChar(200)
   email     String?    @unique @db.VarChar(150)
   status    UserStatus @default(Active)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @default(now()) @updatedAt
+  createdAt DateTime   @default(now()) @db.Timestamptz
+  updatedAt DateTime   @default(now()) @updatedAt @db.Timestamptz
 
   clinicId String? @db.Uuid
   clinic   Clinic? @relation(fields: [clinicId], references: [clinicId])
@@ -103,7 +105,6 @@ model User {
   medicalRecords        MedicalRecord[]
   prescriptionTemplates PrescriptionTemplate[]
   serviceRequests       ServiceRequest[]
-  serviceResults        ServiceResult[]
   inventoryLogs         InventoryLog[]
   refreshTokens         RefreshToken[]
   examinationsPerformed ClinicalExamination[]  @relation("ExaminedByUser")
@@ -115,8 +116,8 @@ model RefreshToken {
   token     String   @unique @db.VarChar(500)
   userId    String   @db.Uuid
   user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
   isRevoked Boolean  @default(false)
 
   @@index([userId])
@@ -139,7 +140,7 @@ model Patient {
   patientCode     String?           @unique
   fullName        String?
   gender          Gender?
-  dob             DateTime?
+  dob             DateTime?         @db.Timestamptz
   patientCategory PatientCategory?  @default(DichVu)
   phone           String?           @unique
   email           String?
@@ -147,8 +148,8 @@ model Patient {
   insuranceNumber String?           @unique
   occupation      String?
   address         String?
-  createdAt       DateTime?         @default(now())
-  updatedAt       DateTime?         @updatedAt
+  createdAt       DateTime?         @default(now()) @db.Timestamptz
+  updatedAt       DateTime?         @updatedAt @db.Timestamptz
   relatives       PatientRelative[]
   medicalRecords  MedicalRecord[]
   allergies       PatientAllergy[]
@@ -168,10 +169,12 @@ model PatientRelative {
 }
 
 model PatientAllergy {
-  allergyId String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  patientId String  @db.Uuid
-  patient   Patient @relation(fields: [patientId], references: [patientId])
+  allergyId String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  patientId String   @unique @db.Uuid
+  patient   Patient  @relation(fields: [patientId], references: [patientId])
   data      Json?
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
 }
 
 model MedicalRecord {
@@ -186,8 +189,8 @@ model MedicalRecord {
   doctorAdvice           String?
   treatmentNote          String?
   consultationFee        Decimal?             @default(0)
-  createdAt              DateTime?            @default(now())
-  updatedAt              DateTime?            @updatedAt
+  createdAt              DateTime?            @default(now()) @db.Timestamptz
+  updatedAt              DateTime?            @updatedAt @db.Timestamptz
   clinicalExamination    ClinicalExamination?
   prescription           Prescription?
   followUp               FollowUp?
@@ -217,7 +220,7 @@ model ClinicalExamination {
   pregnancyStatus     PregnancyStatus? @default(None)
   pregnancyWeeks      Int?
   clinicalNotes       String?
-  examinedAt          DateTime?        @default(now())
+  examinedAt          DateTime?        @default(now()) @db.Timestamptz
   examinedBy          String?          @db.Uuid
   examiner            User?            @relation("ExaminedByUser", fields: [examinedBy], references: [userId])
   userId              String?          @db.Uuid
@@ -238,7 +241,7 @@ model Prescription {
   note           String?
   totalPrice     Decimal?
   paymentStatus  PaymentStatus?       @default(Unpaid)
-  createdAt      DateTime?            @default(now())
+  createdAt      DateTime?            @default(now()) @db.Timestamptz
   details        PrescriptionDetail[]
 }
 
@@ -271,90 +274,115 @@ model FollowUp {
 }
 
 model ServiceNode {
-  nodeId          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  nodeType        NodeType?
-  parentId        String?       @db.Uuid
-  parent          ServiceNode?  @relation("NodeHierarchy", fields: [parentId], references: [nodeId])
-  children        ServiceNode[] @relation("NodeHierarchy")
-  code            String?       @unique
-  name            String?
-  note            String?
-  isActive        Boolean?      @default(true)
+  nodeId   String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nodeType NodeType?
+  parentId String?       @db.Uuid
+  parent   ServiceNode?  @relation("NodeHierarchy", fields: [parentId], references: [nodeId])
+  children ServiceNode[] @relation("NodeHierarchy")
+
+  code     String?  @unique
+  name     String?
+  note     String?
+  isActive Boolean? @default(true)
+
   itemsAsCategory ServiceItem[] @relation("CategoryNode")
   itemsAsType     ServiceItem[] @relation("TypeNode")
 }
 
 model ServiceItem {
-  itemId          String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  itemCode        String?                 @unique
-  name            String?
-  categoryId      String?                 @db.Uuid
-  category        ServiceNode?            @relation("CategoryNode", fields: [categoryId], references: [nodeId])
-  typeId          String?                 @db.Uuid
-  type            ServiceNode?            @relation("TypeNode", fields: [typeId], references: [nodeId])
-  unit            String?
-  specimen        String?
-  prepNote        String?
-  isActive        Boolean?                @default(true)
+  itemId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  itemCode String? @unique
+  name     String?
+
+  categoryId String?      @db.Uuid
+  category   ServiceNode? @relation("CategoryNode", fields: [categoryId], references: [nodeId])
+  typeId     String?      @db.Uuid
+  type       ServiceNode? @relation("TypeNode", fields: [typeId], references: [nodeId])
+
+  unit     String?
+  specimen String?
+  prepNote String?
+  isActive Boolean? @default(true)
+
   configs         ServiceItemConfig[]
   requestDetails  ServiceRequestDetail[]
   templateDetails ServiceTemplateDetail[]
+  serviceResults  ServiceResult[]
 }
 
 model ServiceItemConfig {
   configId    String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   itemId      String?      @db.Uuid
   serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
+
   configCode  String?
   displayName String?
-  inputType   InputType?   @default(Boolean)
-  groupName   String?
-  metaData    Json?
+  inputType   InputType? @default(Text)
+  unit        String?
+
+  refRange       String?
+  serviceResults ServiceResult[]
 }
 
 model ServiceRequest {
-  requestId             String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  requestCode           String?                @unique
-  recordId              String?                @db.Uuid
-  medicalRecord         MedicalRecord?         @relation(fields: [recordId], references: [recordId])
-  orderingDoctorId      String?                @db.Uuid
-  orderingDoctor        User?                  @relation(fields: [orderingDoctorId], references: [userId])
-  note                  String?
-  createdAt             DateTime?              @default(now())
-  details               ServiceRequestDetail[]
-  result                ServiceResult?         @relation(fields: [serviceResultResultId], references: [resultId])
-  serviceResultResultId String?                @db.Uuid
+  requestId     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requestCode   String?        @unique
+  recordId      String?        @db.Uuid
+  medicalRecord MedicalRecord? @relation(fields: [recordId], references: [recordId])
+
+  orderingDoctorId String? @db.Uuid
+  orderingDoctor   User?   @relation(fields: [orderingDoctorId], references: [userId])
+
+  note      String?
+  createdAt DateTime? @default(now()) @db.Timestamptz
+
+  finalReportPath String?
+
+  details        ServiceRequestDetail[]
+  serviceResults ServiceResult[]
 }
 
 model ServiceRequestDetail {
   requestDetailId String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   requestId       String?         @db.Uuid
   serviceRequest  ServiceRequest? @relation(fields: [requestId], references: [requestId])
-  itemId          String?         @db.Uuid
-  serviceItem     ServiceItem?    @relation(fields: [itemId], references: [itemId])
+
+  itemId      String?      @db.Uuid
+  serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
+
   selectedOptions Json?
 }
 
 model ServiceResult {
-  resultId           String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  detailId           String?          @unique @db.Uuid
-  resultCode         String?
-  description        String?
-  conclusion         String?
-  note               String?
-  isPdf              Boolean?         @default(false)
-  pdfUrl             String?
-  performingDoctorId String?          @db.Uuid
-  performingDoctor   User?            @relation(fields: [performingDoctorId], references: [userId])
-  executedAt         DateTime?
-  serviceRequests    ServiceRequest[]
+  resultId String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  detailId       String?         @db.Uuid
+  requestId      String?         @db.Uuid
+  serviceRequest ServiceRequest? @relation(fields: [requestId], references: [requestId])
+
+  itemId      String?      @db.Uuid
+  serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
+
+  configId          String?            @db.Uuid
+  serviceItemConfig ServiceItemConfig? @relation(fields: [configId], references: [configId])
+
+  parentId      String?         @db.Uuid
+  parent        ServiceResult?  @relation("ResultHierarchy", fields: [parentId], references: [resultId])
+  children      ServiceResult[] @relation("ResultHierarchy")
+  indicatorName String?
+
+  valueString String?  @db.Text
+  valueNumber Decimal? @db.Decimal(10, 2)
+
+  unit       String?
+  images     Json?
+  executedAt DateTime? @default(now()) @db.Timestamptz
 }
 
 model ServiceTemplate {
   templateId   String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   templateName String?
   description  String?
-  createdBy    String?                 @db.Uuid
   isActive     Boolean?                @default(true)
   details      ServiceTemplateDetail[]
 }
@@ -384,7 +412,7 @@ model Medicine {
   supplier            String?
   sideEffects         String?
   isActive            Boolean?                     @default(true)
-  createdAt           DateTime?                    @default(now())
+  createdAt           DateTime?                    @default(now()) @db.Timestamptz
   prescriptionDetails PrescriptionDetail[]
   templateDetails     PrescriptionTemplateDetail[]
   inventoryLogs       InventoryLog[]
@@ -404,7 +432,7 @@ model InventoryLog {
   performedBy  String?           @db.Uuid
   performer    User?             @relation(fields: [performedBy], references: [userId])
   note         String?
-  createdAt    DateTime?         @default(now())
+  createdAt    DateTime?         @default(now()) @db.Timestamptz
 }
 
 model PrescriptionTemplate {
@@ -436,5 +464,5 @@ model File {
   MimeType     String
 
   Size      Int
-  CreatedAt DateTime @default(now())
+  CreatedAt DateTime @default(now()) @db.Timestamptz
 }

@@ -34,7 +34,7 @@ export class PatientService {
 
   public async createPatient(data: CreatePatientRequestDto, clinicId: string): Promise<PatientResponseDto> {
     const clinicCode = await this.getClinicCode(clinicId);
-    
+
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(data.phone, clinicCode);
       if (existingByPhone) {
@@ -56,14 +56,12 @@ export class PatientService {
       }
     }
 
-    // Validate duplicate identityCard in relatives array
     if (data.relatives?.length) {
       const identityCards = data.relatives.map((r) => r.identityCard).filter((card): card is string => !!card);
       if (new Set(identityCards).size !== identityCards.length) {
         throw new BaseError(400, "CMND/CCCD không được trùng lặp trong danh sách người thân");
       }
-      
-      // Validate identityCard of relatives in database
+
       for (const relative of data.relatives) {
         if (relative.identityCard) {
           let existingRelative = await this.patientRepository.findRelativeByIdentityCard(relative.identityCard);
@@ -75,17 +73,12 @@ export class PatientService {
     }
 
     let patientCode = await generatePatientCode(clinicId);
-    
-    // Use transaction to create patient and relatives atomically
-    const result = await prisma.$transaction(async (tx) => {
-      // Create patient
-      const patient = await this.patientRepository.createPatient(data, patientCode, tx);
 
-      // Create relatives if provided
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const patient = await this.patientRepository.createPatient(data, patientCode, tx);
       if (data.relatives?.length) {
         await this.patientRepository.createRelatives(patient.patientId, data.relatives, tx);
       }
-
       return patient;
     });
 
@@ -197,14 +190,13 @@ export class PatientService {
     };
   }
 
-  // Patient Relative methods
   public async getRelativeById(relativeId: string, clinicId: string): Promise<PatientRelativeResponseDto> {
     const clinicCode = await this.getClinicCode(clinicId);
     const relative = await this.patientRepository.findRelativeById(relativeId, clinicCode);
     if (!relative) {
       throw new BaseError(404, "Không tìm thấy thông tin người thân");
     }
-    
+
     return this.mapRelativeToResponseDto(relative);
   }
 
@@ -299,11 +291,9 @@ export class PatientService {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
 
-    await this.patientRepository.replaceAllergies(patientId, data.allergies);
-    
-    // Fetch all allergies for the patient to return the created ones
+    await this.patientRepository.upsertAllergies(patientId, data.allergies);
     const allergies = await this.patientRepository.findAllergiesByPatientId(patientId);
-    return allergies.map((allergy) => this.mapAllergyToResponseDto(allergy));
+    return this.mapAllergyRecordsToDtos(allergies);
   }
 
   public async getAllergyById(allergyId: string, clinicId: string): Promise<PatientAllergyResponseDto> {
@@ -312,8 +302,9 @@ export class PatientService {
     if (!allergy) {
       throw new BaseError(404, "Không tìm thấy thông tin dị ứng");
     }
-    
-    return this.mapAllergyToResponseDto(allergy);
+
+    const dtos = this.mapAllergyRecordsToDtos([allergy]);
+    return dtos[0];
   }
 
   public async getAllergiesByPatientId(patientId: string, clinicId: string): Promise<PatientAllergyResponseDto[]> {
@@ -324,7 +315,7 @@ export class PatientService {
     }
 
     const allergies = await this.patientRepository.findAllergiesByPatientId(patientId);
-    return allergies.map((allergy) => this.mapAllergyToResponseDto(allergy));
+    return this.mapAllergyRecordsToDtos(allergies);
   }
 
   public async updateAllergy(
@@ -338,16 +329,15 @@ export class PatientService {
       throw new BaseError(404, "Không tìm thấy thông tin dị ứng");
     }
 
-    const updateData: Prisma.PatientAllergyUpdateInput = {
-      data: {
-        ...(existingAllergy.data as any),
-        ...(data.drug !== undefined ? { drug: data.drug } : {}),
-        ...(data.reaction !== undefined ? { reaction: data.reaction } : {}),
+    const payload: CreatePatientAllergyItemDto[] = [
+      {
+        drug: data.drug ?? ((existingAllergy.data as any)?.drug ?? ""),
+        reaction: data.reaction ?? (existingAllergy.data as any)?.reaction ?? null,
       },
-    };
+    ];
 
-    const result = await this.patientRepository.updateAllergy(allergyId, updateData);
-    return this.mapAllergyToResponseDto(result);
+    const updated = await this.patientRepository.upsertAllergies(existingAllergy.patientId, payload);
+    return this.mapAllergyRecordsToDtos([updated])[0];
   }
 
   public async deleteAllergy(allergyId: string, clinicId: string): Promise<void> {
@@ -360,13 +350,28 @@ export class PatientService {
     await this.patientRepository.deleteAllergy(allergyId);
   }
 
-  private mapAllergyToResponseDto(allergy: PatientAllergy): PatientAllergyResponseDto {
-    const payload = (allergy.data as any) || {};
-    return {
-      allergyID: allergy.allergyId,
-      patientID: allergy.patientId,
-      drug: payload.drug ?? null,
-      reaction: payload.reaction ?? null,
-    };
+  private mapAllergyRecordsToDtos(records: PatientAllergy[]): PatientAllergyResponseDto[] {
+    const result: PatientAllergyResponseDto[] = [];
+    for (const record of records || []) {
+      const data = (record.data as any) || [];
+      if (Array.isArray(data)) {
+        data.forEach((item: any) =>
+          result.push({
+            allergyID: record.allergyId,
+            patientID: record.patientId,
+            drug: item?.drug ?? null,
+            reaction: item?.reaction ?? null,
+          })
+        );
+      } else {
+        result.push({
+          allergyID: record.allergyId,
+          patientID: record.patientId,
+          drug: (data as any)?.drug ?? null,
+          reaction: (data as any)?.reaction ?? null,
+        });
+      }
+    }
+    return result;
   }
 }

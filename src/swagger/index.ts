@@ -9,6 +9,7 @@ import Icd10Swagger from "./icd10.swagger";
 import MedicalRecordSwagger from "./medical-record.swagger";
 import ClinicalExaminationSwagger from "./clinical-examination.swagger";
 import MedicineSwagger from "./medicine.swagger";
+import ServiceNodeSwagger from "./service-node.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -27,6 +28,7 @@ const swaggerDocument = {
     ...MedicalRecordSwagger,
     ...ClinicalExaminationSwagger,
     ...MedicineSwagger,
+    ...ServiceNodeSwagger,
   },
   components: {
     securitySchemes: {

@@ -31,6 +31,25 @@ export class MedicalRecordService {
       throw new BaseError(403, "Bác sĩ không có quyền tạo bệnh án của phòng khám khác.");
     }
 
+    // Kiem tra trong ngay da co benh an cua benh nhan trong phong kham chua
+    // Tinh moc ngay theo UTC de khop voi thoi gian luu DB, tranh nham sang ngay hien tai khi server/DB khac mui gio
+    const now = new Date();
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+    const existingRecord = await this.medicalRecordRepository.findExistingRecord(
+      createData.patientId,
+      createData.clinicId,
+      startOfDay,
+      endOfDay
+    );
+    if (existingRecord) {
+      throw new BaseError(
+        409,
+        "Bệnh nhân này đã có bệnh án trong hôm nay, vui lòng tiếp tục với bệnh án hiện tại."
+      );
+    }
+
     const record = await this.medicalRecordRepository.createRecord({
       patientId: createData.patientId,
       doctorId: createData.doctorId,
@@ -38,7 +57,6 @@ export class MedicalRecordService {
       consultationFee: createData.consultationFee ?? 0,
     });
 
-    // Khởi tạo khám lâm sàng rỗng nếu chưa có
     let examinationId: string;
     const existingExam = await this.clinicalExaminationRepository.findByRecordId(record.recordId);
     if (existingExam) {
@@ -52,7 +70,6 @@ export class MedicalRecordService {
       examinationId = exam.examId;
     }
 
-    // Lấy allergies hiện có
     const storedAllergies = await this.patientRepository.findAllergiesByPatientId(createData.patientId);
     const allergies: PatientAllergyResponseDto[] = storedAllergies.map((a) => ({
       allergyID: a.allergyId,
