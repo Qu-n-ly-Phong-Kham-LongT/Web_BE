@@ -510,7 +510,8 @@ export class PatientService {
   public async getDailyQueue(
     clinicId: string,
     page: number = 1,
-    size: number = 10
+    size: number = 10,
+    search?: string
   ): Promise<{
     queue: PatientQueueItemDto[];
     pagination: ReturnType<typeof createPagination>;
@@ -557,6 +558,7 @@ export class PatientService {
         patientCode: p.patientCode ?? "",
         todayRecordId: recordId ?? null,
         fullName: p.fullName ?? null,
+        identityCard: p.identityCard ?? null,
         gender: p.gender ?? "Other",
         age: age,
         phone: p.phone ?? "",
@@ -566,14 +568,26 @@ export class PatientService {
     });
     mappedList.sort((a, b) => b.arrivedAt.getTime() - a.arrivedAt.getTime());
 
+    const normalizedSearch = search?.trim().toLowerCase();
+    const filteredList = normalizedSearch
+      ? mappedList.filter((item) => {
+          return (
+            item.fullName?.toLowerCase().includes(normalizedSearch) ||
+            item.patientCode.toLowerCase().includes(normalizedSearch) ||
+            item.phone.toLowerCase().includes(normalizedSearch) ||
+            (item.identityCard ?? "").toLowerCase().includes(normalizedSearch)
+          );
+        })
+      : mappedList;
+
     const safePage = Math.max(Number(page) || 1, 1);
     const safeSize = Math.max(Number(size) || 10, 1);
-    const totalItems = mappedList.length;
+    const totalItems = filteredList.length;
 
     const startIndex = (safePage - 1) * safeSize;
     const endIndex = startIndex + safeSize;
 
-    const paginatedData = mappedList.slice(startIndex, endIndex);
+    const paginatedData = filteredList.slice(startIndex, endIndex);
     const meta = createPagination(safePage, safeSize, totalItems);
 
     return { queue: paginatedData, pagination: meta };

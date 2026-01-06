@@ -320,6 +320,7 @@ export class PatientRepository {
         patientCode: true,
         fullName: true,
         gender: true,
+        identityCard: true,
         dob: true,
         phone: true,
         createdAt: true,
