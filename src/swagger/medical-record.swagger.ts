@@ -4,7 +4,7 @@ import { BasicMedicalRecordCreateBodySchema } from "../modules/medical-record/dt
 const MedicalRecordSwagger = {
   "/api/medical-records": {
     post: {
-      tags: ["Medical Records"],
+      tags: ["Core Businesses"],
       summary: "Tạo bệnh án thô (chưa khám lâm sàng/chẩn đoán)",
       security: [{ bearerAuth: [] }],
       requestBody: {
