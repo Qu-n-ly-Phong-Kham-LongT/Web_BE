@@ -32,6 +32,7 @@ export class PatientRepository {
   public async createPatient(
     data: CreatePatientRequestDto,
     patientCode: string,
+    clinicId: string,
     tx?: TransactionClient
   ): Promise<Patient> {
     const client = tx || prisma;
@@ -48,6 +49,7 @@ export class PatientRepository {
         insuranceNumber: data.insuranceNumber ?? null,
         occupation: data.occupation ?? null,
         address: data.address ?? null,
+        clinicId: clinicId,
       },
     });
   }
@@ -294,4 +296,51 @@ export class PatientRepository {
       where: { allergyId },
     });
   }
+
+  public async getDailyQueue(clinicId: string, start: Date, end: Date) {
+    return await prisma.patient.findMany({
+      where: {
+        clinicId: clinicId,
+        OR: [
+          {
+            createdAt: { gte: start, lte: end },
+          },
+          {
+            medicalRecords: {
+              some: {
+                clinicId: clinicId,
+                createdAt: { gte: start, lte: end },
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        patientId: true,
+        patientCode: true,
+        fullName: true,
+        gender: true,
+        dob: true,
+        phone: true,
+        createdAt: true,
+
+        medicalRecords: {
+          where: {
+            clinicId: clinicId,
+            createdAt: { gte: start, lte: end }
+          },
+          select: {
+            recordId: true,
+            createdAt: true,
+            diagnoses: true,
+            prescription: { select: { prescriptionId: true }},
+            clinicalExamination: { select: { examId: true }}
+          },
+          take: 1
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+  }
 }
+

@@ -7,6 +7,31 @@ import { PatientEnumResponseSchema } from "../modules/patient/dtos/patient-enum.
 import { UpdatePatientRelativeRequestSchema } from "../modules/patient/dtos/update-patient-relative.request.dto";
 import { PatientRelativeResponseSchema } from "../modules/patient/dtos/patient-relative.response.dto";
 
+const paginationSchema = {
+  type: "object",
+  properties: {
+    currentPage: { type: "integer" },
+    size: { type: "integer" },
+    totalItems: { type: "integer" },
+    totalPages: { type: "integer" },
+  },
+};
+
+const patientQueueItemSchema = {
+  type: "object",
+  properties: {
+    patientId: { type: "string", format: "uuid" },
+    patientCode: { type: "string" },
+    todayRecordId: { type: "string", format: "uuid", nullable: true },
+    fullName: { type: "string", nullable: true },
+    gender: { type: "string", enum: ["Male", "Female", "Other"] },
+    age: { type: "integer" },
+    phone: { type: "string" },
+    status: { type: "string", enum: ["WAITING", "IN_PROGRESS", "COMPLETED"] },
+    arrivedAt: { type: "string", format: "date-time" },
+  },
+};
+
 const PatientSwagger = {
   "/api/patients": {
     post: {
@@ -141,6 +166,54 @@ const PatientSwagger = {
           content: {
             "application/json": {
               schema: joiToSwagger(PatientEnumResponseSchema),
+            },
+          },
+        },
+      },
+    },
+  },
+  "/api/patients/daily-queue": {
+    get: {
+      tags: ["Patient"],
+      summary: "Lấy danh sách hàng đợi khám trong ngày",
+      description: "Danh sách bệnh nhân có mặt trong ngày tại phòng khám, kèm trạng thái chờ/đang khám/hoàn tất.",
+      parameters: [
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 1 },
+          description: "Trang cần lấy",
+        },
+        {
+          name: "size",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 10 },
+          description: "Số bản ghi mỗi trang",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Lấy danh sách hàng đợi thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Lấy danh sách hàng đợi thành công",
+                  },
+                  data: {
+                    type: "array",
+                    items: patientQueueItemSchema,
+                  },
+                  pagination: paginationSchema,
+                },
+              },
             },
           },
         },

@@ -1,3 +1,4 @@
+import { Gender } from "@prisma/client";
 import Joi from "joi";
 
 export interface PatientResponseDto {
@@ -34,4 +35,20 @@ export const PatientResponseSchema = Joi.object<PatientResponseDto>({
   updatedAt: Joi.string().required().description("Thời gian cập nhật"),
 }).required();
 
+export enum QueueStatus {
+  WAITING = "WAITING",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED"
+}
 
+export interface PatientQueueItemDto {
+  patientId: string;
+  patientCode: string;
+  todayRecordId: string | null;
+  fullName: string | null;
+  gender: Gender;
+  age: number;
+  phone: string;
+  status: QueueStatus;
+  arrivedAt: Date
+}
