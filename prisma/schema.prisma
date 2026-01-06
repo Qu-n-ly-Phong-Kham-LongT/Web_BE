@@ -153,8 +153,8 @@ model Patient {
   relatives       PatientRelative[]
   medicalRecords  MedicalRecord[]
   allergies       PatientAllergy[]
-  clinic          Clinic?           @relation(fields: [clinicClinicId], references: [clinicId])
-  clinicClinicId  String?           @db.Uuid
+  clinic          Clinic?           @relation(fields: [clinicId], references: [clinicId])
+  clinicId        String?           @db.Uuid
 }
 
 model PatientRelative {
@@ -416,8 +416,8 @@ model Medicine {
   prescriptionDetails PrescriptionDetail[]
   templateDetails     PrescriptionTemplateDetail[]
   inventoryLogs       InventoryLog[]
-  clinic              Clinic?                      @relation(fields: [clinicClinicId], references: [clinicId])
-  clinicClinicId      String?                      @db.Uuid
+  clinic              Clinic?                      @relation(fields: [clinicId], references: [clinicId])
+  clinicId            String?                      @db.Uuid
 }
 
 model InventoryLog {
