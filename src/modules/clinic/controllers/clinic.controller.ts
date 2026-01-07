@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { successResponse } from "../../../utils/response.util";
 import { ClinicService } from "../services/clinic.service";
-import { ClinicListResponseDto, ClinicResponseDto } from "../dtos/clinic.response.dto";
+import {
+  ClinicListResponseDto,
+  ClinicResponseDto,
+} from "../dtos/clinic.response.dto";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicRequestDto } from "../dtos/clinic.request.dto";
 
@@ -10,18 +13,15 @@ export class ClinicController {
 
   public getClinicById = async (
     req: Request<{ id: string }>,
-    res: Response<ClinicResponseDto>,
-    next: NextFunction
+    res: Response<ClinicResponseDto>
   ) => {
-    try {
-      const clinic = await this.clinicService.getClinicById(req.params.id);
-      return successResponse(res, 200, clinic, "Lấy thông tin phòng khám thành công");
-    } catch (err) {
-      if (err instanceof BaseError && err.statusCode === 404) {
-        return successResponse(res, 404, null, err.message);
-      }
-      next(err);
-    }
+    const clinic = await this.clinicService.getClinicById(req.params.id);
+    return successResponse(
+      res,
+      200,
+      clinic,
+      "Lấy thông tin phòng khám thành công"
+    );
   };
 
   public createClinic = async (
@@ -29,19 +29,31 @@ export class ClinicController {
     res: Response
   ) => {
     const newClinic = await this.clinicService.createClinic(req.body);
-    return successResponse(res, 201, newClinic, "Tạo phòng khám mới thành công.");
+    return successResponse(
+      res,
+      201,
+      newClinic,
+      "Tạo phòng khám mới thành công."
+    );
   };
 
-  public getClinics = async (
-    req: Request,
-    res: Response
-  ) => {
+  public getClinics = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
 
-    const result: ClinicListResponseDto = await this.clinicService.getClinics(page, size, search);
-    return successResponse(res, 200, result.clinics, "Lay danh sach phong kham thanh cong", result.pagination);
+    const result: ClinicListResponseDto = await this.clinicService.getClinics(
+      page,
+      size,
+      search
+    );
+    return successResponse(
+      res,
+      200,
+      result.clinics,
+      "Lấy danh sách phòng khám thành công",
+      result.pagination
+    );
   };
 
   public updateClinic = async (
@@ -50,7 +62,15 @@ export class ClinicController {
   ) => {
     const clinicId = req.params.id;
     const updateData = req.body;
-    const updatedClinic = await this.clinicService.updateClinic(clinicId, updateData);
-    return successResponse(res, 200, updatedClinic, "Cập nhật thông tin phòng khám thành công.");
-  }
+    const updatedClinic = await this.clinicService.updateClinic(
+      clinicId,
+      updateData
+    );
+    return successResponse(
+      res,
+      200,
+      updatedClinic,
+      "Cập nhật thông tin phòng khám thành công."
+    );
+  };
 }

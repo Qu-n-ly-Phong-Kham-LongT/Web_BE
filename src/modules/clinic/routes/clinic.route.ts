@@ -26,7 +26,7 @@ ClinicRouter.post(
 ClinicRouter.get(
   "/",
   authenticate,
-  authorize([UserRoleEnum.Admin, UserRoleEnum.Manager, UserRoleEnum.Doctor]),
+  authorize([UserRoleEnum.Admin]),
   clinicController.getClinics
 );
 
@@ -41,7 +41,6 @@ ClinicRouter.put(
 ClinicRouter.get(
   "/:id",
   authenticate,
-  authorize([UserRoleEnum.Admin, UserRoleEnum.Manager, UserRoleEnum.Doctor]),
   validateParams(IdParamSchema),
   clinicController.getClinicById
 );

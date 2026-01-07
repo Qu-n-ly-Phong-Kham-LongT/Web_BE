@@ -77,7 +77,6 @@ export class PatientController {
     return successResponse(res, 200, result, "Lấy danh sách enum thành công");
   };
 
-  // Patient Relative methods
   public getRelativeById = async (
     req: AuthenticatedRequest<{ relativeId: string }>,
     res: Response
@@ -108,7 +107,6 @@ export class PatientController {
     return successResponse(res, 200, result, "Cập nhật thông tin người thân thành công");
   };
 
-  // Patient Allergy methods
   public createAllergies = async (
     req: AuthenticatedRequest<{ patientId: string }, {}, CreatePatientAllergyRequestDto>,
     res: Response

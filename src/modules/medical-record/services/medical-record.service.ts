@@ -19,9 +19,9 @@ export class MedicalRecordService {
     createData: BasicMedicalRecordRequestDto
   ): Promise<{ record: MedicalRecord; examinationId: string; allergies: PatientAllergyResponseDto[] }> {
     const [doctor, patient, clinic] = await Promise.all([
-      this.userRepository.findUserById(createData.doctorId),
-      this.patientRepository.findPatientById(createData.patientId),
-      this.clinicRepository.findClinicById(createData.clinicId),
+      this.userRepository.findUserById(createData.doctorId || ""),
+      this.patientRepository.findPatientById(createData.patientId || ""),
+      this.clinicRepository.findClinicById(createData.clinicId ?? ''),
     ]);
     if (!doctor) throw new BaseError(404, "Không tìm thấy bác sĩ.");
     if (!patient) throw new BaseError(404, "Bệnh nhân không tồn tại");
@@ -38,8 +38,8 @@ export class MedicalRecordService {
     const endOfDay = new Date(startOfDay);
     endOfDay.setUTCHours(23, 59, 59, 999);
     const existingRecord = await this.medicalRecordRepository.findExistingRecord(
-      createData.patientId,
-      createData.clinicId,
+      createData.patientId || "",
+      createData.clinicId ?? "",
       startOfDay,
       endOfDay
     );
@@ -70,7 +70,7 @@ export class MedicalRecordService {
       examinationId = exam.examId;
     }
 
-    const storedAllergies = await this.patientRepository.findAllergiesByPatientId(createData.patientId);
+    const storedAllergies = await this.patientRepository.findAllergiesByPatientId(createData.patientId || "");
     const allergies: PatientAllergyResponseDto[] = storedAllergies.map((a) => ({
       allergyID: a.allergyId,
       patientID: a.patientId,
