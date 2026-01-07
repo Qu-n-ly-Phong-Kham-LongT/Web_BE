@@ -20,7 +20,7 @@ export class PatientController {
     req: AuthenticatedRequest<{}, any, CreatePatientRequestDto>,
     res: Response
   ) => {
-    const clinicId = req.payload?.clinicId ?? undefined;
+    const clinicId = req.payload?.clinicId ?? "";
     let result: PatientResponseDto = await this.patientService.createPatient(req.body, clinicId);
     return successResponse(res, 201, result, "Tạo bệnh nhân thành công");
   };

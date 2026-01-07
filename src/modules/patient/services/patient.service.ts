@@ -25,32 +25,34 @@ import { createPagination } from "../../../utils/pagination.util";
 import { generatePatientCode } from "../../../utils/patient-code.util";
 import { prisma } from "../../../config/database.config";
 import { PatientQueueItemDto, QueueStatus } from "../dtos/patient.response.dto";
+import { ClinicRepository } from "../../clinic/repositories/clinic.repository";
 
 export class PatientService {
   private patientRepository = new PatientRepository();
+  private clinicRepository = new ClinicRepository();
 
-  private async getClinicCode(clinicId?: string): Promise<string | undefined> {
-    if (!clinicId) {
-      return undefined;
-    }
-    const clinic = await prisma.clinic.findUnique({
-      where: { clinicId: clinicId },
-      select: { clinicCode: true },
-    });
+  // private async getClinicCode(clinicId?: string): Promise<string | undefined> {
+  //   if (!clinicId) {
+  //     return undefined;
+  //   }
+  //   const clinic = await prisma.clinic.findUnique({
+  //     where: { clinicId: clinicId },
+  //     select: { clinicCode: true },
+  //   });
 
-    if (!clinic || !clinic.clinicCode) {
-      throw new BaseError(404, "Clinic code not found");
-    }
+  //   if (!clinic || !clinic.clinicCode) {
+  //     throw new BaseError(404, "Clinic code not found");
+  //   }
 
-    return clinic.clinicCode;
-  }
+  //   return clinic.clinicCode;
+  // }
 
   public async createPatient(
     data: CreatePatientRequestDto,
-    clinicId?: string
+    clinicId: string
   ): Promise<PatientResponseDto> {
     // Get clinicCode only for generating patient code
-    const clinicCode = clinicId ? await this.getClinicCode(clinicId) : undefined;
+    // const clinicCode = clinicId ? await this.getClinicCode(clinicId) : undefined;
 
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(
@@ -108,7 +110,8 @@ export class PatientService {
       }
     }
 
-    let patientCode = await generatePatientCode(clinicId);
+    let clinic = await this.clinicRepository.findClinicCodeByClinicId(clinicId);
+    let patientCode = await generatePatientCode(clinic.clinicCode);
 
     const result = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {

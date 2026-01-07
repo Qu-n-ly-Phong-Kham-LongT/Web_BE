@@ -63,4 +63,12 @@ export class ClinicRepository {
 
     return { clinics, totalItems };
   }
+
+  public async findClinicCodeByClinicId(clinicId: string): Promise<any> {
+    const clinic = await prisma.clinic.findUnique({
+      where: { clinicId: clinicId },
+      select: { clinicCode: true },
+    });
+    return clinic;
+  }
 }
