@@ -298,11 +298,11 @@ model ServiceItem {
   category   ServiceNode? @relation("CategoryNode", fields: [categoryId], references: [nodeId])
   typeId     String?      @db.Uuid
   type       ServiceNode? @relation("TypeNode", fields: [typeId], references: [nodeId])
-
-  unit     String?
-  specimen String?
-  prepNote String?
-  isActive Boolean? @default(true)
+  basePrice  Decimal?
+  unit       String?
+  specimen   String?
+  prepNote   String?
+  isActive   Boolean?     @default(true)
 
   configs         ServiceItemConfig[]
   requestDetails  ServiceRequestDetail[]
@@ -315,11 +315,11 @@ model ServiceItemConfig {
   itemId      String?      @db.Uuid
   serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
 
-  configCode  String?
-  displayName String?
-  inputType   InputType? @default(Text)
-  unit        String?
-
+  configCode     String?
+  displayName    String?
+  inputType      InputType?      @default(Text)
+  unit           String?
+  metaData       Json?
   refRange       String?
   serviceResults ServiceResult[]
 }

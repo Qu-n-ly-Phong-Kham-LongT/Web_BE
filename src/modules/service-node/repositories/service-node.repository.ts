@@ -100,4 +100,10 @@ export class ServiceNodeRepository {
     });
     return count > 0;
   }
+
+  public async findNodeById(nodeId: string): Promise<ServiceNode | null> {
+    return prisma.serviceNode.findUnique({
+      where: { nodeId: nodeId },
+    });
+  }
 }
