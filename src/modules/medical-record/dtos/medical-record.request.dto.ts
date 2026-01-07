@@ -24,9 +24,9 @@ export interface RecordRequestDto {
 }
 
 export interface BasicMedicalRecordRequestDto {
-  patientId: string;
-  doctorId: string;
-  clinicId: string;
+  patientId?: string | "";
+  doctorId?: string | "";
+  clinicId?: string | null;
   consultationFee?: number;
 }
 

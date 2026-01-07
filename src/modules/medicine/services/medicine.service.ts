@@ -10,7 +10,7 @@ import { createPagination } from "../../../utils/pagination.util";
 export class MedicineService {
   private medicineRepository = new MedicineRepository();
 
-  public async createMedicine(data: CreateMedicineRequestDto, clinicId: string): Promise<MedicineResponseDto> {
+  public async createMedicine(data: CreateMedicineRequestDto, clinicId?: string): Promise<MedicineResponseDto> {
     // Check if medicineCode already exists
     const existingMedicine = await this.medicineRepository.findMedicineByCode(data.medicineCode);
     if (existingMedicine) {
@@ -21,7 +21,7 @@ export class MedicineService {
     return this.mapToResponseDto(result);
   }
 
-  public async getMedicineById(id: string, clinicId: string): Promise<MedicineResponseDto> {
+  public async getMedicineById(id: string, clinicId?: string): Promise<MedicineResponseDto> {
     let medicine = await this.medicineRepository.findMedicineById(id, clinicId);
     if (!medicine) {
       throw new BaseError(404, "Không tìm thấy thuốc");
@@ -33,7 +33,7 @@ export class MedicineService {
     page: number = 1,
     size: number = 10,
     search: string | undefined,
-    clinicId: string
+    clinicId?: string
   ): Promise<MedicineListResponseDto> {
     let { medicines, totalItems } = await this.medicineRepository.findMedicines(page, size, search, clinicId);
 
@@ -45,7 +45,7 @@ export class MedicineService {
     };
   }
 
-  public async updateMedicine(id: string, data: UpdateMedicineRequestDto, clinicId: string): Promise<MedicineResponseDto> {
+  public async updateMedicine(id: string, data: UpdateMedicineRequestDto, clinicId?: string): Promise<MedicineResponseDto> {
     let existingMedicine = await this.medicineRepository.findMedicineById(id, clinicId);
     if (!existingMedicine) {
       throw new BaseError(404, "Không tìm thấy thuốc");

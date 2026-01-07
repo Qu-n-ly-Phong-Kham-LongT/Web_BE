@@ -48,7 +48,7 @@ export class ClinicService {
       const duplicateCheck = await this.clinicRepository.findClinicByEmail(
         updateData.email
       );
-      if (duplicateCheck && duplicateCheck.email !== id) {
+      if (duplicateCheck && duplicateCheck.clinicId !== id) {
         throw new BaseError(
           409,
           "Email này đang được sử dụng bởi 1 phòng khám khác."

@@ -16,14 +16,12 @@ type TransactionClient = Omit<
 >;
 
 export class PatientRepository {
-  private buildClinicCodeFilter(
-    clinicCode?: string
-  ): { patientCode: { startsWith: string } } | {} {
-    if (clinicCode) {
+  private buildClinicIdFilter(
+    clinicId?: string
+  ): { clinicId: string } | {} {
+    if (clinicId) {
       return {
-        patientCode: {
-          startsWith: clinicCode,
-        },
+        clinicId: clinicId,
       };
     }
     return {};
@@ -32,7 +30,7 @@ export class PatientRepository {
   public async createPatient(
     data: CreatePatientRequestDto,
     patientCode: string,
-    clinicId: string,
+    clinicId?: string,
     tx?: TransactionClient
   ): Promise<Patient> {
     const client = tx || prisma;
@@ -56,12 +54,12 @@ export class PatientRepository {
 
   public async findPatientById(
     id: string,
-    clinicCode?: string
+    clinicId?: string
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
         patientId: id,
-        ...this.buildClinicCodeFilter(clinicCode),
+        ...this.buildClinicIdFilter(clinicId),
       },
     });
   }
@@ -70,12 +68,12 @@ export class PatientRepository {
     page: number = 1,
     size: number = 10,
     search?: string,
-    clinicCode?: string
+    clinicId?: string
   ): Promise<{ patients: Patient[]; totalItems: number }> {
     const skip = (page - 1) * size;
 
     const baseWhere = {
-      ...this.buildClinicCodeFilter(clinicCode),
+      ...this.buildClinicIdFilter(clinicId),
     };
 
     const where = search
@@ -109,13 +107,13 @@ export class PatientRepository {
   public async updatePatient(
     id: string,
     data: Prisma.PatientUpdateInput,
-    clinicCode?: string
+    clinicId?: string
   ): Promise<Patient | null> {
-    // First check if patient exists with clinic code filter
+    // First check if patient exists with clinic id filter
     const existing = await prisma.patient.findFirst({
       where: {
         patientId: id,
-        ...this.buildClinicCodeFilter(clinicCode),
+        ...this.buildClinicIdFilter(clinicId),
       },
     });
 
@@ -138,36 +136,36 @@ export class PatientRepository {
 
   public async findPatientByPhone(
     phone: string,
-    clinicCode?: string
+    clinicId?: string
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
         phone: phone,
-        ...this.buildClinicCodeFilter(clinicCode),
+        ...this.buildClinicIdFilter(clinicId),
       },
     });
   }
 
   public async findPatientByIdentityCard(
     identityCard: string,
-    clinicCode?: string
+    clinicId?: string
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
         identityCard: identityCard,
-        ...this.buildClinicCodeFilter(clinicCode),
+        ...this.buildClinicIdFilter(clinicId),
       },
     });
   }
 
   public async findPatientByInsuranceNumber(
     insuranceNumber: string,
-    clinicCode?: string
+    clinicId?: string
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
         insuranceNumber: insuranceNumber,
-        ...this.buildClinicCodeFilter(clinicCode),
+        ...this.buildClinicIdFilter(clinicId),
       },
     });
   }
@@ -193,16 +191,16 @@ export class PatientRepository {
 
   public async findRelativeById(
     relativeId: string,
-    clinicCode: string
+    clinicId?: string
   ): Promise<PatientRelative | null> {
     return await prisma.patientRelative.findFirst({
       where: {
         relativeId: relativeId,
-        patient: {
-          patientCode: {
-            startsWith: clinicCode,
+        ...(clinicId ? {
+          patient: {
+            clinicId: clinicId,
           },
-        },
+        } : {}),
       },
     });
   }
@@ -253,18 +251,18 @@ export class PatientRepository {
 
   public async findAllergyById(
     allergyId: string,
-    clinicCode: string,
+    clinicId?: string,
     tx?: Prisma.TransactionClient
   ): Promise<PatientAllergy | null> {
     const client = tx || prisma;
     return await client.patientAllergy.findFirst({
       where: {
         allergyId,
-        patient: {
-          patientCode: {
-            startsWith: clinicCode,
+        ...(clinicId ? {
+          patient: {
+            clinicId: clinicId,
           },
-        },
+        } : {}),
       },
     });
   }
@@ -297,10 +295,10 @@ export class PatientRepository {
     });
   }
 
-  public async getDailyQueue(clinicId: string, start: Date, end: Date) {
+  public async getDailyQueue(clinicId: string | undefined, start: Date, end: Date) {
     return await prisma.patient.findMany({
       where: {
-        clinicId: clinicId,
+        ...(clinicId ? { clinicId: clinicId } : {}),
         OR: [
           {
             createdAt: { gte: start, lte: end },
@@ -308,7 +306,7 @@ export class PatientRepository {
           {
             medicalRecords: {
               some: {
-                clinicId: clinicId,
+                ...(clinicId ? { clinicId: clinicId } : {}),
                 createdAt: { gte: start, lte: end },
               },
             },
@@ -327,7 +325,7 @@ export class PatientRepository {
 
         medicalRecords: {
           where: {
-            clinicId: clinicId,
+            ...(clinicId ? { clinicId: clinicId } : {}),
             createdAt: { gte: start, lte: end }
           },
           select: {
@@ -344,4 +342,3 @@ export class PatientRepository {
     });
   }
 }
-
