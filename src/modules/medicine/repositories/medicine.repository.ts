@@ -12,7 +12,7 @@ export class MedicineRepository {
     return {};
   }
 
-  public async createMedicine(data: CreateMedicineRequestDto, clinicId: string): Promise<Medicine> {
+  public async createMedicine(data: CreateMedicineRequestDto, clinicId?: string): Promise<Medicine> {
     return await prisma.medicine.create({
       data: {
         medicineCode: data.medicineCode,
@@ -105,6 +105,17 @@ export class MedicineRepository {
   public async findMedicineByCode(medicineCode: string): Promise<Medicine | null> {
     return await prisma.medicine.findUnique({
       where: { medicineCode: medicineCode },
+    });
+  }
+
+  public async findMedicinesByIds(medicineIds: string[]): Promise<Pick<Medicine, "medicineId">[]> {
+    return await prisma.medicine.findMany({
+      where: {
+        medicineId: { in: medicineIds },
+      },
+      select: {
+        medicineId: true,
+      },
     });
   }
 }

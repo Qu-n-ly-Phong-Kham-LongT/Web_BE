@@ -6,7 +6,6 @@ import {
   BasicMedicalRecordRequestDto,
 } from "../dtos/medical-record.request.dto";
 import { MedicalRecordService } from "../services/medical-record.service";
-import { BaseError } from "../../../utils/base-error.util";
 
 export class MedicalRecordController {
   private medicalRecordService = new MedicalRecordService();
@@ -15,15 +14,13 @@ export class MedicalRecordController {
     req: AuthenticatedRequest<{}, {}, BasicMedicalRecordCreateBodyDto>,
     res: Response
   ) => {
-    const { payload } = req;
-    if (!payload?.userId || !payload.clinicId) {
-      throw new BaseError(401, "Thiếu thông tin bác sĩ hoặc phòng khám trong token");
-    }
+    const clinicId = req.payload?.clinicId;
+    const doctorId = req.payload?.userId;
 
     const data: BasicMedicalRecordRequestDto = {
       patientId: req.body.patientId,
-      doctorId: payload.userId,
-      clinicId: payload.clinicId,
+      doctorId: doctorId,
+      clinicId: clinicId,
       consultationFee: req.body.consultationFee,
     };
 

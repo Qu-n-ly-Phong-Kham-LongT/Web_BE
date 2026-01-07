@@ -11,7 +11,6 @@ const clinicalExaminationController = new ClinicalExaminationController();
 clinicalExaminationRouter.put(
   "/:recordId/clinical-examinations",
   authenticate,
-  authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin, UserRoleEnum.Manager]),
   validateBody(ClinicalExaminationRequestSchema),
   clinicalExaminationController.createClinicalExamination
 );
