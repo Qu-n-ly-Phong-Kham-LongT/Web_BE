@@ -107,5 +107,16 @@ export class MedicineRepository {
       where: { medicineCode: medicineCode },
     });
   }
+
+  public async findMedicinesByIds(medicineIds: string[]): Promise<Pick<Medicine, "medicineId">[]> {
+    return await prisma.medicine.findMany({
+      where: {
+        medicineId: { in: medicineIds },
+      },
+      select: {
+        medicineId: true,
+      },
+    });
+  }
 }
 
