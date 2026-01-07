@@ -13,4 +13,23 @@ export class MedicalRecordRepository {
   public async findById(recordId: string): Promise<MedicalRecord | null> {
     return await prisma.medicalRecord.findUnique({ where: { recordId } });
   }
+
+  public async findExistingRecord(
+    patientId: string,
+    clinicId: string,
+    start: Date,
+    end: Date
+  ): Promise<MedicalRecord | null> {
+    return await prisma.medicalRecord.findFirst({
+      where: {
+        patientId,
+        clinicId,
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
 }

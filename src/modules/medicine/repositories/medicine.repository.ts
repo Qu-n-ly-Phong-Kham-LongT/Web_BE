@@ -3,10 +3,10 @@ import { prisma } from "../../../config/database.config";
 import { CreateMedicineRequestDto } from "../dtos/create-medicine.request.dto";
 
 export class MedicineRepository {
-  private buildClinicFilter(clinicId?: string): { clinicClinicId: string } | {} {
+  private buildClinicFilter(clinicId?: string): { clinicId: string } | {} {
     if (clinicId) {
       return {
-        clinicClinicId: clinicId,
+        clinicId: clinicId,
       };
     }
     return {};
@@ -29,7 +29,7 @@ export class MedicineRepository {
         supplier: data.supplier ?? null,
         sideEffects: data.sideEffects ?? null,
         isActive: data.isActive ?? true,
-        clinicClinicId: clinicId,
+        clinicId: clinicId,
       },
     });
   }

@@ -32,6 +32,12 @@ patientRouter.get(
 );
 
 patientRouter.get(
+    "/daily-queue",
+    authenticate,
+    patientController.getDailyQueue
+);
+
+patientRouter.get(
     "/:id",
     authenticate,
     patientController.getPatientById

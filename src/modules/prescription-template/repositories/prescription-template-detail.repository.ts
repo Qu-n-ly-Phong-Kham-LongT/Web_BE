@@ -1,6 +1,11 @@
 import { Prisma, PrescriptionTemplateDetail } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 
+type TransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 export class PrescriptionTemplateDetailRepository {
   public async createTemplateDetail(
     templateId: string,
@@ -10,9 +15,11 @@ export class PrescriptionTemplateDetailRepository {
       defaultQuantityPerTime?: number | null;
       defaultRoute?: string | null;
       defaultTiming?: string | null;
-    }
+    },
+    tx?: TransactionClient
   ): Promise<PrescriptionTemplateDetail> {
-    return await prisma.prescriptionTemplateDetail.create({
+    const client = tx || prisma;
+    return await client.prescriptionTemplateDetail.create({
       data: {
         templateId: templateId,
         medicineId: data.medicineId,
@@ -32,9 +39,11 @@ export class PrescriptionTemplateDetailRepository {
       defaultQuantityPerTime?: number | null;
       defaultRoute?: string | null;
       defaultTiming?: string | null;
-    }>
+    }>,
+    tx?: TransactionClient
   ): Promise<{ count: number }> {
-    return await prisma.prescriptionTemplateDetail.createMany({
+    const client = tx || prisma;
+    return await client.prescriptionTemplateDetail.createMany({
       data: details.map((detail) => ({
         templateId: templateId,
         medicineId: detail.medicineId,
@@ -46,14 +55,22 @@ export class PrescriptionTemplateDetailRepository {
     });
   }
 
-  public async findTemplateDetailById(templateDetailId: string): Promise<PrescriptionTemplateDetail | null> {
-    return await prisma.prescriptionTemplateDetail.findUnique({
+  public async findTemplateDetailById(
+    templateDetailId: string,
+    tx?: TransactionClient
+  ): Promise<PrescriptionTemplateDetail | null> {
+    const client = tx || prisma;
+    return await client.prescriptionTemplateDetail.findUnique({
       where: { templateDetailId: templateDetailId },
     });
   }
 
-  public async findTemplateDetailsByTemplateId(templateId: string): Promise<PrescriptionTemplateDetail[]> {
-    return await prisma.prescriptionTemplateDetail.findMany({
+  public async findTemplateDetailsByTemplateId(
+    templateId: string,
+    tx?: TransactionClient
+  ): Promise<PrescriptionTemplateDetail[]> {
+    const client = tx || prisma;
+    return await client.prescriptionTemplateDetail.findMany({
       where: { templateId: templateId },
     });
   }
@@ -66,12 +83,14 @@ export class PrescriptionTemplateDetailRepository {
       defaultQuantityPerTime?: number | null;
       defaultRoute?: string | null;
       defaultTiming?: string | null;
-    }
+    },
+    tx?: TransactionClient
   ): Promise<PrescriptionTemplateDetail> {
+    const client = tx || prisma;
     const updateData: Prisma.PrescriptionTemplateDetailUpdateInput = {};
 
     if (data.medicineId !== undefined) {
-      updateData.medicineId = data.medicineId;
+      updateData.medicine = { connect: { medicineId: data.medicineId } };
     }
     if (data.defaultFrequency !== undefined) {
       updateData.defaultFrequency = data.defaultFrequency;
@@ -86,29 +105,39 @@ export class PrescriptionTemplateDetailRepository {
       updateData.defaultTiming = data.defaultTiming;
     }
 
-    return await prisma.prescriptionTemplateDetail.update({
+    return await client.prescriptionTemplateDetail.update({
       where: { templateDetailId: templateDetailId },
       data: updateData,
     });
   }
 
-  public async deleteTemplateDetail(templateDetailId: string): Promise<void> {
-    await prisma.prescriptionTemplateDetail.delete({
+  public async deleteTemplateDetail(
+    templateDetailId: string,
+    tx?: TransactionClient
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.prescriptionTemplateDetail.delete({
       where: { templateDetailId: templateDetailId },
     });
   }
 
-  public async deleteTemplateDetails(templateId: string): Promise<void> {
-    await prisma.prescriptionTemplateDetail.deleteMany({
+  public async deleteTemplateDetailsByTemplateId(
+    templateId: string,
+    tx?: TransactionClient
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.prescriptionTemplateDetail.deleteMany({
       where: { templateId: templateId },
     });
   }
 
-  public async deleteTemplateDetailsByIds(templateDetailIds: string[]): Promise<void> {
-    await prisma.prescriptionTemplateDetail.deleteMany({
+  public async deleteTemplateDetailsByIds(
+    templateDetailIds: string[],
+    tx?: TransactionClient
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.prescriptionTemplateDetail.deleteMany({
       where: { templateDetailId: { in: templateDetailIds } },
     });
   }
 }
-
-
