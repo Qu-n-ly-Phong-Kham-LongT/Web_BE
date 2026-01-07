@@ -12,7 +12,7 @@ export class MedicineRepository {
     return {};
   }
 
-  public async createMedicine(data: CreateMedicineRequestDto, clinicId: string): Promise<Medicine> {
+  public async createMedicine(data: CreateMedicineRequestDto, clinicId?: string): Promise<Medicine> {
     return await prisma.medicine.create({
       data: {
         medicineCode: data.medicineCode,

@@ -14,10 +14,7 @@ export class MedicineController {
     req: AuthenticatedRequest<{}, any, CreateMedicineRequestDto>,
     res: Response
   ) => {
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     let result: MedicineResponseDto = await this.medicineService.createMedicine(req.body, clinicId);
     return successResponse(res, 201, result, "Tạo thuốc thành công");
   };
@@ -27,10 +24,7 @@ export class MedicineController {
     res: Response
   ) => {
     const { id } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     let result: MedicineResponseDto = await this.medicineService.getMedicineById(id, clinicId);
     return successResponse(res, 200, result, "Lấy thông tin thuốc thành công");
   };
@@ -42,10 +36,7 @@ export class MedicineController {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
 
     let result: MedicineListResponseDto = await this.medicineService.getMedicines(page, size, search, clinicId);
     return successResponse(res, 200, result.medicines, "Lấy danh sách thuốc thành công", result.pagination);
@@ -56,10 +47,7 @@ export class MedicineController {
     res: Response
   ) => {
     const { id } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     let result: MedicineResponseDto = await this.medicineService.updateMedicine(id, req.body, clinicId);
     return successResponse(res, 200, result, "Cập nhật thông tin thuốc thành công");
   };

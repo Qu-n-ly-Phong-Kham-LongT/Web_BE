@@ -2,8 +2,11 @@ import { prisma } from "../config/database.config";
 import { getTimeNumberString } from "./date.util";
 import { BaseError } from "./base-error.util";
 
-export async function generatePatientCode(clinicId: string): Promise<string> {
+export async function generatePatientCode(clinicId?: string): Promise<string> {
   // Get clinic code from database
+  if (!clinicId) {
+    throw new BaseError(400, "Clinic ID is required to generate patient code");
+  }
   const clinic = await prisma.clinic.findUnique({
     where: { clinicId: clinicId },
     select: { clinicCode: true },

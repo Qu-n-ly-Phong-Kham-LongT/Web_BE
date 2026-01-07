@@ -20,10 +20,7 @@ export class PatientController {
     req: AuthenticatedRequest<{}, any, CreatePatientRequestDto>,
     res: Response
   ) => {
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     let result: PatientResponseDto = await this.patientService.createPatient(req.body, clinicId);
     return successResponse(res, 201, result, "Tạo bệnh nhân thành công");
   };
@@ -33,10 +30,7 @@ export class PatientController {
     res: Response
   ) => {
     const { id } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     let result: PatientResponseDto = await this.patientService.getPatientById(id, clinicId);
     return successResponse(res, 200, result, "Lấy thông tin bệnh nhân thành công");
   };
@@ -48,10 +42,7 @@ export class PatientController {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
 
     let result: PatientListResponseDto = await this.patientService.getPatients(page, size, search, clinicId);
     return successResponse(res, 200, result.patients, "Lấy danh sách bệnh nhân thành công", result.pagination);
@@ -62,10 +53,7 @@ export class PatientController {
   ) => {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic Id không tồn tại");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
 
     const { queue, pagination } = await this.patientService.getDailyQueue(clinicId, page, size);
     return successResponse(res, 200, queue, "Lấy danh sách hàng đợi thành công", pagination);
@@ -76,10 +64,7 @@ export class PatientController {
     res: Response
   ) => {
     const { id } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     let result: PatientResponseDto = await this.patientService.updatePatient(id, req.body, clinicId);
     return successResponse(res, 200, result, "Cập nhật thông tin bệnh nhân thành công");
   };
@@ -98,10 +83,7 @@ export class PatientController {
     res: Response
   ) => {
     const { relativeId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientRelativeResponseDto = await this.patientService.getRelativeById(relativeId, clinicId);
     return successResponse(res, 200, result, "Lấy thông tin người thân thành công");
   };
@@ -111,10 +93,7 @@ export class PatientController {
     res: Response
   ) => {
     const { patientId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientRelativeResponseDto[] = await this.patientService.getRelativesByPatientId(patientId, clinicId);
     return successResponse(res, 200, result, "Lấy danh sách người thân thành công");
   };
@@ -124,10 +103,7 @@ export class PatientController {
     res: Response
   ) => {
     const { relativeId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientRelativeResponseDto = await this.patientService.updateRelative(relativeId, req.body, clinicId);
     return successResponse(res, 200, result, "Cập nhật thông tin người thân thành công");
   };
@@ -138,10 +114,7 @@ export class PatientController {
     res: Response
   ) => {
     const { patientId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientAllergyResponseDto[] = await this.patientService.createAllergies(patientId, req.body, clinicId);
     return successResponse(res, 201, result, "Tạo thông tin dị ứng thành công");
   };
@@ -151,10 +124,7 @@ export class PatientController {
     res: Response
   ) => {
     const { allergyId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientAllergyResponseDto = await this.patientService.getAllergyById(allergyId, clinicId);
     return successResponse(res, 200, result, "Lấy thông tin dị ứng thành công");
   };
@@ -164,10 +134,7 @@ export class PatientController {
     res: Response
   ) => {
     const { patientId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientAllergyResponseDto[] = await this.patientService.getAllergiesByPatientId(patientId, clinicId);
     return successResponse(res, 200, result, "Lấy danh sách dị ứng thành công");
   };
@@ -177,10 +144,7 @@ export class PatientController {
     res: Response
   ) => {
     const { allergyId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     const result: PatientAllergyResponseDto = await this.patientService.updateAllergy(allergyId, req.body, clinicId);
     return successResponse(res, 200, result, "Cập nhật thông tin dị ứng thành công");
   };
@@ -190,10 +154,7 @@ export class PatientController {
     res: Response
   ) => {
     const { allergyId } = req.params;
-    const clinicId = req.payload?.clinicId;
-    if (!clinicId) {
-      return successResponse(res, 401, null, "Clinic ID not found in token");
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
     await this.patientService.deleteAllergy(allergyId, clinicId);
     return successResponse(res, 200, null, "Xóa thông tin dị ứng thành công");
   };
