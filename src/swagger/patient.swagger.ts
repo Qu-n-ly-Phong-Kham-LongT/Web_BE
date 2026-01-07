@@ -36,7 +36,7 @@ const patientQueueItemSchema = {
 const PatientSwagger = {
   "/api/patients": {
     post: {
-      tags: ["Patient"],
+      tags: ["Core Businesses"],
       summary: "Tạo mới bệnh nhân",
       requestBody: {
         required: true,
@@ -99,7 +99,7 @@ const PatientSwagger = {
   },
   "/api/patients/{id}": {
     get: {
-      tags: ["Patient"],
+      tags: ["Core Businesses"],
       summary: "Lấy thông tin bệnh nhân theo ID",
       parameters: [
         {
@@ -123,7 +123,7 @@ const PatientSwagger = {
       },
     },
     put: {
-      tags: ["Patient"],
+      tags: ["Core Businesses"],
       summary: "Cập nhật thông tin bệnh nhân",
       parameters: [
         {
