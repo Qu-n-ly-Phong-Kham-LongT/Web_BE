@@ -17,4 +17,16 @@ serviceItemRouter.post(
   controller.create
 );  
 
+serviceItemRouter.get(
+  "/",
+  authenticate,
+  controller.getAll
+);
+
+serviceItemRouter.get(
+  "/:id",
+  authenticate,
+  controller.getById
+);
+
 export default serviceItemRouter;

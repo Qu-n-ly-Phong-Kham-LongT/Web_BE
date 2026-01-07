@@ -25,6 +25,7 @@ rootRouter.use("/medical-records", clinicalExaminationRouter);
 rootRouter.use("/medicines", medicineRouter);
 rootRouter.use("/prescription-templates", prescriptionTemplateRouter);
 rootRouter.use("/service-nodes", serviceNodeRouter);
+rootRouter.use("/service-items", serviceItemRouter);
 rootRouter.use("/service-items", serviceItemRouter)
 
 export default rootRouter;
