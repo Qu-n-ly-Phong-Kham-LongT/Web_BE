@@ -10,6 +10,60 @@ export class ServiceItemRepository {
     });
   }
 
+  public async findById(itemId: string) {
+    return prisma.serviceItem.findUnique({
+      where: { itemId },
+      include: {
+        configs: true,
+        category: true,
+        type: true,
+      },
+    });
+  }
+
+  public async findAll(params: {
+    skip: number;
+    take: number;
+    search?: string;
+    typeId?: string;
+    categoryId?: string;
+  }) {
+    const { skip, take, search, typeId, categoryId } = params;
+
+    const where: Prisma.ServiceItemWhereInput = {
+      AND: [
+        search
+          ? {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { itemCode: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {},
+        typeId ? { typeId } : {},
+        categoryId ? { categoryId } : {},
+        { isActive: true },
+      ],
+    };
+
+    const [items, total] = await Promise.all([
+      prisma.serviceItem.findMany({
+        where,
+        skip,
+        take,
+        include: {
+          type: true,
+          category: true,
+          configs: true,
+        },
+        orderBy: [{ typeId: "asc" }, { name: "asc" }],
+      }),
+      prisma.serviceItem.count({ where }),
+    ]);
+
+    return { items, total };
+  }
+
   public async createServiceItemWithConfig(
     createData: CreateServiceItemRequestDto
   ): Promise<ServiceItem> {
@@ -20,6 +74,7 @@ export class ServiceItemRepository {
           name: createData.name,
           categoryId: createData.categoryId ?? null,
           typeId: createData.typeId,
+          basePrice: createData.basePrice ?? null,
           unit: createData.unit ?? null,
           specimen: createData.specimen ?? null,
           prepNote: createData.prepNote ?? null,
@@ -37,7 +92,6 @@ export class ServiceItemRepository {
             inputType: cfg.inputType,
             unit: cfg.unit,
             refRange: cfg.refRange,
-            sortOrder: cfg.sortOrder,
 
             metaData: cfg.metaData
               ? (cfg.metaData as Prisma.InputJsonValue)
