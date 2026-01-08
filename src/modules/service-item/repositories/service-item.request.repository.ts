@@ -112,4 +112,15 @@ export class ServiceItemRepository {
       });
     });
   }
+
+  public async findServiceItemsByIds(itemIds: string[]): Promise<Pick<ServiceItem, "itemId">[]> {
+    return await prisma.serviceItem.findMany({
+      where: {
+        itemId: { in: itemIds },
+      },
+      select: {
+        itemId: true,
+      },
+    });
+  }
 }
