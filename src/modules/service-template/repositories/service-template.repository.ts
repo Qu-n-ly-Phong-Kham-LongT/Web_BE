@@ -1,4 +1,4 @@
-import { Prisma, ServiceTemplate, ServiceTemplateDetail } from "@prisma/client";
+import { Prisma, ServiceTemplate, ServiceTemplateDetail, InputType } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 
 export type ServiceTemplateWithDetails = ServiceTemplate & {
@@ -8,6 +8,15 @@ export type ServiceTemplateWithDetails = ServiceTemplate & {
       name: string | null;
       itemCode: string | null;
       unit: string | null;
+      configs: Array<{
+        configId: string;
+        configCode: string | null;
+        displayName: string | null;
+        inputType: InputType | null;
+        unit: string | null;
+        metaData: any;
+        refRange: string | null;
+      }>;
     } | null;
   })[];
 };
@@ -26,6 +35,17 @@ const templateInclude = {
           name: true,
           itemCode: true,
           unit: true,
+          configs: {
+            select: {
+              configId: true,
+              configCode: true,
+              displayName: true,
+              inputType: true,
+              unit: true,
+              metaData: true,
+              refRange: true,
+            },
+          },
         },
       },
     },

@@ -203,6 +203,15 @@ export class ServiceTemplateService {
         itemCode: detail.serviceItem?.itemCode ?? null,
         unit: detail.serviceItem?.unit ?? null,
         note: detail.note,
+        configs: detail.serviceItem?.configs?.map((config) => ({
+          configId: config.configId,
+          configCode: config.configCode,
+          displayName: config.displayName,
+          inputType: config.inputType,
+          unit: config.unit,
+          metaData: config.metaData,
+          refRange: config.refRange,
+        })) ?? [],
       })),
     };
   }
