@@ -213,13 +213,6 @@ export class PatientRepository {
     });
   }
 
-  public async findRelativeByIdentityCard(
-    identityCard: string
-  ): Promise<PatientRelative | null> {
-    return await prisma.patientRelative.findFirst({
-      where: { identityCard: identityCard },
-    });
-  }
 
   public async updateRelative(
     relativeId: string,
