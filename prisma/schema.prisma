@@ -452,6 +452,7 @@ model PrescriptionTemplateDetail {
   medicine               Medicine              @relation(fields: [medicineId], references: [medicineId])
   defaultFrequency       Int?
   defaultQuantityPerTime Float?
+  daysToTake             Int?
   defaultRoute           String?
   defaultTiming          String?
 }

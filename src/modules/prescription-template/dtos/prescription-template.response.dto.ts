@@ -7,6 +7,7 @@ export interface PrescriptionTemplateDetailResponseDto {
   baseUnit: string | null;
   defaultFrequency: number | null;
   defaultQuantityPerTime: number | null;
+  daysToTake: number | null;
   defaultRoute: string | null;
   defaultTiming: string | null;
 }
@@ -27,6 +28,7 @@ const PrescriptionTemplateDetailResponseSchema = Joi.object<PrescriptionTemplate
   baseUnit: Joi.string().allow(null).description("Đơn vị cơ bản"),
   defaultFrequency: Joi.number().allow(null).description("Số lần dùng mặc định"),
   defaultQuantityPerTime: Joi.number().allow(null).description("Liều lượng mỗi lần dùng mặc định"),
+  daysToTake: Joi.number().integer().allow(null).description("Số ngày dùng thuốc"),
   defaultRoute: Joi.string().allow(null).description("Phương thức dùng mặc định"),
   defaultTiming: Joi.string().allow(null).description("Thời gian dùng mặc định"),
 }).required();

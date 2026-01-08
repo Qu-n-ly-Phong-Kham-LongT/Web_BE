@@ -5,6 +5,7 @@ export interface UpdatePrescriptionTemplateDetailDto {
   medicineId: string;
   defaultFrequency?: number;
   defaultQuantityPerTime?: number;
+  daysToTake?: number;
   defaultRoute?: string;
   defaultTiming?: string;
 }
@@ -29,6 +30,10 @@ export const UpdatePrescriptionTemplateDetailSchema = Joi.object<UpdatePrescript
   }),
   defaultQuantityPerTime: Joi.number().min(0).optional().messages({
     "number.min": "Liều lượng mỗi lần dùng phải lớn hơn hoặc bằng 0",
+  }),
+  daysToTake: Joi.number().integer().min(1).optional().messages({
+    "number.min": "Số ngày dùng thuốc phải lớn hơn 0",
+    "number.integer": "Số ngày dùng thuốc phải là số nguyên",
   }),
   defaultRoute: Joi.string().optional(),
   defaultTiming: Joi.string().optional(),
