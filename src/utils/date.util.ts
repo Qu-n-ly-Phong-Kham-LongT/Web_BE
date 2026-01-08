@@ -21,3 +21,11 @@ export const toVietnamISOString = (date: Date | null | undefined): string => {
   return vietnamDate.toISOString();
 };
 
+export const calculateAge = (dateOfBirth: Date | null | undefined): number => {
+  if (!dateOfBirth) {
+    return 0;
+  }
+  const diff = Date.now() - new Date(dateOfBirth).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+};
+

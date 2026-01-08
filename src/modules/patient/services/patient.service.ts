@@ -26,6 +26,7 @@ import { generatePatientCode } from "../../../utils/patient-code.util";
 import { prisma } from "../../../config/database.config";
 import { PatientQueueItemDto, QueueStatus } from "../dtos/patient.response.dto";
 import { ClinicRepository } from "../../clinic/repositories/clinic.repository";
+import { calculateAge } from "../../../utils/date.util";
 
 export class PatientService {
   private patientRepository = new PatientRepository();
@@ -327,6 +328,7 @@ export class PatientService {
       fullName: patient.fullName ?? "",
       gender: patient.gender,
       dob: patient.dob ? patient.dob.toISOString() : "",
+      age: calculateAge(patient.dob),
       patientCategory: patient.patientCategory,
       phone: patient.phone ?? "",
       email: patient.email,
@@ -497,11 +499,7 @@ export class PatientService {
     );
 
     const mappedList = patients.map((p) => {
-      let age = 0;
-      if (p.dob) {
-        const diff = Date.now() - new Date(p.dob).getTime();
-        age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
-      }
+      const age = calculateAge(p.dob);
 
       const record = p.medicalRecords?.[0] || null;
       let status = QueueStatus.WAITING;
