@@ -51,9 +51,6 @@ export class PatientService {
     data: CreatePatientRequestDto,
     clinicId: string
   ): Promise<PatientResponseDto> {
-    // Get clinicCode only for generating patient code
-    // const clinicCode = clinicId ? await this.getClinicCode(clinicId) : undefined;
-
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(
         data.phone,
@@ -83,30 +80,6 @@ export class PatientService {
         );
       if (existingByInsurance) {
         throw new BaseError(400, "Số thẻ BHYT đã tồn tại");
-      }
-    }
-
-    if (data.relatives?.length) {
-      const identityCards = data.relatives
-        .map((r) => r.identityCard)
-        .filter((card): card is string => !!card);
-      if (new Set(identityCards).size !== identityCards.length) {
-        throw new BaseError(
-          400,
-          "CMND/CCCD không được trùng lặp trong danh sách người thân"
-        );
-      }
-
-      for (const relative of data.relatives) {
-        if (relative.identityCard) {
-          let existingRelative =
-            await this.patientRepository.findRelativeByIdentityCard(
-              relative.identityCard
-            );
-          if (existingRelative) {
-            throw new BaseError(400, "CMND/CCCD của người thân đã tồn tại");
-          }
-        }
       }
     }
 
@@ -533,18 +506,14 @@ export class PatientService {
       const record = p.medicalRecords?.[0] || null;
       let status = QueueStatus.WAITING;
       let recordId = null;
-
       let arrivedAt = p.createdAt ? new Date(p.createdAt) : new Date();
 
       if (record) {
         recordId = record.recordId;
-        if (record.createdAt) {
-          arrivedAt = new Date(record.createdAt);
-        }
-
-        if (record.diagnoses || record.prescription) {
+        if (record.createdAt) arrivedAt = new Date(record.createdAt);
+        if (record.diagnoses || (record as any).prescription) {
           status = QueueStatus.COMPLETED;
-        } else if (record.clinicalExamination) {
+        } else if ((record as any).clinicalExamination) {
           status = QueueStatus.IN_PROGRESS;
         }
       }
@@ -562,11 +531,19 @@ export class PatientService {
         arrivedAt: arrivedAt,
       };
     });
-    mappedList.sort((a, b) => b.arrivedAt.getTime() - a.arrivedAt.getTime());
+
+    mappedList.sort((a, b) => a.arrivedAt.getTime() - b.arrivedAt.getTime());
+
+    const listWithSTT = mappedList.map((item, index) => ({
+      ...item,
+      queueNumber: index + 1,
+    }));
+
+    listWithSTT.sort((a, b) => b.arrivedAt.getTime() - a.arrivedAt.getTime());
 
     const normalizedSearch = search?.trim().toLowerCase();
     const filteredList = normalizedSearch
-      ? mappedList.filter((item) => {
+      ? listWithSTT.filter((item) => {
           return (
             item.fullName?.toLowerCase().includes(normalizedSearch) ||
             item.patientCode.toLowerCase().includes(normalizedSearch) ||
@@ -574,18 +551,17 @@ export class PatientService {
             (item.identityCard ?? "").toLowerCase().includes(normalizedSearch)
           );
         })
-      : mappedList;
+      : listWithSTT;
 
     const safePage = Math.max(Number(page) || 1, 1);
     const safeSize = Math.max(Number(size) || 10, 1);
     const totalItems = filteredList.length;
-
     const startIndex = (safePage - 1) * safeSize;
-    const endIndex = startIndex + safeSize;
+    const paginatedData = filteredList.slice(startIndex, startIndex + safeSize);
 
-    const paginatedData = filteredList.slice(startIndex, endIndex);
-    const meta = createPagination(safePage, safeSize, totalItems);
-
-    return { queue: paginatedData, pagination: meta };
+    return {
+      queue: paginatedData,
+      pagination: createPagination(safePage, safeSize, totalItems),
+    };
   }
 }

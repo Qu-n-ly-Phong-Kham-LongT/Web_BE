@@ -51,5 +51,6 @@ export interface PatientQueueItemDto {
   age: number;
   phone: string;
   status: QueueStatus;
-  arrivedAt: Date
+  arrivedAt: Date;
+  queueNumber: number;
 }

@@ -51,6 +51,7 @@ export class PrescriptionTemplateRepository {
         medicineId: string;
         defaultFrequency?: number | null;
         defaultQuantityPerTime?: number | null;
+        daysToTake?: number | null;
         defaultRoute?: string | null;
         defaultTiming?: string | null;
       }>;
@@ -69,6 +70,7 @@ export class PrescriptionTemplateRepository {
             medicineId: detail.medicineId,
             defaultFrequency: detail.defaultFrequency ?? null,
             defaultQuantityPerTime: detail.defaultQuantityPerTime ?? null,
+            daysToTake: detail.daysToTake ?? null,
             defaultRoute: detail.defaultRoute ?? null,
             defaultTiming: detail.defaultTiming ?? null,
           })),
@@ -139,9 +141,7 @@ export class PrescriptionTemplateRepository {
     tx?: TransactionClient
   ): Promise<PrescriptionTemplate> {
     const client = tx || prisma;
-    
-    // Safety: Delete details first to avoid foreign key constraint error
-    // Note: Schema should have onDelete: Cascade, but we handle it explicitly for safety
+
     await client.prescriptionTemplateDetail.deleteMany({
       where: { templateId: id },
     });

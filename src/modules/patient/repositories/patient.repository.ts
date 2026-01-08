@@ -16,9 +16,7 @@ type TransactionClient = Omit<
 >;
 
 export class PatientRepository {
-  private buildClinicIdFilter(
-    clinicId?: string
-  ): { clinicId: string } | {} {
+  private buildClinicIdFilter(clinicId?: string): { clinicId: string } | {} {
     if (clinicId) {
       return {
         clinicId: clinicId,
@@ -37,11 +35,11 @@ export class PatientRepository {
     return await client.patient.create({
       data: {
         patientCode: patientCode,
-        fullName: data.fullName,
+        fullName: data.fullName ?? null,
         gender: data.gender ?? null,
-        dob: new Date(data.dob),
+        dob: data.dob ? new Date(data.dob) : null,
         patientCategory: data.patientCategory ?? null,
-        phone: data.phone,
+        phone: data.phone ?? null,
         email: data.email ?? null,
         identityCard: data.identityCard ?? null,
         insuranceNumber: data.insuranceNumber ?? null,
@@ -196,11 +194,13 @@ export class PatientRepository {
     return await prisma.patientRelative.findFirst({
       where: {
         relativeId: relativeId,
-        ...(clinicId ? {
-          patient: {
-            clinicId: clinicId,
-          },
-        } : {}),
+        ...(clinicId
+          ? {
+              patient: {
+                clinicId: clinicId,
+              },
+            }
+          : {}),
       },
     });
   }
@@ -210,14 +210,6 @@ export class PatientRepository {
   ): Promise<PatientRelative[]> {
     return await prisma.patientRelative.findMany({
       where: { patientId: patientId },
-    });
-  }
-
-  public async findRelativeByIdentityCard(
-    identityCard: string
-  ): Promise<PatientRelative | null> {
-    return await prisma.patientRelative.findFirst({
-      where: { identityCard: identityCard },
     });
   }
 
@@ -258,11 +250,13 @@ export class PatientRepository {
     return await client.patientAllergy.findFirst({
       where: {
         allergyId,
-        ...(clinicId ? {
-          patient: {
-            clinicId: clinicId,
-          },
-        } : {}),
+        ...(clinicId
+          ? {
+              patient: {
+                clinicId: clinicId,
+              },
+            }
+          : {}),
       },
     });
   }
@@ -295,7 +289,11 @@ export class PatientRepository {
     });
   }
 
-  public async getDailyQueue(clinicId: string | undefined, start: Date, end: Date) {
+  public async getDailyQueue(
+    clinicId: string | undefined,
+    start: Date,
+    end: Date
+  ) {
     return await prisma.patient.findMany({
       where: {
         ...(clinicId ? { clinicId: clinicId } : {}),
@@ -326,19 +324,18 @@ export class PatientRepository {
         medicalRecords: {
           where: {
             ...(clinicId ? { clinicId: clinicId } : {}),
-            createdAt: { gte: start, lte: end }
+            createdAt: { gte: start, lte: end },
           },
           select: {
             recordId: true,
             createdAt: true,
             diagnoses: true,
-            prescription: { select: { prescriptionId: true }},
-            clinicalExamination: { select: { examId: true }}
+            prescription: { select: { prescriptionId: true } },
+            clinicalExamination: { select: { examId: true } },
           },
-          take: 1
-        }
+        },
       },
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updatedAt: "asc" },
     });
   }
 }

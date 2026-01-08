@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrescriptionTemplateDetail } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
 import { PrescriptionTemplateResponseDto } from "../dtos/prescription-template.response.dto";
 import { CreatePrescriptionTemplateRequestDto } from "../dtos/create-prescription-template.request.dto";
@@ -144,6 +144,7 @@ export class PrescriptionTemplateService {
               medicineId: d.medicineId,
               defaultFrequency: d.defaultFrequency ?? null,
               defaultQuantityPerTime: d.defaultQuantityPerTime ?? null,
+              daysToTake: d.daysToTake ?? null,
               defaultRoute: d.defaultRoute ?? null,
               defaultTiming: d.defaultTiming ?? null,
             })),
@@ -159,6 +160,7 @@ export class PrescriptionTemplateService {
               medicineId: detail.medicineId,
               defaultFrequency: detail.defaultFrequency ?? null,
               defaultQuantityPerTime: detail.defaultQuantityPerTime ?? null,
+              daysToTake: detail.daysToTake ?? null,
               defaultRoute: detail.defaultRoute ?? null,
               defaultTiming: detail.defaultTiming ?? null,
             },
@@ -207,6 +209,7 @@ export class PrescriptionTemplateService {
         baseUnit: detail.medicine?.baseUnit ?? null,
         defaultFrequency: detail.defaultFrequency,
         defaultQuantityPerTime: detail.defaultQuantityPerTime ? Number(detail.defaultQuantityPerTime) : null,
+        daysToTake: detail.daysToTake ?? null,
         defaultRoute: detail.defaultRoute,
         defaultTiming: detail.defaultTiming,
       })),

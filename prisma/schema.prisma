@@ -164,7 +164,7 @@ model PatientRelative {
   fullName     String?
   phone        String?
   relationship String?
-  identityCard String?  @unique
+  identityCard String?
   address      String?
 }
 
@@ -452,6 +452,7 @@ model PrescriptionTemplateDetail {
   medicine               Medicine              @relation(fields: [medicineId], references: [medicineId])
   defaultFrequency       Int?
   defaultQuantityPerTime Float?
+  daysToTake             Int?
   defaultRoute           String?
   defaultTiming          String?
 }
