@@ -2,11 +2,11 @@ import Joi from "joi";
 import { CreatePatientRelativeRequestDto, CreatePatientRelativeRequestSchema } from "./create-patient-relative.request.dto";
 
 export interface CreatePatientRequestDto {
-  fullName: string;
+  fullName?: string;
   gender?: "Male" | "Female" | "Other";
-  dob: string; // ISO date string
+  dob?: string; // ISO date string
   patientCategory?: "BHYT" | "DichVu" | "UuTien";
-  phone: string;
+  phone?: string;
   email?: string;
   identityCard?: string;
   insuranceNumber?: string;
@@ -16,40 +16,38 @@ export interface CreatePatientRequestDto {
 }
 
 export const CreatePatientRequestSchema = Joi.object<CreatePatientRequestDto>({
-  fullName: Joi.string().required().messages({
+  fullName: Joi.string().optional().allow(null, "").messages({
     "string.empty": "Họ tên không được để trống",
-    "any.required": "Họ tên là bắt buộc",
   }),
-  gender: Joi.string().valid("Male", "Female", "Other").optional().messages({
+  gender: Joi.string().valid("Male", "Female", "Other").optional().allow(null).messages({
     "any.only": "Giới tính phải là Nam, Nữ hoặc Khác",
   }),
-  dob: Joi.string().isoDate().required().messages({
+  dob: Joi.string().isoDate().optional().allow(null, "").messages({
     "string.isoDate": "Ngày sinh không đúng định dạng ISO",
-    "any.required": "Ngày sinh là bắt buộc",
   }),
-  patientCategory: Joi.string().valid("BHYT", "DichVu", "UuTien").optional().messages({
+  patientCategory: Joi.string().valid("BHYT", "DichVu", "UuTien").optional().allow(null).messages({
     "any.only": "Loại bệnh nhân phải là BHYT, DichVu hoặc UuTien",
   }),
   phone: Joi.string()
     .pattern(/^0[1-9][0-9]{8}$/)
-    .required()
+    .optional()
+    .allow(null, "")
     .messages({
       "string.pattern.base": "Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10 chữ số",
-      "string.empty": "Số điện thoại không được để trống",
-      "any.required": "Số điện thoại là bắt buộc",
     }),
-  email: Joi.string().email().optional().messages({
+  email: Joi.string().email().optional().allow(null, "").messages({
     "string.email": "Email không hợp lệ",
   }),
-  identityCard: Joi.string().optional(),
+  identityCard: Joi.string().optional().allow(null, ""),
   insuranceNumber: Joi.string()
     .pattern(/^[0-9]{15}$/)
     .optional()
+    .allow(null, "")
     .messages({
       "string.pattern.base": "Mã BHYT phải là 15 chữ số",
     }),
-  occupation: Joi.string().optional(),
-  address: Joi.string().optional(),
-  relatives: Joi.array().items(CreatePatientRelativeRequestSchema).optional(),
+  occupation: Joi.string().optional().allow(null, ""),
+  address: Joi.string().optional().allow(null, ""),
+  relatives: Joi.array().items(CreatePatientRelativeRequestSchema).optional().allow(null),
 }).required();
 

@@ -37,11 +37,11 @@ export class PatientRepository {
     return await client.patient.create({
       data: {
         patientCode: patientCode,
-        fullName: data.fullName,
+        fullName: data.fullName ?? null,
         gender: data.gender ?? null,
-        dob: new Date(data.dob),
+        dob: data.dob ? new Date(data.dob) : null,
         patientCategory: data.patientCategory ?? null,
-        phone: data.phone,
+        phone: data.phone ?? null,
         email: data.email ?? null,
         identityCard: data.identityCard ?? null,
         insuranceNumber: data.insuranceNumber ?? null,
@@ -213,13 +213,6 @@ export class PatientRepository {
     });
   }
 
-  public async findRelativeByIdentityCard(
-    identityCard: string
-  ): Promise<PatientRelative | null> {
-    return await prisma.patientRelative.findFirst({
-      where: { identityCard: identityCard },
-    });
-  }
 
   public async updateRelative(
     relativeId: string,

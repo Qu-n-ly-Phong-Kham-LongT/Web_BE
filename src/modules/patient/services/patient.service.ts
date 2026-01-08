@@ -51,8 +51,6 @@ export class PatientService {
     data: CreatePatientRequestDto,
     clinicId: string
   ): Promise<PatientResponseDto> {
-    // Get clinicCode only for generating patient code
-    // const clinicCode = clinicId ? await this.getClinicCode(clinicId) : undefined;
 
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(
@@ -83,30 +81,6 @@ export class PatientService {
         );
       if (existingByInsurance) {
         throw new BaseError(400, "Số thẻ BHYT đã tồn tại");
-      }
-    }
-
-    if (data.relatives?.length) {
-      const identityCards = data.relatives
-        .map((r) => r.identityCard)
-        .filter((card): card is string => !!card);
-      if (new Set(identityCards).size !== identityCards.length) {
-        throw new BaseError(
-          400,
-          "CMND/CCCD không được trùng lặp trong danh sách người thân"
-        );
-      }
-
-      for (const relative of data.relatives) {
-        if (relative.identityCard) {
-          let existingRelative =
-            await this.patientRepository.findRelativeByIdentityCard(
-              relative.identityCard
-            );
-          if (existingRelative) {
-            throw new BaseError(400, "CMND/CCCD của người thân đã tồn tại");
-          }
-        }
       }
     }
 
