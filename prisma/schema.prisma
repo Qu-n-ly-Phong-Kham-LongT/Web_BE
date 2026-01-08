@@ -164,7 +164,7 @@ model PatientRelative {
   fullName     String?
   phone        String?
   relationship String?
-  identityCard String?  @unique
+  identityCard String?
   address      String?
 }
 
