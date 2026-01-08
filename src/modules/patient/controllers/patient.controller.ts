@@ -53,9 +53,15 @@ export class PatientController {
   ) => {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
+    const search = req.query.search as string | undefined;
     const clinicId = req.payload?.clinicId ?? undefined;
 
-    const { queue, pagination } = await this.patientService.getDailyQueue(clinicId, page, size);
+    const { queue, pagination } = await this.patientService.getDailyQueue(
+      clinicId,
+      page,
+      size,
+      search
+    );
     return successResponse(res, 200, queue, "Lấy danh sách hàng đợi thành công", pagination);
   };
 
