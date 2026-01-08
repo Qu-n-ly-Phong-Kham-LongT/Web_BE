@@ -16,9 +16,7 @@ type TransactionClient = Omit<
 >;
 
 export class PatientRepository {
-  private buildClinicIdFilter(
-    clinicId?: string
-  ): { clinicId: string } | {} {
+  private buildClinicIdFilter(clinicId?: string): { clinicId: string } | {} {
     if (clinicId) {
       return {
         clinicId: clinicId,
@@ -196,11 +194,13 @@ export class PatientRepository {
     return await prisma.patientRelative.findFirst({
       where: {
         relativeId: relativeId,
-        ...(clinicId ? {
-          patient: {
-            clinicId: clinicId,
-          },
-        } : {}),
+        ...(clinicId
+          ? {
+              patient: {
+                clinicId: clinicId,
+              },
+            }
+          : {}),
       },
     });
   }
@@ -212,7 +212,6 @@ export class PatientRepository {
       where: { patientId: patientId },
     });
   }
-
 
   public async updateRelative(
     relativeId: string,
@@ -251,11 +250,13 @@ export class PatientRepository {
     return await client.patientAllergy.findFirst({
       where: {
         allergyId,
-        ...(clinicId ? {
-          patient: {
-            clinicId: clinicId,
-          },
-        } : {}),
+        ...(clinicId
+          ? {
+              patient: {
+                clinicId: clinicId,
+              },
+            }
+          : {}),
       },
     });
   }
@@ -288,7 +289,11 @@ export class PatientRepository {
     });
   }
 
-  public async getDailyQueue(clinicId: string | undefined, start: Date, end: Date) {
+  public async getDailyQueue(
+    clinicId: string | undefined,
+    start: Date,
+    end: Date
+  ) {
     return await prisma.patient.findMany({
       where: {
         ...(clinicId ? { clinicId: clinicId } : {}),
@@ -319,19 +324,18 @@ export class PatientRepository {
         medicalRecords: {
           where: {
             ...(clinicId ? { clinicId: clinicId } : {}),
-            createdAt: { gte: start, lte: end }
+            createdAt: { gte: start, lte: end },
           },
           select: {
             recordId: true,
             createdAt: true,
             diagnoses: true,
-            prescription: { select: { prescriptionId: true }},
-            clinicalExamination: { select: { examId: true }}
+            prescription: { select: { prescriptionId: true } },
+            clinicalExamination: { select: { examId: true } },
           },
-          take: 1
-        }
+        },
       },
-      orderBy: { updatedAt: 'desc' }
+      orderBy: { updatedAt: "asc" },
     });
   }
 }

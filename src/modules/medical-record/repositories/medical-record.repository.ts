@@ -29,7 +29,7 @@ export class MedicalRecordRepository {
           lte: end,
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
     });
   }
 }
