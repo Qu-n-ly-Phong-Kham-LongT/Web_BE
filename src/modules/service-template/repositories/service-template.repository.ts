@@ -7,7 +7,13 @@ export type ServiceTemplateWithDetails = ServiceTemplate & {
       itemId: string;
       name: string | null;
       itemCode: string | null;
+      basePrice: Prisma.Decimal | null;
       unit: string | null;
+      specimen: string | null;
+      prepNote: string | null;
+      isActive: boolean | null;
+      category: { name: string | null } | null;
+      type: { name: string | null } | null;
       configs: Array<{
         configId: string;
         configCode: string | null;
@@ -34,7 +40,21 @@ const templateInclude = {
           itemId: true,
           name: true,
           itemCode: true,
+          basePrice: true,
           unit: true,
+          specimen: true,
+          prepNote: true,
+          isActive: true,
+          category: {
+            select: {
+              name: true,
+            },
+          },
+          type: {
+            select: {
+              name: true,
+            },
+          },
           configs: {
             select: {
               configId: true,
@@ -61,6 +81,7 @@ export class ServiceTemplateRepository {
       details: Array<{
         itemId: string;
         note?: string | null;
+        selectedConfigs?: unknown;
       }>;
     },
     tx?: TransactionClient
@@ -75,6 +96,10 @@ export class ServiceTemplateRepository {
           create: data.details.map((detail) => ({
             itemId: detail.itemId,
             note: detail.note ?? null,
+            configSelections:
+              detail.selectedConfigs !== undefined
+                ? (detail.selectedConfigs as Prisma.InputJsonValue)
+                : Prisma.JsonNull,
           })),
         },
       },

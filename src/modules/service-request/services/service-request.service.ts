@@ -1,5 +1,6 @@
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
+import { Prisma } from "@prisma/client";
 import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import {
   ServiceRequestResponseDto,
@@ -181,6 +182,12 @@ export class ServiceRequestService {
         {
           recordId: data.recordId,
           orderingDoctorId: data.orderingDoctorId,
+          diagnoses: data.diagnoses
+            ? (data.diagnoses as unknown as Prisma.InputJsonValue)
+            : null,
+          isPatientRequested: data.isPatientRequested ?? false,
+          receiveResultAtClinic: data.receiveResultAtClinic ?? false,
+          isForFollowUp: data.isFollowUp,
           note: data.note ?? null,
           details: detailsToCreate,
         },
@@ -199,6 +206,10 @@ export class ServiceRequestService {
       requestCode: request.requestCode ?? null,
       recordId: request.recordId ?? null,
       orderingDoctorId: request.orderingDoctorId ?? null,
+      diagnoses: request.diagnoses ?? null,
+      isPatientRequested: request.isPatientRequested ?? null,
+      receiveResultAtClinic: request.receiveResultAtClinic ?? null,
+      isForFollowUp: request.isForFollowUp ?? null,
       note: request.note ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
       details: request.details.map(
