@@ -13,6 +13,10 @@ export interface ServiceRequestResponseDto {
   requestCode: string | null;
   recordId: string | null;
   orderingDoctorId: string | null;
+  diagnoses: any;
+  isPatientRequested: boolean | null;
+  receiveResultAtClinic: boolean | null;
+  isForFollowUp: boolean | null;
   note: string | null;
   createdAt: string | null;
   details: ServiceRequestDetailResponseDto[];
@@ -31,6 +35,10 @@ export const ServiceRequestResponseSchema = Joi.object({
   requestCode: Joi.string().allow(null),
   recordId: Joi.string().allow(null),
   orderingDoctorId: Joi.string().allow(null),
+  diagnoses: Joi.any().allow(null),
+  isPatientRequested: Joi.boolean().allow(null),
+  receiveResultAtClinic: Joi.boolean().allow(null),
+  isForFollowUp: Joi.boolean().allow(null),
   note: Joi.string().allow(null),
   createdAt: Joi.string().allow(null),
   details: Joi.array().items(ServiceRequestDetailResponseSchema).required(),

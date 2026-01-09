@@ -330,11 +330,14 @@ model ServiceRequest {
   recordId      String?        @db.Uuid
   medicalRecord MedicalRecord? @relation(fields: [recordId], references: [recordId])
 
-  orderingDoctorId String? @db.Uuid
-  orderingDoctor   User?   @relation(fields: [orderingDoctorId], references: [userId])
-
-  note      String?
-  createdAt DateTime? @default(now()) @db.Timestamptz
+  orderingDoctorId      String?   @db.Uuid
+  orderingDoctor        User?     @relation(fields: [orderingDoctorId], references: [userId])
+  diagnoses             Json?
+  isPatientRequested    Boolean   @default(false)
+  receiveResultAtClinic Boolean   @default(false)
+  isForFollowUp            Boolean   @default(false)
+  note                  String?
+  createdAt             DateTime? @default(now()) @db.Timestamptz
 
   finalReportPath String?
 
@@ -393,6 +396,7 @@ model ServiceTemplateDetail {
   template         ServiceTemplate? @relation(fields: [templateId], references: [templateId])
   itemId           String?          @db.Uuid
   serviceItem      ServiceItem?     @relation(fields: [itemId], references: [itemId])
+  configSelections Json?
   note             String?
 }
 

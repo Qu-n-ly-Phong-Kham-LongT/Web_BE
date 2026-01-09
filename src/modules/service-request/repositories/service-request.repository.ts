@@ -9,6 +9,10 @@ export interface CreateServiceRequestDetailPayload {
 export interface CreateServiceRequestPayload {
   recordId: string;
   orderingDoctorId?: string;
+  diagnoses?: Prisma.InputJsonValue | null;
+  isPatientRequested?: boolean;
+  receiveResultAtClinic?: boolean;
+  isForFollowUp?: boolean;
   note?: string | null;
   details: CreateServiceRequestDetailPayload[];
 }
@@ -33,6 +37,10 @@ export class ServiceRequestRepository {
         data: {
           recordId: createData.recordId,
           orderingDoctorId: createData.orderingDoctorId,
+          diagnoses: createData.diagnoses ?? Prisma.JsonNull,
+          isPatientRequested: createData.isPatientRequested ?? false,
+          receiveResultAtClinic: createData.receiveResultAtClinic ?? false,
+          isForFollowUp: createData.isForFollowUp ?? false,
           note: createData.note ?? null,
         },
       });
@@ -62,6 +70,10 @@ export class ServiceRequestRepository {
         data: {
           recordId: createData.recordId,
           orderingDoctorId: createData.orderingDoctorId,
+          diagnoses: createData.diagnoses ?? Prisma.JsonNull,
+          isPatientRequested: createData.isPatientRequested ?? false,
+          receiveResultAtClinic: createData.receiveResultAtClinic ?? false,
+          isForFollowUp: createData.isForFollowUp ?? false,
           note: createData.note ?? null,
         },
       });

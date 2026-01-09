@@ -1,4 +1,4 @@
-import { Prisma, ServiceTemplateDetail } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
 import { ServiceTemplateResponseDto } from "../dtos/service-template.response.dto";
 import { CreateServiceTemplateRequestDto } from "../dtos/create-service-template.request.dto";
@@ -28,22 +28,91 @@ export class ServiceTemplateService {
       throw new BaseError(400, "Không được có dịch vụ trùng lặp trong cùng một mẫu");
     }
 
-    // Business validation: Kiểm tra tất cả dịch vụ tồn tại
-    const serviceItems = await this.serviceItemRepository.findServiceItemsByIds(itemIds);
-    if (serviceItems.length !== itemIds.length) {
-      throw new BaseError(400, "Một hoặc nhiều dịch vụ không tồn tại");
+    const items = await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
+      uniqueItemIds
+    );
+    if (items.length !== uniqueItemIds.length) {
+      throw new BaseError(400, "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động");
     }
 
-    // Delegate to repository
+    const itemConfigMap = new Map<
+      string,
+      { configs: Map<string, { options: Map<string, number> }> }
+    >();
+    for (const item of items) {
+      const configMetaMap = new Map<string, { options: Map<string, number> }>();
+      for (const config of item.configs) {
+        const optionsMap = new Map<string, number>();
+        const metaOptions = Array.isArray((config.metaData as { options?: unknown })?.options)
+          ? (config.metaData as { options?: { value?: string; surcharge?: number }[] }).options ?? []
+          : [];
+        for (const option of metaOptions) {
+          if (typeof option?.value !== "string") {
+            continue;
+          }
+          const surcharge = Number(option?.surcharge ?? 0);
+          if (!Number.isFinite(surcharge)) {
+            continue;
+          }
+          optionsMap.set(option.value, surcharge);
+        }
+        configMetaMap.set(config.configId, { options: optionsMap });
+      }
+      itemConfigMap.set(item.itemId, { configs: configMetaMap });
+    }
+
+    const detailsToCreate = data.details.map((detail) => {
+      if (!detail.selectedConfigs || detail.selectedConfigs.length === 0) {
+        throw new BaseError(400, "Chưa chọn cấu hình cho dịch vụ");
+      }
+
+      const itemMeta = itemConfigMap.get(detail.itemId);
+      if (!itemMeta) {
+        throw new BaseError(400, "Dịch vụ không hợp lệ cho mẫu chỉ định");
+      }
+
+      const configIds = detail.selectedConfigs.map((cfg) => cfg.configId);
+      const uniqueConfigIds = [...new Set(configIds)];
+      if (uniqueConfigIds.length !== configIds.length) {
+        throw new BaseError(400, "Không được chọn trùng lặp cấu hình trong cùng một dịch vụ");
+      }
+
+      for (const config of detail.selectedConfigs) {
+        if (!config.selectedValues || config.selectedValues.length === 0) {
+          throw new BaseError(400, "Giá trị chọn của cấu hình không hợp lệ");
+        }
+
+        const configMeta = itemMeta.configs.get(config.configId);
+        if (!configMeta) {
+          throw new BaseError(400, "Cấu hình không thuộc dịch vụ đã chọn");
+        }
+
+        if (configMeta.options.size > 0) {
+          for (const selectedValue of config.selectedValues) {
+            if (!configMeta.options.has(selectedValue)) {
+              throw new BaseError(400, "Giá trị chọn không thuộc cấu hình");
+            }
+          }
+        }
+      }
+
+      return {
+        itemId: detail.itemId,
+        note: detail.note ?? null,
+        selectedConfigs: detail.selectedConfigs,
+      };
+    });
+
     const result = await this.templateRepository.createServiceTemplate({
       templateName: data.templateName,
       description: data.description,
       isActive: data.isActive,
-      details: data.details,
+      details: detailsToCreate,
     });
 
     return this.mapToResponseDto(result);
   }
+
 
   public async getServiceTemplateById(id: string): Promise<ServiceTemplateResponseDto> {
     const template = await this.templateRepository.findServiceTemplateById(id);
@@ -196,23 +265,72 @@ export class ServiceTemplateService {
       templateName: template.templateName ?? "",
       description: template.description,
       isActive: template.isActive,
-      details: template.details.map((detail) => ({
-        templateDetailId: detail.templateDetailId,
-        itemId: detail.itemId!,
-        itemName: detail.serviceItem?.name ?? null,
-        itemCode: detail.serviceItem?.itemCode ?? null,
-        unit: detail.serviceItem?.unit ?? null,
-        note: detail.note,
-        configs: detail.serviceItem?.configs?.map((config) => ({
-          configId: config.configId,
-          configCode: config.configCode,
-          displayName: config.displayName,
-          inputType: config.inputType,
-          unit: config.unit,
-          metaData: config.metaData,
-          refRange: config.refRange,
-        })) ?? [],
-      })),
+      details: template.details.map((detail) => {
+        const item = detail.serviceItem;
+        const serviceItem = item
+          ? {
+              itemId: item.itemId,
+              itemCode: item.itemCode ?? "",
+              name: item.name ?? "",
+              unit: item.unit ?? "",
+              specimen: item.specimen ?? "",
+              prepNote: item.prepNote ?? "",
+              isActive: item.isActive ?? false,
+              categoryName: item.category?.name ?? "",
+              typeName: item.type?.name ?? "",
+              basePrice: item.basePrice ? Number(item.basePrice.toString()) : 0,
+              configs: item.configs.map((config) => {
+                const rawMeta =
+                  (config.metaData as {
+                    uiStyle?: string;
+                    allowMultiple?: boolean;
+                    options?: unknown[];
+                    defaultValue?: unknown;
+                  }) ?? {};
+                const rawOptions = Array.isArray(rawMeta.options) ? rawMeta.options : [];
+                const options = rawOptions
+                  .map((opt) => {
+                    const option = opt as { label?: string; value?: string; surcharge?: number };
+                    if (!option?.label || !option?.value) {
+                      return null;
+                    }
+                    const surcharge = Number(option.surcharge ?? 0);
+                    if (!Number.isFinite(surcharge)) {
+                      return null;
+                    }
+                    return { label: option.label, value: option.value, surcharge };
+                  })
+                  .filter((opt): opt is { label: string; value: string; surcharge: number } =>
+                    Boolean(opt)
+                  );
+
+                return {
+                  configId: config.configId,
+                  configCode: config.configCode ?? "",
+                  displayName: config.displayName ?? "",
+                  inputType: config.inputType ? String(config.inputType) : "",
+                  unit: config.unit ?? "",
+                  refRange: config.refRange ?? "",
+                  metaData: {
+                    uiStyle: rawMeta.uiStyle ?? "",
+                    allowMultiple: rawMeta.allowMultiple ?? false,
+                    options,
+                    defaultValue: rawMeta.defaultValue,
+                  },
+                };
+              }),
+            }
+          : null;
+
+        return {
+          templateDetailId: detail.templateDetailId,
+          note: detail.note ?? null,
+          configSelections: (detail as { configSelections?: unknown }).configSelections
+            ? ((detail as { configSelections?: unknown }).configSelections as any)
+            : null,
+          serviceItem: serviceItem,
+        };
+      }),
     };
   }
 }
