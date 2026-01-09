@@ -173,11 +173,11 @@ const PatientSwagger = {
       },
     },
   },
-  "/api/patients/daily-queue": {
+  "/api/patients/queue": {
     get: {
       tags: ["Core Businesses"],
       summary: "Lấy danh sách hàng đợi khám trong ngày",
-      description: "Danh sách bệnh nhân có mặt trong ngày tại phòng khám, kèm trạng thái chờ/đang khám/hoàn tất.",
+      description: "Danh sách bệnh nhân đến trong ngày tại phòng khám, kèm trạng thái chờ/đang khám/hoàn tất.",
       parameters: [
         {
           name: "page",
@@ -199,6 +199,13 @@ const PatientSwagger = {
           required: false,
           schema: { type: "string" },
           description: "Tìm kiếm theo tên, mã, số điện thoại, CCCD",
+        },
+        {
+          name: "date",
+          in: "query",
+          required: false,
+          schema: { type: "string", example: "2026-07-01" },
+          description: "Ngày cần lấy danh sách (YYYY-MM-DD hoặc ISO)",
         },
       ],
       security: [{ bearerAuth: [] }],

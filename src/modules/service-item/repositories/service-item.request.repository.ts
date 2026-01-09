@@ -1,7 +1,6 @@
-import { ServiceItem } from "@prisma/client";
+import { Prisma, ServiceItem } from "@prisma/client";
 import { CreateServiceItemRequestDto } from "../dtos/service-item.request.dto";
 import { prisma } from "../../../config/database.config";
-import { Prisma } from "@prisma/client";
 
 export class ServiceItemRepository {
   public async findByCode(code: string): Promise<ServiceItem | null> {
@@ -120,6 +119,22 @@ export class ServiceItemRepository {
       },
       select: {
         itemId: true,
+      },
+    });
+  }
+
+  public async findActiveItemsWithConfigsByIds(
+    itemIds: string[],
+    tx?: Prisma.TransactionClient
+  ): Promise<Prisma.ServiceItemGetPayload<{ include: { configs: true } }>[]> {
+    const client = tx ?? prisma;
+    return await client.serviceItem.findMany({
+      where: {
+        itemId: { in: itemIds },
+        isActive: true,
+      },
+      include: {
+        configs: true,
       },
     });
   }
