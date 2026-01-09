@@ -12,6 +12,7 @@ import prescriptionTemplateRouter from "../modules/prescription-template/routes/
 import serviceNodeRouter from "../modules/service-node/routes/service-node.route";
 import serviceItemRouter from "../modules/service-item/routes/service-item.routes";
 import serviceTemplateRouter from "../modules/service-template/routes/service-template.route";
+import serviceRequestRouter from "../modules/service-request/routes/service-request.route";
 
 const rootRouter = Router();
 
@@ -28,6 +29,7 @@ rootRouter.use("/prescription-templates", prescriptionTemplateRouter);
 rootRouter.use("/service-nodes", serviceNodeRouter);
 rootRouter.use("/service-items", serviceItemRouter);
 rootRouter.use("/service-templates", serviceTemplateRouter);
+rootRouter.use("/service-requests", serviceRequestRouter);
 
 export default rootRouter;
 

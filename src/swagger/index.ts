@@ -13,6 +13,7 @@ import ServiceNodeSwagger from "./service-node.swagger";
 import PrescriptionTemplateSwagger from "./prescription-template.swagger";
 import ServiceItemSwagger from "./service-item.swagger";
 import ServiceTemplateSwagger from "./service-template.swagger";
+import ServiceRequestSwagger from "./service-request.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -35,6 +36,7 @@ const swaggerDocument = {
     ...PrescriptionTemplateSwagger,
     ...ServiceItemSwagger,
     ...ServiceTemplateSwagger,
+    ...ServiceRequestSwagger,
   },
   components: {
     securitySchemes: {

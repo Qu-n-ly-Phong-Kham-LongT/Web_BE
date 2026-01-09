@@ -10,8 +10,12 @@ export class MedicalRecordRepository {
     });
   }
 
-  public async findById(recordId: string): Promise<MedicalRecord | null> {
-    return await prisma.medicalRecord.findUnique({ where: { recordId } });
+  public async findById(
+    recordId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<MedicalRecord | null> {
+    const client = tx ?? prisma;
+    return await client.medicalRecord.findUnique({ where: { recordId } });
   }
 
   public async findExistingRecord(
