@@ -480,14 +480,29 @@ export class PatientService {
     clinicId?: string,
     page: number = 1,
     size: number = 10,
-    search?: string
+    search?: string,
+    date?: string
   ): Promise<{
     queue: PatientQueueItemDto[];
     pagination: ReturnType<typeof createPagination>;
   }> {
-    const start = new Date();
+    let baseDate = new Date();
+    if (date) {
+      const trimmed = date.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const [year, month, day] = trimmed.split("-").map(Number);
+        baseDate = new Date(year, month - 1, day);
+      } else {
+        baseDate = new Date(trimmed);
+      }
+      if (Number.isNaN(baseDate.getTime())) {
+        throw new BaseError(400, "Ngày không hợp lệ");
+      }
+    }
+
+    const start = new Date(baseDate);
     start.setHours(0, 0, 0, 0);
-    const end = new Date();
+    const end = new Date( );
     end.setHours(23, 59, 59, 999);
 
     const patients = await this.patientRepository.getDailyQueue(

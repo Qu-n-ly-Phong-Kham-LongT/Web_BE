@@ -58,8 +58,9 @@ export class UserRepository {
     });
   }
 
-  public async findUserById(id: string) {
-    return await prisma.user.findUnique({
+  public async findUserById(id: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? prisma;
+    return await client.user.findUnique({
       where: { userId: id },
       include: {
         clinic: true,
