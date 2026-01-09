@@ -173,7 +173,7 @@ const PatientSwagger = {
       },
     },
   },
-  "/api/patients/daily-queue": {
+  "/api/patients/queue": {
     get: {
       tags: ["Core Businesses"],
       summary: "Lấy danh sách hàng đợi khám trong ngày",
