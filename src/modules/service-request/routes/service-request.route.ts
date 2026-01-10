@@ -14,4 +14,10 @@ serviceRequestRouter.post(
   controller.create
 );
 
+serviceRequestRouter.get(
+  "/:id",
+  authenticate,
+  controller.getById
+);
+
 export default serviceRequestRouter;

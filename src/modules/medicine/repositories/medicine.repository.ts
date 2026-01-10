@@ -12,7 +12,10 @@ export class MedicineRepository {
     return {};
   }
 
-  public async createMedicine(data: CreateMedicineRequestDto, clinicId?: string): Promise<Medicine> {
+  public async createMedicine(
+    data: CreateMedicineRequestDto,
+    clinicId?: string
+  ): Promise<Medicine> {
     return await prisma.medicine.create({
       data: {
         medicineCode: data.medicineCode,
@@ -21,7 +24,9 @@ export class MedicineRepository {
         registrationNo: data.registrationNo ?? null,
         isInsuranceCovered: data.isInsuranceCovered ?? false,
         medicineCodeBhyt: data.medicineCodeBhyt ?? null,
-        insurancePrice: data.insurancePrice ? new Prisma.Decimal(data.insurancePrice) : null,
+        insurancePrice: data.insurancePrice
+          ? new Prisma.Decimal(data.insurancePrice)
+          : null,
         baseUnit: data.baseUnit ?? null,
         totalQuantity: data.totalQuantity ?? 0,
         sellPrice: data.sellPrice ? new Prisma.Decimal(data.sellPrice) : null,
@@ -34,7 +39,10 @@ export class MedicineRepository {
     });
   }
 
-  public async findMedicineById(id: string, clinicId?: string): Promise<Medicine | null> {
+  public async findMedicineById(
+    id: string,
+    clinicId?: string
+  ): Promise<Medicine | null> {
     return await prisma.medicine.findFirst({
       where: {
         medicineId: id,
@@ -50,7 +58,7 @@ export class MedicineRepository {
     clinicId?: string
   ): Promise<{ medicines: Medicine[]; totalItems: number }> {
     const skip = (page - 1) * size;
-    
+
     const baseWhere = {
       ...this.buildClinicFilter(clinicId),
     };
@@ -59,11 +67,30 @@ export class MedicineRepository {
       ? {
           ...baseWhere,
           OR: [
-            { medicineName: { contains: search, mode: "insensitive" as const } },
-            { medicineCode: { contains: search, mode: "insensitive" as const } },
-            { activeIngredient: { contains: search, mode: "insensitive" as const } },
-            { registrationNo: { contains: search, mode: "insensitive" as const } },
-            { medicineCodeBhyt: { contains: search, mode: "insensitive" as const } },
+            {
+              medicineName: { contains: search, mode: "insensitive" as const },
+            },
+            {
+              medicineCode: { contains: search, mode: "insensitive" as const },
+            },
+            {
+              activeIngredient: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              registrationNo: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              medicineCodeBhyt: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
             { supplier: { contains: search, mode: "insensitive" as const } },
           ],
         }
@@ -82,7 +109,11 @@ export class MedicineRepository {
     return { medicines, totalItems };
   }
 
-  public async updateMedicine(id: string, data: Prisma.MedicineUpdateInput, clinicId?: string): Promise<Medicine | null> {
+  public async updateMedicine(
+    id: string,
+    data: Prisma.MedicineUpdateInput,
+    clinicId?: string
+  ): Promise<Medicine | null> {
     // First check if medicine exists with clinic filter
     const existing = await prisma.medicine.findFirst({
       where: {
@@ -90,11 +121,11 @@ export class MedicineRepository {
         ...this.buildClinicFilter(clinicId),
       },
     });
-    
+
     if (!existing) {
       return null;
     }
-    
+
     // Update the medicine
     return await prisma.medicine.update({
       where: { medicineId: id },
@@ -102,21 +133,35 @@ export class MedicineRepository {
     });
   }
 
-  public async findMedicineByCode(medicineCode: string): Promise<Medicine | null> {
+  public async findMedicineByCode(
+    medicineCode: string
+  ): Promise<Medicine | null> {
     return await prisma.medicine.findUnique({
       where: { medicineCode: medicineCode },
     });
   }
 
-  public async findMedicinesByIds(medicineIds: string[]): Promise<Pick<Medicine, "medicineId">[]> {
-    return await prisma.medicine.findMany({
+  public async findMedicinesByIds(
+    medicineIds: string[],
+    tx?: Prisma.TransactionClient
+  ): Promise<
+    Pick<
+      Medicine,
+      "medicineId" | "sellPrice" | "medicineName" | "isInsuranceCovered"
+    >[]
+  > {
+    const client = tx || prisma;
+
+    return await client.medicine.findMany({
       where: {
         medicineId: { in: medicineIds },
       },
       select: {
         medicineId: true,
+        sellPrice: true,
+        medicineName: true,
+        isInsuranceCovered: true,
       },
     });
   }
 }
-

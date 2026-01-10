@@ -25,14 +25,11 @@ export interface CreateServiceRequestDto {
 }
 
 const DiagnosisItemSchema = Joi.object({
-  code: Joi.string()
-    .uppercase()
-    .pattern(ICD10_REGEX)
-    .required()
-    .messages({
-      "string.pattern.base": "Mã bệnh không đúng định dạng ICD-10 (VD: K29, A33.11)",
-      "any.required": "Mã bệnh là bắt buộc",
-    }),
+  code: Joi.string().uppercase().pattern(ICD10_REGEX).required().messages({
+    "string.pattern.base":
+      "Mã bệnh không đúng định dạng ICD-10 (VD: K29, A33.11)",
+    "any.required": "Mã bệnh là bắt buộc",
+  }),
   description: Joi.string().required().messages({
     "any.required": "Tên bệnh là bắt buộc",
   }),
@@ -43,12 +40,7 @@ const DiagnosisSchema = Joi.object({
   main: DiagnosisItemSchema.required().messages({
     "any.required": "Phải có chẩn đoán chính",
   }),
-  secondary: Joi.array()
-    .items(DiagnosisItemSchema)
-    .default([])
-    .example([])
-    .description("Danh sách chẩn đoán phụ")
-    .optional(),
+  secondary: Joi.array().items(DiagnosisItemSchema).default([]).optional(),
 });
 
 const selectedConfigSchema = Joi.object({
@@ -58,7 +50,7 @@ const selectedConfigSchema = Joi.object({
 
 const createServiceRequestDetailSchema = Joi.object({
   itemId: Joi.string().required(),
-  selectedConfigs: Joi.array().items(selectedConfigSchema).required(),
+  selectedConfigs: Joi.array().items(selectedConfigSchema).allow(null, ""),
   note: Joi.string().allow("", null),
 });
 
@@ -68,15 +60,13 @@ export const createServiceRequestSchema = Joi.object({
   diagnoses: DiagnosisSchema.optional(),
   isPatientRequested: Joi.boolean().optional().default(false),
   receiveResultAtClinic: Joi.boolean().optional().default(false),
-  isFollowUp: Joi.boolean().required().messages({
-    "any.required": "Thiếu thông tin tái khám",
-  }),
+  isForFollowUp: Joi.boolean().optional().default(false),
   note: Joi.string().allow("", null),
   details: Joi.array()
     .items(createServiceRequestDetailSchema)
     .min(1)
     .required()
     .messages({
-      "array.min": "Bạn phải chọn ít nhất một dịch vụ để tạo phiếu chỉ định.",
+      "array.min": "Phải có ít nhất 1 dịch vụ cho phiếu chỉ định",
     }),
 });

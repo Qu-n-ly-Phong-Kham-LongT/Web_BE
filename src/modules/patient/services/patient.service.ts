@@ -9,6 +9,7 @@ import {
 import { BaseError } from "../../../utils/base-error.util";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
+import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRequestDto } from "../dtos/update-patient.request.dto";
 import { PatientListResponseDto } from "../dtos/patient-list.response.dto";
 import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
@@ -94,10 +95,24 @@ export class PatientService {
           clinicId,
           tx
         );
-        if (data.relatives?.length) {
+        const relatives = (data.relatives ?? []).filter(
+          (relative): relative is CreatePatientRelativeRequestDto => {
+            if (!relative) {
+              return false;
+            }
+            return Boolean(
+              (relative.fullName && relative.fullName.trim()) ||
+                (relative.phone && relative.phone.trim()) ||
+                (relative.relationship && relative.relationship.trim()) ||
+                (relative.identityCard && relative.identityCard.trim()) ||
+                (relative.address && relative.address.trim())
+            );
+          }
+        );
+        if (relatives.length > 0) {
           await this.patientRepository.createRelatives(
             patient.patientId,
-            data.relatives,
+            relatives,
             tx
           );
         }

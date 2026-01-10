@@ -36,9 +36,9 @@ enum PregnancyStatus {
   Breastfeeding
 }
 
-enum PaymentStatus {
-  Unpaid
-  Paid
+enum PrescriptionStatus {
+  Issued
+  Fulfilled
 }
 
 enum NodeType {
@@ -240,7 +240,7 @@ model Prescription {
   fileName       String?
   note           String?
   totalPrice     Decimal?
-  paymentStatus  PaymentStatus?       @default(Unpaid)
+  status         PrescriptionStatus?  @default(Issued)
   createdAt      DateTime?            @default(now()) @db.Timestamptz
   details        PrescriptionDetail[]
 }
@@ -258,9 +258,9 @@ model PrescriptionDetail {
   timing              String?
   quantity            Int?
   daysToTake          Int?
-  price               Float?
   isInsuranceCovered  Boolean?      @default(false)
-  appliedExportPrice  Decimal?
+  appliedExportPrice  Decimal?      @db.Decimal(18, 3)
+  totalPrice          Decimal?      @db.Decimal(18, 3)
   note                String?
 }
 

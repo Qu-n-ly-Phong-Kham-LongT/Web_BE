@@ -21,4 +21,18 @@ export class ServiceRequestController {
     );
     return successResponse(res, 201, created, "Tạo chỉ định cận lâm sàng thành công");
   };
+
+  public getById = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response
+  ) => {
+    const clinicId = req.payload?.clinicId ?? undefined;
+    const result = await this.serviceRequestService.getRequestById(
+      req.params.id,
+      clinicId
+    );
+    return successResponse(res, 200, result, "Lấy chi tiết phiếu chỉ định");
+  };
 }
+
+
