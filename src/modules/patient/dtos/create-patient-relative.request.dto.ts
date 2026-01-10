@@ -1,27 +1,23 @@
 import Joi from "joi";
 
 export interface CreatePatientRelativeRequestDto {
-  fullName: string;
-  phone: string;
-  relationship?: string;
-  identityCard?: string;
-  address?: string;
+  fullName?: string | null;
+  phone?: string | null;
+  relationship?: string | null;
+  identityCard?: string | null;
+  address?: string | null;
 }
 
 export const CreatePatientRelativeRequestSchema = Joi.object<CreatePatientRelativeRequestDto>({
-  fullName: Joi.string().required().messages({
-    "string.empty": "Họ tên không được để trống",
-    "any.required": "Họ tên là bắt buộc",
-  }),
+  fullName: Joi.string().optional().allow(null, ""),
   phone: Joi.string()
     .pattern(/^0[1-9][0-9]{8}$/)
-    .required()
+    .optional()
+    .allow(null, "")
     .messages({
       "string.pattern.base": "Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có 10 chữ số",
-      "any.required": "Số điện thoại là bắt buộc",
     }),
-  relationship: Joi.string().optional(),
-  identityCard: Joi.string().optional(),
-  address: Joi.string().optional(),
-}).required();
-
+  relationship: Joi.string().optional().allow(null, ""),
+  identityCard: Joi.string().optional().allow(null, ""),
+  address: Joi.string().optional().allow(null, ""),
+});

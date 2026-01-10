@@ -9,6 +9,11 @@ const serviceItemRouter = Router();
 
 const controller = new ServiceItemController();
 
+serviceItemRouter.get(
+  "/input-types",
+  controller.getAllInputTypes
+);
+
 serviceItemRouter.post(
   "/",
   authenticate,
