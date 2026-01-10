@@ -175,6 +175,13 @@ const ServiceItemSwagger = {
           schema: { type: "string", format: "uuid" },
           description: "Lọc theo loại dịch vụ",
         },
+        {
+          name: "categoryId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+          description: "Filter by category",
+        },
       ],
       responses: {
         200: {
