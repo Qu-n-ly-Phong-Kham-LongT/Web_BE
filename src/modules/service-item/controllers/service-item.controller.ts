@@ -29,7 +29,14 @@ export class ServiceItemController {
         const size = parseInt(req.query.size as string) || 10;
         const search = req.query.search as string;
         const typeId = req.query.typeId as string;
-        const result = await this.service.getAllItems(page, size, search, typeId);
+        const categoryId = req.query.categoryId as string;
+        const result = await this.service.getAllItems(
+            page,
+            size,
+            search,
+            typeId,
+            categoryId
+        );
 
         return successResponse(
             res,
