@@ -4,7 +4,7 @@ import { upsertDiagnosisPrescriptionSchema } from "../modules/prescriptions/dtos
 const PrescriptionSwagger = {
   "/api/prescriptions": {
     put: {
-      tags: ["Prescription"],
+      tags: ["Core Businesses"],
       summary: "Tạo/Cập nhật toa thuốc kèm chẩn đoán và tái khám",
       requestBody: {
         required: true,
