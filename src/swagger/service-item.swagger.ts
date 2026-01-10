@@ -214,6 +214,35 @@ const ServiceItemSwagger = {
       },
     },
   },
+
+  "/api/service-items/input-types": {
+    get: {
+      tags: ["Service Items"],
+      summary: "Lấy danh sách loại dữ liệu nhập",
+      description: "API công khai để lấy danh sách loại dữ liệu nhập.",
+      responses: {
+        200: {
+          description: "Lấy danh sách loại dữ liệu nhập thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                  pagination: { type: "object", nullable: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
   "/api/service-items/{id}": {
     get: {
       tags: ["Core Businesses"],
@@ -255,3 +284,5 @@ const ServiceItemSwagger = {
 };
 
 export default ServiceItemSwagger;
+
+

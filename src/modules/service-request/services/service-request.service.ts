@@ -5,6 +5,10 @@ import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import {
   ServiceRequestResponseDto,
   ServiceRequestDetailResponseDto,
+  ServiceRequestFullResponseDto,
+  ServiceRequestDetailFullResponseDto,
+  ServiceRequestResultResponseDto,
+  ServiceRequestSelectedConfigResponseDto,
 } from "../dtos/service-request.response.dto";
 import {
   ServiceRequestRepository,
@@ -20,6 +24,127 @@ export class ServiceRequestService {
   private medicalRecordRepository = new MedicalRecordRepository();
   private userRepository = new UserRepository();
   private serviceItemRepository = new ServiceItemRepository();
+
+  public async getRequestById(
+    requestId: string,
+    clinicId?: string
+  ): Promise<ServiceRequestFullResponseDto> {
+    const request = await this.serviceRequestRepository.findByIdWithDetailsAndResults(
+      requestId
+    );
+    if (!request) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
+    }
+
+    if (
+      clinicId &&
+      request.medicalRecord?.clinicId &&
+      request.medicalRecord.clinicId !== clinicId
+    ) {
+      throw new BaseError(403, "Phiếu chỉ định không thuộc phòng khám");
+    }
+
+    const resultsByDetailId = new Map<string, ServiceRequestResultResponseDto[]>();
+    const resultsByItemId = new Map<string, ServiceRequestResultResponseDto[]>();
+
+    for (const result of request.serviceResults) {
+      const resultDto: ServiceRequestResultResponseDto = {
+        resultId: result.resultId,
+        detailId: result.detailId ?? null,
+        requestId: result.requestId ?? null,
+        itemId: result.itemId ?? null,
+        configId: result.configId ?? null,
+        indicatorName: result.indicatorName ?? null,
+        valueString: result.valueString ?? null,
+        valueNumber:
+          result.valueNumber !== null && result.valueNumber !== undefined
+            ? Number(result.valueNumber)
+            : null,
+        unit: result.unit ?? null,
+        images: result.images ?? null,
+        executedAt: result.executedAt ? result.executedAt.toISOString() : null,
+      };
+
+      if (result.detailId) {
+        const list = resultsByDetailId.get(result.detailId) ?? [];
+        list.push(resultDto);
+        resultsByDetailId.set(result.detailId, list);
+      }
+
+      if (result.itemId) {
+        const list = resultsByItemId.get(result.itemId) ?? [];
+        list.push(resultDto);
+        resultsByItemId.set(result.itemId, list);
+      }
+    }
+
+    const details: ServiceRequestDetailFullResponseDto[] = request.details.map(
+      (detail) => {
+        const serviceItem = detail.serviceItem;
+        const configMetaMap = new Map(
+          (serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+        );
+        const selectedOptions = detail.selectedOptions as
+          | {
+              selectedConfigs?: {
+                configId: string;
+                configCode?: string | null;
+                selectedValues?: string[];
+                totalSurcharge?: number;
+              }[];
+            }
+          | null
+          | undefined;
+        const selectedConfigs: ServiceRequestSelectedConfigResponseDto[] =
+          selectedOptions?.selectedConfigs?.map((cfg) => {
+            const meta = configMetaMap.get(cfg.configId);
+            return {
+              configId: cfg.configId,
+              configCode: cfg.configCode ?? meta?.configCode ?? null,
+              displayName: meta?.displayName ?? null,
+              selectedValues: cfg.selectedValues ?? [],
+              totalSurcharge:
+                cfg.totalSurcharge !== undefined && cfg.totalSurcharge !== null
+                  ? Number(cfg.totalSurcharge)
+                  : null,
+            };
+          }) ?? [];
+
+        const detailResults =
+          (detail.requestDetailId
+            ? resultsByDetailId.get(detail.requestDetailId)
+            : undefined) ??
+          (detail.itemId ? resultsByItemId.get(detail.itemId) : undefined) ??
+          [];
+
+        return {
+          requestDetailId: detail.requestDetailId,
+          itemId: detail.itemId ?? null,
+          itemCode: serviceItem?.itemCode ?? null,
+          itemName: serviceItem?.name ?? null,
+          selectedOptions: detail.selectedOptions ?? null,
+          selectedConfigs,
+          results: detailResults,
+        };
+      }
+    );
+
+    return {
+      requestId: request.requestId,
+      requestCode: request.requestCode ?? null,
+      recordId: request.recordId ?? null,
+      recordCode: request.medicalRecord?.recordCode ?? null,
+      orderingDoctorId: request.orderingDoctorId ?? null,
+      diagnoses: request.diagnoses ?? null,
+      isPatientRequested: request.isPatientRequested ?? null,
+      receiveResultAtClinic: request.receiveResultAtClinic ?? null,
+      isForFollowUp: request.isForFollowUp ?? null,
+      note: request.note ?? null,
+      createdAt: request.createdAt ? request.createdAt.toISOString() : null,
+      patientId: request.medicalRecord?.patientId ?? null,
+      details,
+    };
+  }
 
   public async createServiceRequest(
     data: CreateServiceRequestDto,
@@ -112,9 +237,9 @@ export class ServiceRequestService {
       const detailsToCreate: CreateServiceRequestPayload["details"] = [];
 
       for (const detail of data.details) {
-        if (!detail.selectedConfigs || detail.selectedConfigs.length === 0) {
-          throw new BaseError(400, "Chưa chọn cấu hình cho dịch vụ cận lâm sàng");
-        }
+        // if (!detail.selectedConfigs || detail.selectedConfigs.length === 0) {
+        //   throw new BaseError(400, "Chưa chọn cấu hình cho dịch vụ cận lâm sàng");
+        // }
 
         const itemMeta = itemConfigMap.get(detail.itemId);
         if (!itemMeta) {
@@ -136,10 +261,6 @@ export class ServiceRequestService {
         let totalSurcharge = 0;
 
         for (const config of detail.selectedConfigs) {
-          if (!config.selectedValues || config.selectedValues.length === 0) {
-            throw new BaseError(400, "Giá trị chọn của cấu hình không hợp lệ");
-          }
-
           const configMeta = itemMeta.configs.get(config.configId);
           if (!configMeta) {
             throw new BaseError(400, "Cấu hình không thuộc dịch vụ đã chọn");
@@ -147,10 +268,13 @@ export class ServiceRequestService {
 
           let configSurcharge = 0;
           if (configMeta.options.size > 0) {
+            if (!config.selectedValues || config.selectedValues.length === 0) {
+              throw new BaseError(400, "Giá trị chọn của cấu hình không hợp lệ");
+            }
             for (const selectedValue of config.selectedValues) {
               const optionSurcharge = configMeta.options.get(selectedValue);
               if (optionSurcharge === undefined) {
-                throw new BaseError(400, "Giá trị chọn không thuộc cấu hình");
+                throw new BaseError(400, "Gia tri chon khong thuoc cau hinh");
               }
               configSurcharge += optionSurcharge;
             }
@@ -160,11 +284,10 @@ export class ServiceRequestService {
           normalizedSelectedConfigs.push({
             configId: config.configId,
             configCode: configMeta.configCode ?? null,
-            selectedValues: config.selectedValues,
+            selectedValues: config.selectedValues ?? [],
             totalSurcharge: configSurcharge,
           });
         }
-
         const basePrice = itemMeta.basePrice;
         const totalCharge = basePrice + totalSurcharge;
         detailsToCreate.push({
