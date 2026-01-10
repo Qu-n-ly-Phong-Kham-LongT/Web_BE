@@ -21,7 +21,8 @@ export class ServiceItemService {
     page: number,
     size: number,
     search?: string,
-    typeId?: string
+    typeId?: string,
+    categoryId?: string
   ) {
     const skip = (page - 1) * size;
 
@@ -30,6 +31,7 @@ export class ServiceItemService {
       take: size,
       search,
       typeId,
+      categoryId,
     });
 
     const pagination = createPagination(page, size, total);

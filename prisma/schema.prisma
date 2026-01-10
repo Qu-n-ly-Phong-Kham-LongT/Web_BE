@@ -326,7 +326,7 @@ model ServiceItemConfig {
 
 model ServiceRequest {
   requestId     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  requestCode   String?        @unique
+  requestCode   String         @unique @default(dbgenerated())
   recordId      String?        @db.Uuid
   medicalRecord MedicalRecord? @relation(fields: [recordId], references: [recordId])
 
@@ -335,11 +335,11 @@ model ServiceRequest {
   diagnoses             Json?
   isPatientRequested    Boolean   @default(false)
   receiveResultAtClinic Boolean   @default(false)
-  isForFollowUp            Boolean   @default(false)
+  isForFollowUp         Boolean   @default(false)
   note                  String?
   createdAt             DateTime? @default(now()) @db.Timestamptz
-
-  finalReportPath String?
+  updatedAt             DateTime? @default(now()) @db.Timestamptz
+  finalReportPath       String?
 
   details        ServiceRequestDetail[]
   serviceResults ServiceResult[]
