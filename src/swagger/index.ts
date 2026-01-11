@@ -16,6 +16,7 @@ import ServiceItemSwagger from "./service-item.swagger";
 import ServiceTemplateSwagger from "./service-template.swagger";
 import ServiceRequestSwagger from "./service-request.swagger";
 import ServiceResultSwagger from "./service-result.swagger";
+import SharedSwagger from "./shared.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -41,6 +42,7 @@ const swaggerDocument = {
     ...ServiceTemplateSwagger,
     ...ServiceRequestSwagger,
     ...ServiceResultSwagger,
+    ...SharedSwagger,
   },
   components: {
     securitySchemes: {
