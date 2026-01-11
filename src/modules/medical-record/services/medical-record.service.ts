@@ -71,12 +71,18 @@ export class MedicalRecordService {
     }
 
     const storedAllergies = await this.patientRepository.findAllergiesByPatientId(createData.patientId || "");
-    const allergies: PatientAllergyResponseDto[] = storedAllergies.map((a) => ({
-      allergyID: a.allergyId,
-      patientID: a.patientId,
-      drug: (a.data as any)?.drug ?? null,
-      reaction: (a.data as any)?.reaction ?? null,
-    }));
+    const allergies: PatientAllergyResponseDto[] = storedAllergies.map((a) => {
+      const data = (a.data as any) || [];
+      const items = Array.isArray(data) ? data : [data];
+      return {
+        allergyID: a.allergyId,
+        patientID: a.patientId,
+        data: items.map((item: any) => ({
+          drug: item?.drug ?? null,
+          reaction: item?.reaction ?? null,
+        })),
+      };
+    });
 
     return { record, examinationId, allergies };
   }

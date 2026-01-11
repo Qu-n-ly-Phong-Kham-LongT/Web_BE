@@ -109,7 +109,16 @@ export class PrecriptionService {
           throw new BaseError(400, "Số lượng thuốc không hợp lệ");
         }
 
-        const appliedPrice = medicine.sellPrice ? Number(medicine.sellPrice) : 0;
+        let appliedPrice = medicine.sellPrice ? Number(medicine.sellPrice) : 0;
+        if (item.isInsuranceCovered) {
+          if (!medicine.isInsuranceCovered) {
+            throw new BaseError(400, "Thuốc này không được BHYT hỗ trợ");
+          }
+          if (!medicine.insurancePrice) {
+            throw new BaseError(400, "Thuốc này chưa có giá BHYT");
+          }
+          appliedPrice = Number(medicine.insurancePrice);
+        }
         const lineTotal = appliedPrice * quantity;
         totalPrice += lineTotal;
 
