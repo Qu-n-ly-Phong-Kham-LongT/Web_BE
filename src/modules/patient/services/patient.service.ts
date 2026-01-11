@@ -131,7 +131,10 @@ export class PatientService {
     if (!patient) {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
-    return this.mapToResponseDto(patient);
+    const allergies =
+      await this.patientRepository.findAllergiesByPatientId(patient.patientId);
+
+    return this.mapToResponseDto(patient, allergies);
   }
 
   public async getPatients(
@@ -335,7 +338,10 @@ export class PatientService {
     return this.mapRelativeToResponseDto(result);
   }
 
-  private mapToResponseDto(patient: Patient): PatientResponseDto {
+  private mapToResponseDto(
+    patient: Patient,
+    allergies: PatientAllergy[] = []
+  ): PatientResponseDto {
     return {
       patientID: patient.patientId,
       patientCode: patient.patientCode ?? "",
@@ -351,6 +357,7 @@ export class PatientService {
       address: patient.address,
       createdAt: patient.createdAt ? patient.createdAt.toISOString() : "",
       updatedAt: patient.updatedAt ? patient.updatedAt.toISOString() : "",
+      patientAllergies: this.mapAllergyRecordsToItems(allergies),
     };
   }
 
@@ -470,23 +477,30 @@ export class PatientService {
     const result: PatientAllergyResponseDto[] = [];
     for (const record of records || []) {
       const data = (record.data as any) || [];
-      if (Array.isArray(data)) {
-        data.forEach((item: any) =>
-          result.push({
-            allergyID: record.allergyId,
-            patientID: record.patientId,
-            drug: item?.drug ?? null,
-            reaction: item?.reaction ?? null,
-          })
-        );
-      } else {
+      const items = Array.isArray(data) ? data : [data];
+      result.push({
+        allergyID: record.allergyId,
+        patientID: record.patientId,
+        data: items.map((item: any) => ({
+          drug: item?.drug ?? null,
+          reaction: item?.reaction ?? null,
+        })),
+      });
+    }
+    return result;
+  }
+
+  private mapAllergyRecordsToItems(records: PatientAllergy[]) {
+    const result: { drug: string | null; reaction: string | null }[] = [];
+    for (const record of records || []) {
+      const data = (record.data as any) || [];
+      const items = Array.isArray(data) ? data : [data];
+      items.forEach((item: any) => {
         result.push({
-          allergyID: record.allergyId,
-          patientID: record.patientId,
-          drug: (data as any)?.drug ?? null,
-          reaction: (data as any)?.reaction ?? null,
+          drug: item?.drug ?? null,
+          reaction: item?.reaction ?? null,
         });
-      }
+      });
     }
     return result;
   }
