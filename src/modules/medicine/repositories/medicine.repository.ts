@@ -147,7 +147,7 @@ export class MedicineRepository {
   ): Promise<
     Pick<
       Medicine,
-      "medicineId" | "sellPrice" | "medicineName" | "isInsuranceCovered"
+      "medicineId" | "sellPrice" | "medicineName" | "isInsuranceCovered" | "insurancePrice"
     >[]
   > {
     const client = tx || prisma;
@@ -161,6 +161,7 @@ export class MedicineRepository {
         sellPrice: true,
         medicineName: true,
         isInsuranceCovered: true,
+        insurancePrice: true,
       },
     });
   }
