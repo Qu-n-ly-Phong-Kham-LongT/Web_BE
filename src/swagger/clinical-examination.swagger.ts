@@ -20,7 +20,18 @@ const ClinicalExaminationSwagger = {
         required: true,
         content: {
           "application/json": {
-            schema: joiToSwagger(ClinicalExaminationRequestSchema),
+            schema: (() => {
+              const swaggerSchema = joiToSwagger(ClinicalExaminationRequestSchema);
+              if (swaggerSchema?.properties?.recordId) {
+                delete swaggerSchema.properties.recordId;
+              }
+              if (Array.isArray(swaggerSchema?.required)) {
+                swaggerSchema.required = swaggerSchema.required.filter(
+                  (field) => field !== "recordId"
+                );
+              }
+              return swaggerSchema;
+            })(),
           },
         },
       },

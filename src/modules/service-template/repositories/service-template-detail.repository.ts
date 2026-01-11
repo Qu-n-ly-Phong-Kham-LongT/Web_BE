@@ -1,5 +1,6 @@
 import { Prisma, ServiceTemplateDetail } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
+import { SelectedConfigsDto } from "../../service-request/dtos/service-request.request.dto";
 
 type TransactionClient = Omit<
   typeof prisma,
@@ -12,6 +13,7 @@ export class ServiceTemplateDetailRepository {
     data: {
       itemId: string;
       note?: string | null;
+      selectedConfigs?: SelectedConfigsDto[];
     },
     tx?: TransactionClient
   ): Promise<ServiceTemplateDetail> {
@@ -21,6 +23,9 @@ export class ServiceTemplateDetailRepository {
         templateId: templateId,
         itemId: data.itemId,
         note: data.note ?? null,
+        configSelections: data.selectedConfigs
+          ? JSON.parse(JSON.stringify(data.selectedConfigs))
+          : null,
       },
     });
   }
@@ -30,16 +35,24 @@ export class ServiceTemplateDetailRepository {
     details: Array<{
       itemId: string;
       note?: string | null;
+      selectedConfigs?: SelectedConfigsDto[];
     }>,
     tx?: TransactionClient
   ): Promise<{ count: number }> {
     const client = tx || prisma;
+
+    const dataToInsert = details.map((detail) => ({
+      templateId: templateId,
+      itemId: detail.itemId,
+      note: detail.note ?? null,
+      configSelections:
+        detail.selectedConfigs !== undefined
+          ? (detail.selectedConfigs as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+    }));
+
     return await client.serviceTemplateDetail.createMany({
-      data: details.map((detail) => ({
-        templateId: templateId,
-        itemId: detail.itemId,
-        note: detail.note ?? null,
-      })),
+      data: dataToInsert,
     });
   }
 
@@ -117,4 +130,3 @@ export class ServiceTemplateDetailRepository {
     });
   }
 }
-

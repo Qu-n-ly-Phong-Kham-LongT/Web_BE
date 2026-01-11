@@ -43,9 +43,9 @@ export const CreateMedicineRequestSchema = Joi.object<CreateMedicineRequestDto>(
   sellPrice: Joi.number().min(0).optional().messages({
     "number.min": "Giá bán phải lớn hơn hoặc bằng 0",
   }),
-  note: Joi.string().optional(),
+  note: Joi.string().optional().allow(null, ""),
   supplier: Joi.string().optional(),
   sideEffects: Joi.string().optional(),
   isActive: Joi.boolean().optional(),
-}).required();
+});
 

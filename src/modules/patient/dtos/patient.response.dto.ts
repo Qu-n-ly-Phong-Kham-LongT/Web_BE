@@ -1,5 +1,9 @@
 import { Gender } from "@prisma/client";
 import Joi from "joi";
+import {
+  PatientAllergyItemDto,
+  PatientAllergyItemSchema,
+} from "./patient-allergy.response.dto";
 
 export interface PatientResponseDto {
   patientID: string;
@@ -17,16 +21,24 @@ export interface PatientResponseDto {
   address: string | null;
   createdAt: string;
   updatedAt: string;
+  patientAllergies: PatientAllergyItemDto[];
 }
 
 export const PatientResponseSchema = Joi.object<PatientResponseDto>({
   patientID: Joi.string().uuid().description("Patient ID"),
   patientCode: Joi.string().required().description("Mã bệnh nhân"),
   fullName: Joi.string().required().description("Họ và tên"),
-  gender: Joi.string().valid("Male", "Female", "Other").allow(null).description("Giới tính"),
+  gender: Joi.string()
+    .valid("Male", "Female", "Other")
+    .allow(null)
+    .description("Giới tính"),
   dob: Joi.string().required().description("Ngày sinh"),
   age: Joi.number().integer().min(0).required().description("Tuổi"),
   patientCategory: Joi.string().valid("BHYT", "DichVu", "UuTien").allow(null).description("Đối tượng"),
+  patientCategory: Joi.string()
+    .valid("BHYT", "DichVu", "UuTien")
+    .allow(null)
+    .description("Đối tượng"),
   phone: Joi.string().required().description("Số điện thoại"),
   email: Joi.string().email().allow(null).description("Email"),
   identityCard: Joi.string().allow(null).description("CMND/CCCD"),
@@ -35,12 +47,16 @@ export const PatientResponseSchema = Joi.object<PatientResponseDto>({
   address: Joi.string().allow(null).description("Địa chỉ"),
   createdAt: Joi.string().required().description("Thời gian tạo"),
   updatedAt: Joi.string().required().description("Thời gian cập nhật"),
+  patientAllergies: Joi.array()
+    .items(PatientAllergyItemSchema)
+    .required()
+    .description("Danh sach di ung"),
 }).required();
 
 export enum QueueStatus {
   WAITING = "WAITING",
   IN_PROGRESS = "IN_PROGRESS",
-  COMPLETED = "COMPLETED"
+  COMPLETED = "COMPLETED",
 }
 
 export interface PatientQueueItemDto {

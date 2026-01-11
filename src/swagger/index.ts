@@ -9,10 +9,14 @@ import Icd10Swagger from "./icd10.swagger";
 import MedicalRecordSwagger from "./medical-record.swagger";
 import ClinicalExaminationSwagger from "./clinical-examination.swagger";
 import MedicineSwagger from "./medicine.swagger";
+import PrescriptionSwagger from "./prescription.swagger";
 import ServiceNodeSwagger from "./service-node.swagger";
 import PrescriptionTemplateSwagger from "./prescription-template.swagger";
 import ServiceItemSwagger from "./service-item.swagger";
 import ServiceTemplateSwagger from "./service-template.swagger";
+import ServiceRequestSwagger from "./service-request.swagger";
+import ServiceResultSwagger from "./service-result.swagger";
+import SharedSwagger from "./shared.swagger";
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -31,10 +35,14 @@ const swaggerDocument = {
     ...MedicalRecordSwagger,
     ...ClinicalExaminationSwagger,
     ...MedicineSwagger,
+    ...PrescriptionSwagger,
     ...ServiceNodeSwagger,
     ...PrescriptionTemplateSwagger,
     ...ServiceItemSwagger,
     ...ServiceTemplateSwagger,
+    ...ServiceRequestSwagger,
+    ...ServiceResultSwagger,
+    ...SharedSwagger,
   },
   components: {
     securitySchemes: {

@@ -32,7 +32,7 @@ patientRouter.get(
 );
 
 patientRouter.get(
-    "/daily-queue",
+    "/queue",
     authenticate,
     patientController.getDailyQueue
 );

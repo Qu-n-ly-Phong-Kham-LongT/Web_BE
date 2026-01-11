@@ -9,6 +9,7 @@ import {
 import { BaseError } from "../../../utils/base-error.util";
 import { PatientResponseDto } from "../dtos/patient.response.dto";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
+import { CreatePatientRelativeRequestDto } from "../dtos/create-patient-relative.request.dto";
 import { UpdatePatientRequestDto } from "../dtos/update-patient.request.dto";
 import { PatientListResponseDto } from "../dtos/patient-list.response.dto";
 import { PatientEnumResponseDto } from "../dtos/patient-enum.response.dto";
@@ -95,10 +96,24 @@ export class PatientService {
           clinicId,
           tx
         );
-        if (data.relatives?.length) {
+        const relatives = (data.relatives ?? []).filter(
+          (relative): relative is CreatePatientRelativeRequestDto => {
+            if (!relative) {
+              return false;
+            }
+            return Boolean(
+              (relative.fullName && relative.fullName.trim()) ||
+                (relative.phone && relative.phone.trim()) ||
+                (relative.relationship && relative.relationship.trim()) ||
+                (relative.identityCard && relative.identityCard.trim()) ||
+                (relative.address && relative.address.trim())
+            );
+          }
+        );
+        if (relatives.length > 0) {
           await this.patientRepository.createRelatives(
             patient.patientId,
-            data.relatives,
+            relatives,
             tx
           );
         }
@@ -117,7 +132,10 @@ export class PatientService {
     if (!patient) {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
-    return this.mapToResponseDto(patient);
+    const allergies =
+      await this.patientRepository.findAllergiesByPatientId(patient.patientId);
+
+    return this.mapToResponseDto(patient, allergies);
   }
 
   public async getPatients(
@@ -321,7 +339,10 @@ export class PatientService {
     return this.mapRelativeToResponseDto(result);
   }
 
-  private mapToResponseDto(patient: Patient): PatientResponseDto {
+  private mapToResponseDto(
+    patient: Patient,
+    allergies: PatientAllergy[] = []
+  ): PatientResponseDto {
     return {
       patientID: patient.patientId,
       patientCode: patient.patientCode ?? "",
@@ -338,6 +359,7 @@ export class PatientService {
       address: patient.address,
       createdAt: patient.createdAt ? patient.createdAt.toISOString() : "",
       updatedAt: patient.updatedAt ? patient.updatedAt.toISOString() : "",
+      patientAllergies: this.mapAllergyRecordsToItems(allergies),
     };
   }
 
@@ -457,23 +479,30 @@ export class PatientService {
     const result: PatientAllergyResponseDto[] = [];
     for (const record of records || []) {
       const data = (record.data as any) || [];
-      if (Array.isArray(data)) {
-        data.forEach((item: any) =>
-          result.push({
-            allergyID: record.allergyId,
-            patientID: record.patientId,
-            drug: item?.drug ?? null,
-            reaction: item?.reaction ?? null,
-          })
-        );
-      } else {
+      const items = Array.isArray(data) ? data : [data];
+      result.push({
+        allergyID: record.allergyId,
+        patientID: record.patientId,
+        data: items.map((item: any) => ({
+          drug: item?.drug ?? null,
+          reaction: item?.reaction ?? null,
+        })),
+      });
+    }
+    return result;
+  }
+
+  private mapAllergyRecordsToItems(records: PatientAllergy[]) {
+    const result: { drug: string | null; reaction: string | null }[] = [];
+    for (const record of records || []) {
+      const data = (record.data as any) || [];
+      const items = Array.isArray(data) ? data : [data];
+      items.forEach((item: any) => {
         result.push({
-          allergyID: record.allergyId,
-          patientID: record.patientId,
-          drug: (data as any)?.drug ?? null,
-          reaction: (data as any)?.reaction ?? null,
+          drug: item?.drug ?? null,
+          reaction: item?.reaction ?? null,
         });
-      }
+      });
     }
     return result;
   }
@@ -482,14 +511,29 @@ export class PatientService {
     clinicId?: string,
     page: number = 1,
     size: number = 10,
-    search?: string
+    search?: string,
+    date?: string
   ): Promise<{
     queue: PatientQueueItemDto[];
     pagination: ReturnType<typeof createPagination>;
   }> {
-    const start = new Date();
+    let baseDate = new Date();
+    if (date) {
+      const trimmed = date.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+        const [year, month, day] = trimmed.split("-").map(Number);
+        baseDate = new Date(year, month - 1, day);
+      } else {
+        baseDate = new Date(trimmed);
+      }
+      if (Number.isNaN(baseDate.getTime())) {
+        throw new BaseError(400, "Ngày không hợp lệ");
+      }
+    }
+
+    const start = new Date(baseDate);
     start.setHours(0, 0, 0, 0);
-    const end = new Date();
+    const end = new Date( );
     end.setHours(23, 59, 59, 999);
 
     const patients = await this.patientRepository.getDailyQueue(

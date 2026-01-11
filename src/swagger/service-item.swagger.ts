@@ -175,6 +175,13 @@ const ServiceItemSwagger = {
           schema: { type: "string", format: "uuid" },
           description: "Lọc theo loại dịch vụ",
         },
+        {
+          name: "categoryId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+          description: "Filter by category",
+        },
       ],
       responses: {
         200: {
@@ -204,6 +211,35 @@ const ServiceItemSwagger = {
         },
         401: { description: "Chưa đăng nhập" },
         403: { description: "Không đủ quyền (chỉ Admin)" },
+      },
+    },
+  },
+
+  "/api/service-items/input-types": {
+    get: {
+      tags: ["Service Items"],
+      summary: "Lấy danh sách loại dữ liệu nhập",
+      description: "API công khai để lấy danh sách loại dữ liệu nhập.",
+      responses: {
+        200: {
+          description: "Lấy danh sách loại dữ liệu nhập thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                  pagination: { type: "object", nullable: true },
+                },
+              },
+            },
+          },
+        },
       },
     },
   },
@@ -248,3 +284,5 @@ const ServiceItemSwagger = {
 };
 
 export default ServiceItemSwagger;
+
+

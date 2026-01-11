@@ -36,9 +36,9 @@ enum PregnancyStatus {
   Breastfeeding
 }
 
-enum PaymentStatus {
-  Unpaid
-  Paid
+enum PrescriptionStatus {
+  Issued
+  Fulfilled
 }
 
 enum NodeType {
@@ -188,7 +188,7 @@ model MedicalRecord {
   evidenceBasedDiagnosis Boolean?             @default(false)
   doctorAdvice           String?
   treatmentNote          String?
-  consultationFee        Decimal?             @default(0)
+  consultationFee        Decimal?             @default(0) @db.Decimal(18, 0)
   createdAt              DateTime?            @default(now()) @db.Timestamptz
   updatedAt              DateTime?            @updatedAt @db.Timestamptz
   clinicalExamination    ClinicalExamination?
@@ -239,9 +239,10 @@ model Prescription {
   pdfPath        String?
   fileName       String?
   note           String?
-  totalPrice     Decimal?
-  paymentStatus  PaymentStatus?       @default(Unpaid)
+  totalPrice     Decimal?             @db.Decimal(18, 0)
+  status         PrescriptionStatus?  @default(Issued)
   createdAt      DateTime?            @default(now()) @db.Timestamptz
+  updatedAt      DateTime?            @default(now()) @db.Timestamptz
   details        PrescriptionDetail[]
 }
 
@@ -253,14 +254,14 @@ model PrescriptionDetail {
   medicine            Medicine?     @relation(fields: [medicineId], references: [medicineId])
   unit                String?
   frequencyPerDay     Int?
-  quantityPerTime     Float?
+  quantityPerTime     Decimal?      @db.Decimal(10, 2)
   administrationRoute String?
   timing              String?
-  quantity            Int?
+  quantity            Decimal?      @db.Decimal(10, 2)
   daysToTake          Int?
-  price               Float?
   isInsuranceCovered  Boolean?      @default(false)
-  appliedExportPrice  Decimal?
+  appliedExportPrice  Decimal?      @db.Decimal(18, 0)
+  totalPrice          Decimal?      @db.Decimal(18, 0)
   note                String?
 }
 
@@ -298,7 +299,7 @@ model ServiceItem {
   category   ServiceNode? @relation("CategoryNode", fields: [categoryId], references: [nodeId])
   typeId     String?      @db.Uuid
   type       ServiceNode? @relation("TypeNode", fields: [typeId], references: [nodeId])
-  basePrice  Decimal?
+  basePrice  Decimal?     @db.Decimal(18, 0)
   unit       String?
   specimen   String?
   prepNote   String?
@@ -326,17 +327,20 @@ model ServiceItemConfig {
 
 model ServiceRequest {
   requestId     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  requestCode   String?        @unique
+  requestCode   String         @unique @default(dbgenerated())
   recordId      String?        @db.Uuid
   medicalRecord MedicalRecord? @relation(fields: [recordId], references: [recordId])
 
-  orderingDoctorId String? @db.Uuid
-  orderingDoctor   User?   @relation(fields: [orderingDoctorId], references: [userId])
-
-  note      String?
-  createdAt DateTime? @default(now()) @db.Timestamptz
-
-  finalReportPath String?
+  orderingDoctorId      String?   @db.Uuid
+  orderingDoctor        User?     @relation(fields: [orderingDoctorId], references: [userId])
+  diagnoses             Json?
+  isPatientRequested    Boolean   @default(false)
+  receiveResultAtClinic Boolean   @default(false)
+  isForFollowUp         Boolean   @default(false)
+  note                  String?
+  createdAt             DateTime? @default(now()) @db.Timestamptz
+  updatedAt             DateTime? @default(now()) @db.Timestamptz
+  finalReportPath       String?
 
   details        ServiceRequestDetail[]
   serviceResults ServiceResult[]
@@ -393,6 +397,7 @@ model ServiceTemplateDetail {
   template         ServiceTemplate? @relation(fields: [templateId], references: [templateId])
   itemId           String?          @db.Uuid
   serviceItem      ServiceItem?     @relation(fields: [itemId], references: [itemId])
+  configSelections Json?
   note             String?
 }
 
@@ -404,10 +409,10 @@ model Medicine {
   registrationNo      String?
   isInsuranceCovered  Boolean?                     @default(false)
   medicineCodeBhyt    String?
-  insurancePrice      Decimal?
+  insurancePrice      Decimal?                     @db.Decimal(18, 0)
   baseUnit            String?
   totalQuantity       Int?                         @default(0)
-  sellPrice           Decimal?
+  sellPrice           Decimal?                     @db.Decimal(18, 0)
   note                String?
   supplier            String?
   sideEffects         String?
@@ -427,8 +432,8 @@ model InventoryLog {
   type         InventoryLogType?
   quantity     Int?
   quantityBase Int?
-  unitPrice    Decimal?
-  totalPrice   Decimal?
+  unitPrice    Decimal?          @db.Decimal(18, 0)
+  totalPrice   Decimal?          @db.Decimal(18, 0)
   performedBy  String?           @db.Uuid
   performer    User?             @relation(fields: [performedBy], references: [userId])
   note         String?

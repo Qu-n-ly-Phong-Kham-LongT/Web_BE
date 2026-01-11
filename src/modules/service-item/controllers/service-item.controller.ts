@@ -1,8 +1,9 @@
-﻿import { CreateServiceItemRequestDto } from "../dtos/service-item.request.dto";
+import { CreateServiceItemRequestDto } from "../dtos/service-item.request.dto";
 import { ServiceItemService } from "../services/service-item.service";
 import { Request, Response } from "express";
 import { successResponse } from "../../../utils/response.util";
 import { ServiceItemResponseDto } from "../dtos/service-item.response.dto";
+import { InputType } from "@prisma/client";
 
 export class ServiceItemController {
     private service = new ServiceItemService();
@@ -29,13 +30,31 @@ export class ServiceItemController {
         const size = parseInt(req.query.size as string) || 10;
         const search = req.query.search as string;
         const typeId = req.query.typeId as string;
-        const result = await this.service.getAllItems(page, size, search, typeId);
+        const categoryId = req.query.categoryId as string;
+        const result = await this.service.getAllItems(
+            page,
+            size,
+            search,
+            typeId,
+            categoryId
+        );
 
         return successResponse(
             res,
             200,
             result,
             "Lấy danh sách dịch vụ cận lâm sàng thành công"
+        );
+    };
+
+
+    public getAllInputTypes = async (_req: Request, res: Response) => {
+        const inputTypes = Object.values(InputType);
+        return successResponse(
+            res,
+            200,
+            inputTypes,
+            "Lấy danh sách loại dữ liệu nhập thành công"
         );
     };
 }
