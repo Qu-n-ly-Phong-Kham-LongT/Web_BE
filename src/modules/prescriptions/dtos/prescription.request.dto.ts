@@ -1,24 +1,19 @@
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
-import { Session } from "@prisma/client";
+import { FollowUpDto } from "../../follow-up/dtos/follow-up.request.dto"
+import { Session } from "@prisma/client"
 import Joi from "joi";
 
 export interface PrescriptionItemDto {
   medicineId: string;
   frequencyPerDay: number;
   quantityPerTime: number;
-  quantity: string;
+  quantity: number;
   unit: string;
   administrationRoute?: string;
   timing: string;
   daysToTake: number;
   note?: string | null;
   isInsuranceCovered: boolean;
-}
-
-export interface FollowUpDto {
-  appointmentDate?: Date;
-  session: Session;
-  reason?: string | null;
 }
 
 export interface UpsertDianosisPrescriptionDto {
