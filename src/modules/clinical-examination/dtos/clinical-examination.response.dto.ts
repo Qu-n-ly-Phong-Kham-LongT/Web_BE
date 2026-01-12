@@ -14,6 +14,7 @@ export interface ClinicalExaminationResponseDto {
   temperature: number | null;
   height: number | null;
   weight: number | null;
+  bmi: number | null;
   pregnancyStatus: PregnancyStatus | null;
   pregnancyWeeks: number | null;
   hasPoorAppetite: boolean | null;
@@ -37,6 +38,7 @@ export const ClinicalExaminationResponseSchema =
     temperature: Joi.number().allow(null),
     height: Joi.number().allow(null),
     weight: Joi.number().allow(null),
+    bmi: Joi.number().allow(null),
     pregnancyStatus: Joi.string().allow(null),
     pregnancyWeeks: Joi.number().allow(null),
     hasPoorAppetite: Joi.boolean().allow(null),
@@ -77,6 +79,7 @@ export const mapToClinicalExaminationResponse = (
     temperature: exam.temperature,
     height: exam.height,
     weight: exam.weight,
+    bmi: exam.bmi,
     pregnancyStatus: exam.pregnancyStatus,
     pregnancyWeeks: exam.pregnancyWeeks,
     hasPoorAppetite: exam.hasPoorAppetite ?? null,

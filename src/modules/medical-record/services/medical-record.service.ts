@@ -49,7 +49,7 @@ export class MedicalRecordService {
     if (existingRecord) {
       throw new BaseError(
         409,
-        "Bệnh nhân này đã có bệnh án trong hôm nay, vui lòng tiếp tục với bệnh án hiện tại."
+        "Hôm nay BN đã có bệnh án, hãy tiếp tục với bệnh án cũ."
       );
     }
 
