@@ -17,6 +17,86 @@ import ServiceTemplateSwagger from "./service-template.swagger";
 import ServiceRequestSwagger from "./service-request.swagger";
 import ServiceResultSwagger from "./service-result.swagger";
 import SharedSwagger from "./shared.swagger";
+import { joiToSwagger } from "../utils/joi-swagger.util";
+import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
+import { ServiceRequestFullResponseSchema } from "../modules/service-request/dtos/service-request.response.dto";
+import { ClinicalExaminationResponseSchema } from "../modules/clinical-examination/dtos/clinical-examination.response.dto";
+
+const FullMedicalRecordSchema = {
+  type: "object",
+  properties: {
+    patient: {
+      ...joiToSwagger(PatientResponseSchema),
+      nullable: true,
+    },
+    clinicalExamination: {
+      ...joiToSwagger(ClinicalExaminationResponseSchema),
+      nullable: true,
+    },
+    medicalRecord: {
+      type: "object",
+      properties: {
+        recordId: { type: "string", format: "uuid" },
+        recordCode: { type: "string" },
+        patientId: { type: "string", format: "uuid" },
+        doctorId: { type: "string", format: "uuid" },
+        clinicId: { type: "string", format: "uuid" },
+        evidenceBasedDiagnosis: { type: "boolean", nullable: true },
+        diagnoses: { type: "object", nullable: true },
+        doctorAdvice: { type: "string", nullable: true },
+        treatmentNote: { type: "string", nullable: true },
+        consultationFee: { type: "number" },
+        createdAt: { type: "string", format: "date-time" },
+        updatedAt: { type: "string", format: "date-time" },
+      },
+    },
+    serviceRequest: {
+      type: "array",
+      items: joiToSwagger(ServiceRequestFullResponseSchema),
+    },
+    prescription: {
+      type: "object",
+      nullable: true,
+      properties: {
+        prescriptionId: { type: "string", format: "uuid" },
+        pdfPath: { type: "string", nullable: true },
+        fileName: { type: "string", nullable: true },
+        note: { type: "string", nullable: true },
+        totalPrice: { type: "number" },
+        status: { type: "string" },
+        createdAt: { type: "string", format: "date-time" },
+        updateAt: { type: "string", format: "date-time" },
+        details: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              medicineId: { type: "string", format: "uuid" },
+              frequencyPerDay: { type: "number" },
+              quantityPerTime: { type: "number" },
+              quantity: { type: "number" },
+              unit: { type: "string" },
+              administrationRoute: { type: "string", nullable: true },
+              timing: { type: "string" },
+              daysToTake: { type: "number" },
+              note: { type: "string", nullable: true },
+              isInsuranceCovered: { type: "boolean" },
+            },
+          },
+        },
+      },
+    },
+    followUp: {
+      type: "object",
+      nullable: true,
+      properties: {
+        appointmentDate: { type: "string", format: "date", nullable: true },
+        session: { type: "string", nullable: true },
+        reason: { type: "string", nullable: true },
+      },
+    },
+  },
+};
 
 const swaggerDocument = {
   openapi: "3.0.0",
@@ -51,6 +131,9 @@ const swaggerDocument = {
         scheme: "bearer",
         bearerFormat: "JWT",
       },
+    },
+    schemas: {
+      FullMedicalRecordDto: FullMedicalRecordSchema,
     },
   },
 };
