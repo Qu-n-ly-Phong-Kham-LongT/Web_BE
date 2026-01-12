@@ -1,4 +1,4 @@
-import { FileType } from "../constants/file-type.constant";
+import { FileType } from "@prisma/client";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { DeleteFileRequestSchema } from "../modules/file/dtos/delete-file.request.dto";
 

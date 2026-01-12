@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
     const rawType = String(req.query.type ?? "");
 
     if (!Object.values(FileType).includes(rawType as FileType)) {
-      return cb(new BaseError(400, "Invalid type"), "");
+      return cb(new BaseError(400, "Loại file không hợp lệ"), "");
     }
 
     const dir = path.join(process.cwd(), "public", "uploads", rawType);

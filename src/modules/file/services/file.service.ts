@@ -2,6 +2,7 @@ import { Request } from "express";
 import path from "path";
 import { BaseError } from "../../../utils/base-error.util";
 import { FileRepository } from "../repositories/file.repository";
+import { FileType } from "@prisma/client";
 import fs from "fs";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
@@ -13,17 +14,17 @@ export class FileService {
       throw new BaseError(400, "No file uploaded");
     }
 
-    const type = String(req.query.type ?? "");
+    const type = String(req.query.type ?? "") as FileType;
 
     const relativePath = path
       .join("/uploads", type, req.file.filename)
       .replace(/\\/g, "/");
 
     const fileRecord = await this.fileRepository.createFileRecord({
-      RelativePath: relativePath,
-      Type: type,
-      MimeType: req.file.mimetype,
-      Size: req.file.size,
+      relativePath,
+      type,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
     });
 
     return fileRecord;

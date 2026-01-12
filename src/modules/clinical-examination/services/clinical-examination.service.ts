@@ -99,6 +99,7 @@ export class ClinicalExaminationService {
       temperature: exam.temperature ?? null,
       height: exam.height ?? null,
       weight: exam.weight ?? null,
+      bmi: exam.bmi ?? null,
       pregnancyStatus: exam.pregnancyStatus ?? null,
       pregnancyWeeks: exam.pregnancyWeeks ?? null,
       hasPoorAppetite: exam.hasPoorAppetite ?? null,
