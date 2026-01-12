@@ -6,10 +6,10 @@ import { ClinicalExaminationResponseDto } from "../../clinical-examination/dtos/
 import { ServiceRequestFullResponseDto } from "../../service-request/dtos/service-request.response.dto";
 
 export interface FullMedicalRecordDto {
-    patient: PatientResponseDto;
-    clinicalExamination: ClinicalExaminationResponseDto;
+    patient: PatientResponseDto | null;
+    clinicalExamination: ClinicalExaminationResponseDto | null;
     medicalRecord: MedicalRecordResponseDto;
     serviceRequest: ServiceRequestFullResponseDto[];
-    prescription: PrescriptionDetailResponseDto;
-    followUp: FollowUpResponseDto;
+    prescription: PrescriptionDetailResponseDto | null;
+    followUp: FollowUpResponseDto | null;
 }

@@ -35,45 +35,48 @@ export class SharedRepository {
       },
     });
 
-    if (
-      !record ||
-      !record.patient ||
-      !record.clinicalExamination ||
-      !record.prescription ||
-      !record.followUp
-    ) {
+    if (!record) {
       return null;
     }
 
-    const patient = {
-      patientID: record.patient.patientId,
-      patientCode: record.patient.patientCode ?? "",
-      fullName: record.patient.fullName ?? "",
-      gender: record.patient.gender,
-      dob: record.patient.dob ? record.patient.dob.toISOString() : "",
-      patientCategory: record.patient.patientCategory,
-      phone: record.patient.phone ?? "",
-      email: record.patient.email,
-      identityCard: record.patient.identityCard,
-      insuranceNumber: record.patient.insuranceNumber,
-      occupation: record.patient.occupation,
-      address: record.patient.address,
-      createdAt: record.patient.createdAt ? record.patient.createdAt.toISOString() : "",
-      updatedAt: record.patient.updatedAt ? record.patient.updatedAt.toISOString() : "",
-      patientAllergies: (record.patient.allergies ?? []).flatMap((a) => {
-        const data = (a.data as any) || [];
-        const items = Array.isArray(data) ? data : [data];
-        return items.map((item: any) => ({
-          drug: item?.drug ?? null,
-          reaction: item?.reaction ?? null,
-        }));
-      }),
-    };
+    const patient = record.patient
+      ? {
+          patientID: record.patient.patientId,
+          patientCode: record.patient.patientCode ?? "",
+          fullName: record.patient.fullName ?? "",
+          gender: record.patient.gender,
+          dob: record.patient.dob ? record.patient.dob.toISOString() : "",
+          patientCategory: record.patient.patientCategory,
+          phone: record.patient.phone ?? "",
+          email: record.patient.email,
+          identityCard: record.patient.identityCard,
+          insuranceNumber: record.patient.insuranceNumber,
+          occupation: record.patient.occupation,
+          address: record.patient.address,
+          createdAt: record.patient.createdAt ? record.patient.createdAt.toISOString() : "",
+          updatedAt: record.patient.updatedAt ? record.patient.updatedAt.toISOString() : "",
+          patientAllergies: (record.patient.allergies ?? []).flatMap((a) => {
+            const data =
+              (a.data as
+                | { drug?: string | null; reaction?: string | null }
+                | { drug?: string | null; reaction?: string | null }[]
+                | null) || [];
+            const items = Array.isArray(data) ? data : [data];
+            return items.map((item) => ({
+              drug: item?.drug ?? null,
+              reaction: item?.reaction ?? null,
+            }));
+          }),
+        }
+      : null;
 
-    const clinicalExamination = mapToClinicalExaminationResponse(
-      record.clinicalExamination,
-      record.patient.allergies?.[0] ?? null
-    );
+    const clinicalExamination =
+      record.clinicalExamination && record.patient
+        ? mapToClinicalExaminationResponse(
+            record.clinicalExamination,
+            record.patient.allergies?.[0] ?? null
+          )
+        : null;
 
     const medicalRecord = {
       recordId: record.recordId,
@@ -194,36 +197,40 @@ export class SharedRepository {
         };
       });
 
-    const prescription = {
-      prescriptionId: record.prescription.prescriptionId,
-      pdfPath: record.prescription.pdfPath ?? "",
-      fileName: record.prescription.fileName ?? "",
-      note: record.prescription.note ?? "",
-      totalPrice: record.prescription.totalPrice
-        ? Number(record.prescription.totalPrice)
-        : 0,
-      status: record.prescription.status ?? "Issued",
-      createdAt: record.prescription.createdAt ?? new Date(0),
-      updateAt: record.prescription.updatedAt ?? new Date(0),
-      details: record.prescription.details.map((detail) => ({
-        medicineId: detail.medicineId ?? "",
-        frequencyPerDay: detail.frequencyPerDay ?? 0,
-        quantityPerTime: detail.quantityPerTime ? Number(detail.quantityPerTime) : 0,
-        quantity: detail.quantity ? Number(detail.quantity) : 0,
-        unit: detail.unit ?? "",
-        administrationRoute: detail.administrationRoute ?? undefined,
-        timing: detail.timing ?? "",
-        daysToTake: detail.daysToTake ?? 0,
-        note: detail.note ?? null,
-        isInsuranceCovered: detail.isInsuranceCovered ?? false,
-      })),
-    };
+    const prescription = record.prescription
+      ? {
+          prescriptionId: record.prescription.prescriptionId,
+          pdfPath: record.prescription.pdfPath ?? "",
+          fileName: record.prescription.fileName ?? "",
+          note: record.prescription.note ?? "",
+          totalPrice: record.prescription.totalPrice
+            ? Number(record.prescription.totalPrice)
+            : 0,
+          status: record.prescription.status ?? "Issued",
+          createdAt: record.prescription.createdAt ?? new Date(0),
+          updateAt: record.prescription.updatedAt ?? new Date(0),
+          details: record.prescription.details.map((detail) => ({
+            medicineId: detail.medicineId ?? "",
+            frequencyPerDay: detail.frequencyPerDay ?? 0,
+            quantityPerTime: detail.quantityPerTime ? Number(detail.quantityPerTime) : 0,
+            quantity: detail.quantity ? Number(detail.quantity) : 0,
+            unit: detail.unit ?? "",
+            administrationRoute: detail.administrationRoute ?? undefined,
+            timing: detail.timing ?? "",
+            daysToTake: detail.daysToTake ?? 0,
+            note: detail.note ?? null,
+            isInsuranceCovered: detail.isInsuranceCovered ?? false,
+          })),
+        }
+      : null;
 
-    const followUp = {
-      appointmentDate: record.followUp.appointmentDate ?? null,
-      session: record.followUp.session ?? null,
-      reason: record.followUp.reason ?? null,
-    };
+    const followUp = record.followUp
+      ? {
+          appointmentDate: record.followUp.appointmentDate ?? null,
+          session: record.followUp.session ?? null,
+          reason: record.followUp.reason ?? null,
+        }
+      : null;
 
     return {
       patient,
