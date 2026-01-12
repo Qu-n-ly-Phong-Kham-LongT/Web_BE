@@ -1,4 +1,4 @@
-import { Clinic } from "@prisma/client";
+import { Session } from "@prisma/client";
 import { ClinicRepository } from "../repositories/clinic.repository";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicRequestDto } from "../dtos/clinic.request.dto";
@@ -13,7 +13,7 @@ export class ClinicService {
     if (!clinic) {
       throw new BaseError(404, "Phòng khám không tồn tại.");
     }
-    return clinic;
+    return this.mapToResponse(clinic);
   }
 
   public async createClinic(
@@ -27,12 +27,8 @@ export class ClinicService {
       throw new BaseError(409, "Phòng khám đã tồn tại.");
     }
 
-    return await this.clinicRepository.createClinic({
-      clinicName: createData.clinicName,
-      address: createData.address,
-      phone: createData.phone,
-      email: createData.email,
-    });
+    const clinic = await this.clinicRepository.createClinic(createData);
+    return this.mapToResponse(clinic);
   }
 
   public async updateClinic(
@@ -56,12 +52,8 @@ export class ClinicService {
       }
     }
 
-    return await this.clinicRepository.updateClinic(id, {
-      clinicName: updateData.clinicName,
-      address: updateData.address,
-      phone: updateData.phone,
-      email: updateData.email,
-    });
+    const clinic = await this.clinicRepository.updateClinic(id, updateData);
+    return this.mapToResponse(clinic);
   }
 
   public async getClinics(
@@ -78,7 +70,19 @@ export class ClinicService {
     };
   }
 
-  private mapToResponse(clinic: Clinic): ClinicResponseDto {
+  private mapToResponse(clinic: {
+    clinicId: string;
+    clinicName: string | null;
+    address: string | null;
+    phone: string | null;
+    email: string | null;
+    clinicCode: string | null;
+    clinicWorkingSessions?: {
+      sessionType: Session;
+      startTime: string;
+      endTime: string;
+    }[];
+  }): ClinicResponseDto {
     return {
       clinicId: clinic.clinicId,
       clinicName: clinic.clinicName,
@@ -86,6 +90,11 @@ export class ClinicService {
       phone: clinic.phone,
       email: clinic.email,
       clinicCode: clinic.clinicCode,
+      sessions: (clinic.clinicWorkingSessions ?? []).map((session) => ({
+        sessionType: session.sessionType,
+        startTime: session.startTime,
+        endTime: session.endTime,
+      })),
     };
   }
 }

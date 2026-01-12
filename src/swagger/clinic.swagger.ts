@@ -1,5 +1,8 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { ClinicListResponseSchema, ClinicResponseSchema } from "../modules/clinic/dtos/clinic.response.dto";
+import {
+  ClinicListResponseSchema,
+  ClinicResponseSchema,
+} from "../modules/clinic/dtos/clinic.response.dto";
 
 const ClinicSwagger = {
   "/api/clinics": {
@@ -23,6 +26,23 @@ const ClinicSwagger = {
                   pattern: "^0[0-9]{9,10}$",
                 },
                 email: { type: "string", format: "email", maxLength: 150 },
+                sessions: {
+                  type: "array",
+                  description: "Cấu hình khung giờ làm việc theo từng ca",
+                  items: {
+                    type: "object",
+                    required: ["sessionType", "startTime", "endTime"],
+                    properties: {
+                      sessionType: {
+                        type: "string",
+                        enum: ["Morning", "Noon", "Afternoon", "Evening"],
+                      },
+                      startTime: { type: "string", example: "07:30" },
+                      endTime: { type: "string", example: "11:30" },
+                      isActive: { type: "boolean", default: true },
+                    },
+                  },
+                },
               },
             },
           },
@@ -67,7 +87,7 @@ const ClinicSwagger = {
           in: "query",
           required: false,
           schema: { type: "string" },
-          description: "Search",
+          description: "Từ khóa tìm kiếm",
         },
       ],
       responses: {
@@ -151,6 +171,23 @@ const ClinicSwagger = {
                   type: "string",
                   format: "email",
                   maxLength: 150,
+                },
+                sessions: {
+                  type: "array",
+                  description: "Cấu hình khung giờ làm việc theo từng ca",
+                  items: {
+                    type: "object",
+                    required: ["sessionType", "startTime", "endTime"],
+                    properties: {
+                      sessionType: {
+                        type: "string",
+                        enum: ["Morning", "Noon", "Afternoon", "Evening"],
+                      },
+                      startTime: { type: "string", example: "13:00" },
+                      endTime: { type: "string", example: "17:00" },
+                      isActive: { type: "boolean", default: true },
+                    },
+                  },
                 },
               },
             },
