@@ -1,5 +1,6 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { ClinicalExaminationRequestSchema } from "../modules/clinical-examination/dtos/clinical-examination.request.dto";
+import { ClinicalExaminationResponseSchema } from "../modules/clinical-examination/dtos/clinical-examination.response.dto";
 
 const ClinicalExaminationSwagger = {
   "/api/medical-records/{recordId}/clinical-examinations": {
@@ -36,10 +37,20 @@ const ClinicalExaminationSwagger = {
         },
       },
       responses: {
-        200: { description: "Lưu khám lâm sàng thành công" },
+        200: {
+          description: "Lưu khám lâm sàng thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(ClinicalExaminationResponseSchema),
+            },
+          },
+        },
         400: { description: "Dữ liệu không hợp lệ" },
         401: { description: "Chưa đăng nhập" },
-        403: { description: "Không đủ quyền hoặc bệnh án không thuộc phòng khám" },
+        403: {
+          description:
+            "Không đủ quyền hoặc bệnh án không thuộc phòng khám",
+        },
         404: { description: "Không tìm thấy bệnh án" },
       },
     },
