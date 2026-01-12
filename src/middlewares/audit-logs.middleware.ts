@@ -53,7 +53,7 @@ export const auditLogsMiddleware = (action: string, entityName: string) => {
                     for (const f of req.files) {
                         if (f.path) {
                             // Gọi hàm mới thêm ở FileService
-                            await fileService.deleteFileByAbsolutePath(f.path);
+                            // await fileService.deleteFileByAbsolutePath(f.path);
                         }
                     }
                 }
@@ -63,42 +63,42 @@ export const auditLogsMiddleware = (action: string, entityName: string) => {
 
             // --- 2. GHI AUDIT LOG ---
             // Chỉ ghi log nếu xác định được người thực hiện (userId)
-            if (userId) {
-                try {
-                    const requestAt = req.requestAt || new Date();
-                    const now = new Date();
-                    const durationMs = now.getTime() - requestAt.getTime();
+            // if (userId) {
+            //     try {
+            //         const requestAt = req.requestAt || new Date();
+            //         const now = new Date();
+            //         const durationMs = now.getTime() - requestAt.getTime();
 
-                    // Map dữ liệu vào Prisma Model audit_logs
-                    await prisma.audit_logs.create({
-                        data: {
-                            performedBy: userId,
-                            action: action,
-                            tableName: entityName,
-                            username: username,
-                            fullName: req.payload?.fullName || null,
-                            role: req.payload?.role || null,
+            //         // Map dữ liệu vào Prisma Model audit_logs
+            //         await prisma.audit_logs.create({
+            //             data: {
+            //                 performedBy: userId,
+            //                 action: action,
+            //                 tableName: entityName,
+            //                 username: username,
+            //                 fullName: req.payload?.fullName || null,
+            //                 role: req.payload?.role || null,
                             
-                            // Lấy IP
-                            remoteAddress: req.ip || req.socket.remoteAddress || null,
+            //                 // Lấy IP
+            //                 remoteAddress: req.ip || req.socket.remoteAddress || null,
                             
-                            // Thời gian & Hiệu năng
-                            requestReceivedAt: requestAt,
-                            responseSentAt: now,
-                            durationMs: durationMs,
+            //                 // Thời gian & Hiệu năng
+            //                 requestReceivedAt: requestAt,
+            //                 responseSentAt: now,
+            //                 durationMs: durationMs,
                             
-                            // Kết quả trả về
-                            responseStatusCode: res.statusCode,
+            //                 // Kết quả trả về
+            //                 responseStatusCode: res.statusCode,
                             
-                            // Data (Prisma hỗ trợ lưu Object vào Json field)
-                            requestBody: (req.body as any) || {},
-                            responseBody: responseBody || {},
-                        }
-                    });
-                } catch (error) {
-                    console.error("Lỗi khi ghi audit log:", error);
-                }
-            }
+            //                 // Data (Prisma hỗ trợ lưu Object vào Json field)
+            //                 requestBody: (req.body as any) || {},
+            //                 responseBody: responseBody || {},
+            //             }
+            //         });
+            //     } catch (error) {
+            //         console.error("Lỗi khi ghi audit log:", error);
+            //     }
+            // }
         });
 
         next();
