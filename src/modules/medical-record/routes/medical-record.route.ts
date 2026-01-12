@@ -16,4 +16,11 @@ medicalRecordRouter.post(
   medicalRecordController.createMedicalRecord
 );
 
+medicalRecordRouter.get(
+  "/patient/:patientId",
+  authenticate,
+  authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin]),
+  medicalRecordController.getMedicalRecordsByPatientId
+);
+
 export default medicalRecordRouter;

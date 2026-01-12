@@ -11,6 +11,7 @@ export interface PatientResponseDto {
   fullName: string;
   gender: "Male" | "Female" | "Other" | null;
   dob: string;
+  age: number;
   patientCategory: "BHYT" | "DichVu" | "UuTien" | null;
   phone: string;
   email: string | null;
@@ -32,10 +33,8 @@ export const PatientResponseSchema = Joi.object<PatientResponseDto>({
     .allow(null)
     .description("Giới tính"),
   dob: Joi.string().required().description("Ngày sinh"),
-  patientCategory: Joi.string()
-    .valid("BHYT", "DichVu", "UuTien")
-    .allow(null)
-    .description("Đối tượng"),
+  age: Joi.number().integer().min(0).required().description("Tuổi"),
+  patientCategory: Joi.string().valid("BHYT", "DichVu", "UuTien").allow(null).description("Đối tượng"),
   phone: Joi.string().required().description("Số điện thoại"),
   email: Joi.string().email().allow(null).description("Email"),
   identityCard: Joi.string().allow(null).description("CMND/CCCD"),
