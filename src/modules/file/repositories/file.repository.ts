@@ -1,21 +1,34 @@
 import { prisma } from "../../../config/database.config";
+import { UploadFileRequestDto } from "../dtos/upload-file.request.dto";
 
 export class FileRepository {
-  public async createFileRecord(data: {
-    RelativePath: string;
-    Type: string;
-    MimeType: string;
-    Size: number;
-  }) {
+  public async findByMedicalRecordId(recordId: string) {
+    return await prisma.file.findUnique({
+      where: {
+        medicalRecordId: recordId
+      } 
+    })
+  }
+  
+  public async createFileRecord(data: UploadFileRequestDto) {
     return await prisma.file.create({
-      data,
+      data: {
+        relativePath: data.relativePath,
+        type: data.type,
+        mimeType: data.mimeType,
+        size: data.size,
+        medicalRecordId: data.medicalRecordId,
+        prescriptionId: data.prescriptionId,
+        serviceRequestId: data.serviceRequestId,
+        serviceResultId: data.serviceResultId,
+      },
     });
   }
 
   public async deleteByRelativePath(relativePath: string): Promise<void> {
     await prisma.file.deleteMany({
       where: {
-        RelativePath: relativePath,
+        relativePath: relativePath,
       },
     });
   }

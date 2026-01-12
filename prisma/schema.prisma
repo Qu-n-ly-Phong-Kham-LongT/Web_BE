@@ -67,6 +67,14 @@ enum InventoryLogType {
   Adjustment
 }
 
+enum FileType {
+  MEDICAL_RECORD
+  PRESCRIPTION
+  SERVICE_REQUEST
+  SERVICE_RESULT
+  OTHER
+}
+
 model Role {
   roleId   String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   roleName UserRoleEnum @unique
@@ -215,6 +223,7 @@ model MedicalRecord {
   serviceRequests        ServiceRequest[]
   clinic                 Clinic?              @relation(fields: [clinicId], references: [clinicId])
   clinicId               String?              @db.Uuid
+  file                   File?                @relation()
 }
 
 model MedicalRecordSequence {
@@ -234,6 +243,7 @@ model ClinicalExamination {
   temperature         Float?
   height              Float?
   weight              Float?
+  bmi                 Float?
   clinicalExamination String?
   pregnancyStatus     PregnancyStatus? @default(None)
   pregnancyWeeks      Int?
@@ -264,6 +274,7 @@ model Prescription {
   createdAt      DateTime?            @default(now()) @db.Timestamptz
   updatedAt      DateTime?            @default(now()) @db.Timestamptz
   details        PrescriptionDetail[]
+  file           File?                @relation()
 }
 
 model PrescriptionDetail {
@@ -364,6 +375,7 @@ model ServiceRequest {
 
   details        ServiceRequestDetail[]
   serviceResults ServiceResult[]
+  files          File[]
 }
 
 model ServiceRequestDetail {
@@ -401,6 +413,7 @@ model ServiceResult {
   unit       String?
   images     Json?
   executedAt DateTime? @default(now()) @db.Timestamptz
+  files      File[]
 }
 
 model ServiceTemplate {
@@ -483,12 +496,24 @@ model PrescriptionTemplateDetail {
 }
 
 model File {
-  FileID String @id @default(dbgenerated("uuid_generate_v4()"))
+  fileID String @id @default(dbgenerated("uuid_generate_v4()"))
 
-  RelativePath String
-  Type         String
-  MimeType     String
+  relativePath String
+  type         FileType
+  mimeType     String
 
-  Size      Int
-  CreatedAt DateTime @default(now()) @db.Timestamptz
+  size      Int
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  medicalRecordId String?        @unique @db.Uuid
+  medicalRecord   MedicalRecord? @relation(fields: [medicalRecordId], references: [recordId])
+
+  prescriptionId String?       @unique @db.Uuid
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [prescriptionId])
+
+  serviceRequestId String?         @db.Uuid
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [requestId])
+
+  serviceResultId String?        @db.Uuid
+  serviceResult   ServiceResult? @relation(fields: [serviceResultId], references: [resultId])
 }

@@ -1,4 +1,4 @@
-import { FileType } from "../constants/file-type.constant";
+import { FileType } from "@prisma/client";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { DeleteFileRequestSchema } from "../modules/file/dtos/delete-file.request.dto";
 
@@ -6,8 +6,8 @@ const FileSwagger = {
   "/api/files/upload": {
     post: {
       tags: ["Files"],
-      summary: "Upload file",
-      description: "Upload a file to the server",
+      summary: "Tải file",
+      description: "Tải file lên server",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
@@ -18,7 +18,35 @@ const FileSwagger = {
             type: "string",
             enum: Object.values(FileType),
           },
-          description: "Type of the file to be uploaded",
+          description: "Loại file cần được upload",
+        },
+        {
+          name: "medicalRecordId",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Nếu là bệnh án thì điền id này",
+        },
+        {
+          name: "prescriptionId",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Nếu là toa thuốc thì điền id này",
+        },
+        {
+          name: "serviceRequestId",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Nếu là phiếu chỉ định CLS thì điền id này",
+        },
+        {
+          name: "serviceResultId",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Nếu là kết quả phiếu chỉ định thì điền id này",
         },
       ],
       requestBody: {
@@ -99,6 +127,63 @@ const FileSwagger = {
       },
     },
   },
+
+  "/api/files/medical-record/{recordId}": {
+    get: {
+      tags: ["Core Businesses"],
+      summary: "Lấy file bệnh án theo mã bệnh án",
+      description: "Trả về thông tin file gắn với bệnh án theo recordId",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "recordId",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+          description: "Mã bệnh án (recordId)",
+        },
+      ],
+      responses: {
+        200: {
+          description: "Lấy file bệnh án thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  statusCode: { type: "number", example: 200 },
+                  message: {
+                    type: "string",
+                    example: "Lấy file bệnh án thành công",
+                  },
+                  data: {
+                    type: "object",
+                    properties: {
+                      fileId: { type: "string" },
+                      relativePath: { type: "string" },
+                      url: { type: "string" },
+                      type: { type: "string" },
+                      mimeType: { type: "string" },
+                      size: { type: "number" },
+                      createdAt: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy file bệnh án",
+        },
+        401: {
+          description: "Chưa đăng nhập hoặc token không hợp lệ",
+        },
+      },
+    },
+  },
+
+
 };
 
 export default FileSwagger;

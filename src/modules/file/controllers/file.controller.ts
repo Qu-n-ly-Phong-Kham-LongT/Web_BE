@@ -6,6 +6,12 @@ import { DeleteFileRequestDto } from "../dtos/delete-file.request.dto";
 export class FileController {
   private fileService = new FileService();
 
+  public getFileByMedicalRecordId = async (req: Request, res: Response) => {
+    const { recordId } = req.params;
+    const result = await this.fileService.findByMedicalRecordId(recordId);
+    return successResponse(res, 200, result, "Lấy bệnh án thành công");
+  }
+
   public uploadFile = async (req: Request, res: Response) => {
     const result = await this.fileService.uploadFile(req);
     return successResponse(res, 200, result, "File uploaded successfully");
