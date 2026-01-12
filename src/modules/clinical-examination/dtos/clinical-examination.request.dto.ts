@@ -21,6 +21,8 @@ export interface ClinicalExaminationRequestDto {
   height?: number;
   pregnancyStatus?: PregnancyStatus;
   pregnancyWeeks?: number;
+  hasPoorAppetite?: boolean;
+  hasWeightLoss?: boolean;
   clinicalNotes?: string;
 
   allergies?: AllergyItemDto[];
@@ -52,6 +54,8 @@ export const ClinicalExaminationRequestSchema = Joi.object<ClinicalExaminationRe
     .valid(...Object.values(PregnancyStatus))
     .optional(),
   pregnancyWeeks: Joi.number().integer().min(0).allow(null).optional(),
+  hasPoorAppetite: Joi.boolean().allow(null).default(false).optional(),
+  hasWeightLoss: Joi.boolean().allow(null).default(false).optional(),
   clinicalNotes: Joi.string().allow(null, "").optional(),
 
   allergies: Joi.array().items(AllergyItemSchema).optional(),
