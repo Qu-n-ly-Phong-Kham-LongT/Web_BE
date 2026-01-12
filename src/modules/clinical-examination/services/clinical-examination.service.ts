@@ -38,6 +38,8 @@ export class ClinicalExaminationService {
       weight: payload.weight ?? null,
       pregnancyStatus: payload.pregnancyStatus ?? null,
       pregnancyWeeks: payload.pregnancyWeeks ?? null,
+      hasPoorAppetite: payload.hasPoorAppetite,
+      hasWeightLoss: payload.hasWeightLoss,
       clinicalNotes: payload.clinicalNotes ?? null,
     };
 
@@ -99,6 +101,8 @@ export class ClinicalExaminationService {
       weight: exam.weight ?? null,
       pregnancyStatus: exam.pregnancyStatus ?? null,
       pregnancyWeeks: exam.pregnancyWeeks ?? null,
+      hasPoorAppetite: exam.hasPoorAppetite ?? null,
+      hasWeightLoss: exam.hasWeightLoss ?? null,
       clinicalNotes: exam.clinicalNotes ?? null,
       examinedAt: exam.examinedAt ?? null,
       examinedBy: exam.examinedBy ?? null,
