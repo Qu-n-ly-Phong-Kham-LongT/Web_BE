@@ -10,6 +10,69 @@ import {
   ServiceRequestResultResponseDto,
   ServiceRequestSelectedConfigResponseDto,
 } from "../../service-request/dtos/service-request.response.dto";
+import { calculateAge } from "../../../utils/date.util";
+import { Prisma } from "@prisma/client";
+
+type ServiceRequestWithRelations = Prisma.ServiceRequestGetPayload<{
+  include: {
+    details: {
+      include: {
+        serviceItem: {
+          include: {
+            configs: true;
+          };
+        };
+      };
+    };
+    serviceResults: true;
+  };
+}>;
+
+type ServiceRequestDetailWithRelations = Prisma.ServiceRequestDetailGetPayload<{
+  include: {
+    serviceItem: {
+      include: {
+        configs: true;
+      };
+    };
+  };
+}>;
+
+type MedicalRecordWithFullRelations = Prisma.MedicalRecordGetPayload<{
+  include: {
+    patient: {
+      include: {
+        allergies: true;
+      };
+    };
+    clinicalExamination: true;
+    prescription: {
+      include: {
+        details: true;
+      };
+    };
+    followUp: true;
+    serviceRequests: {
+      include: {
+        details: {
+          include: {
+            serviceItem: {
+              include: {
+                configs: true;
+              };
+            };
+          };
+        };
+        serviceResults: true;
+      };
+    };
+  };
+}>;
+
+interface AllergyItem {
+  drug?: string | null;
+  reaction?: string | null;
+}
 
 export class SharedRepository {
   public async getFullMedicalRecord(
@@ -94,7 +157,7 @@ export class SharedRepository {
     };
 
     const serviceRequest: ServiceRequestFullResponseDto[] =
-      record.serviceRequests.map((request) => {
+      record.serviceRequests.map((request: ServiceRequestWithRelations) => {
         const resultsByDetailId = new Map<string, ServiceRequestResultResponseDto[]>();
         const resultsByItemId = new Map<string, ServiceRequestResultResponseDto[]>();
 
@@ -130,29 +193,30 @@ export class SharedRepository {
         }
 
         const details: ServiceRequestDetailFullResponseDto[] =
-          request.details.map((detail) => {
+          request.details.map((detail: ServiceRequestDetailWithRelations) => {
             const serviceItem = detail.serviceItem;
             const configMetaMap = new Map(
               (serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
             );
-            const selectedOptions = detail.selectedOptions as
-              | {
-                  selectedConfigs?: {
-                    configId: string;
-                    configCode?: string | null;
-                    selectedValues?: string[];
-                    totalSurcharge?: number;
-                  }[];
-                }
-              | null
-              | undefined;
+            interface SelectedConfig {
+              configId: string;
+              configCode?: string | null;
+              selectedValues?: string[];
+              totalSurcharge?: number;
+            }
+
+            interface SelectedOptions {
+              selectedConfigs?: SelectedConfig[];
+            }
+
+            const selectedOptions = detail.selectedOptions as SelectedOptions | null | undefined;
 
             const selectedConfigs: ServiceRequestSelectedConfigResponseDto[] =
-              selectedOptions?.selectedConfigs?.map((cfg) => {
+              selectedOptions?.selectedConfigs?.map((cfg: SelectedConfig) => {
                 const meta = configMetaMap.get(cfg.configId);
                 return {
                   configId: cfg.configId,
-                  configCode: cfg.configCode ?? meta?.configCode ?? null,
+                  configCode: cfg.configCode ?? (meta?.configCode ?? null),
                   displayName: meta?.displayName ?? null,
                   selectedValues: cfg.selectedValues ?? [],
                   totalSurcharge:
@@ -240,5 +304,158 @@ export class SharedRepository {
       prescription,
       followUp,
     };
+  }
+
+  public async getFullMedicalRecordsByPatientId(
+    patientId: string,
+    clinicId?: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Promise<FullMedicalRecordDto[]> {
+    const where: any = {
+      patientId,
+      ...(clinicId ? { clinicId } : {}),
+    };
+
+    // Filter theo ngày nếu có
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) {
+        where.createdAt.gte = fromDate;
+      }
+      if (toDate) {
+        // Set to end of day
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endOfDay;
+      }
+    }
+
+    const records = await prisma.medicalRecord.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: { include: { allergies: true } },
+        clinicalExamination: true,
+        prescription: { include: { details: true } },
+        followUp: true,
+        serviceRequests: {
+          include: {
+            details: {
+              include: {
+                serviceItem: { include: { configs: true } },
+              },
+            },
+            serviceResults: true,
+          },
+        },
+      },
+    });
+
+    return records
+      .filter((record) => record.patient) // Chỉ lấy records có patient
+      .map((record) => this.mapRecordToFullDto(record));
+  }
+
+  public async getFullMedicalRecordsByDoctorId(
+    doctorId: string,
+    clinicId?: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Promise<FullMedicalRecordDto[]> {
+    const where: any = {
+      doctorId,
+      ...(clinicId ? { clinicId } : {}),
+    };
+
+    // Filter theo ngày nếu có
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) {
+        where.createdAt.gte = fromDate;
+      }
+      if (toDate) {
+        // Set to end of day
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endOfDay;
+      }
+    }
+
+    const records = await prisma.medicalRecord.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: { include: { allergies: true } },
+        clinicalExamination: true,
+        prescription: { include: { details: true } },
+        followUp: true,
+        serviceRequests: {
+          include: {
+            details: {
+              include: {
+                serviceItem: { include: { configs: true } },
+              },
+            },
+            serviceResults: true,
+          },
+        },
+      },
+    });
+
+    return records
+      .filter((record) => record.patient) // Chỉ lấy records có patient
+      .map((record) => this.mapRecordToFullDto(record));
+  }
+
+  public async getPatientMedicalRecords(
+    patientId: string,
+    clinicId?: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Promise<FullMedicalRecordDto[]> {
+    const where: Prisma.MedicalRecordWhereInput = {
+      patientId,
+      ...(clinicId ? { clinicId } : {}),
+    };
+
+    // Filter theo ngày nếu có
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) {
+        where.createdAt.gte = fromDate;
+      }
+      if (toDate) {
+        // Set to end of day
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        where.createdAt.lte = endOfDay;
+      }
+    }
+
+    const records = await prisma.medicalRecord.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        patient: { include: { allergies: true } },
+        clinicalExamination: true,
+        prescription: { include: { details: true } },
+        followUp: true,
+        serviceRequests: {
+          include: {
+            details: {
+              include: {
+                serviceItem: { include: { configs: true } },
+              },
+            },
+            serviceResults: true,
+          },
+        },
+      },
+    });
+
+    return records
+      .filter((record) => record.patient)
+      .map((record) => this.mapRecordToFullDto(record));
   }
 }

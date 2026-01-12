@@ -7,6 +7,8 @@ import { ClinicRepository } from "../../clinic/repositories/clinic.repository";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
 import { ClinicalExaminationRepository } from "../../clinical-examination/repositories/clinical-examination.repository";
 import { PatientAllergyResponseDto } from "../../patient/dtos/patient-allergy.response.dto";
+import { SharedRepository } from "../../shared/repositories/shared.repository";
+import { FullMedicalRecordDto } from "../../shared/dtos/medical-record-detail.dto";
 
 export class MedicalRecordService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -14,6 +16,7 @@ export class MedicalRecordService {
   private clinicRepository = new ClinicRepository();
   private patientRepository = new PatientRepository();
   private clinicalExaminationRepository = new ClinicalExaminationRepository();
+  private sharedRepository = new SharedRepository();
 
   public async createBasicMedicalRecord(
     createData: BasicMedicalRecordRequestDto
@@ -85,5 +88,26 @@ export class MedicalRecordService {
     });
 
     return { record, examinationId, allergies };
+  }
+
+  public async getMedicalRecordsByPatientId(
+    patientId: string,
+    clinicId?: string,
+    fromDate?: Date,
+    toDate?: Date
+  ): Promise<FullMedicalRecordDto[]> {
+    // Kiểm tra bệnh nhân có tồn tại không
+    const patient = await this.patientRepository.findPatientById(patientId);
+    if (!patient) {
+      throw new BaseError(404, "Bệnh nhân không tồn tại");
+    }
+
+    // Lấy tất cả bệnh án đầy đủ của bệnh nhân (dùng method mới)
+    return await this.sharedRepository.getPatientMedicalRecords(
+      patientId,
+      clinicId,
+      fromDate,
+      toDate
+    );
   }
 }
