@@ -35,10 +35,6 @@ export const PatientResponseSchema = Joi.object<PatientResponseDto>({
   dob: Joi.string().required().description("Ngày sinh"),
   age: Joi.number().integer().min(0).required().description("Tuổi"),
   patientCategory: Joi.string().valid("BHYT", "DichVu", "UuTien").allow(null).description("Đối tượng"),
-  patientCategory: Joi.string()
-    .valid("BHYT", "DichVu", "UuTien")
-    .allow(null)
-    .description("Đối tượng"),
   phone: Joi.string().required().description("Số điện thoại"),
   email: Joi.string().email().allow(null).description("Email"),
   identityCard: Joi.string().allow(null).description("CMND/CCCD"),
