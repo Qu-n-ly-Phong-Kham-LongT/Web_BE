@@ -2,6 +2,14 @@ import { prisma } from "../../../config/database.config";
 import { UploadFileRequestDto } from "../dtos/upload-file.request.dto";
 
 export class FileRepository {
+  public async findByMedicalRecordId(recordId: string) {
+    return await prisma.file.findUnique({
+      where: {
+        medicalRecordId: recordId
+      } 
+    })
+  }
+  
   public async createFileRecord(data: UploadFileRequestDto) {
     return await prisma.file.create({
       data: {

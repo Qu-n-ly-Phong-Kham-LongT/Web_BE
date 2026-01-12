@@ -7,16 +7,18 @@ const fileRouter = Router();
 const fileController = new FileController();
 
 fileRouter.post(
-    "/upload",
-    authenticate,
-    uploadFile.single("file"),
-    fileController.uploadFile
+  "/upload",
+  authenticate,
+  uploadFile.single("file"),
+  fileController.uploadFile
 );
 
-fileRouter.post(
-    "/delete",
-    authenticate,
-    fileController.deleteFile
+fileRouter.post("/delete", authenticate, fileController.deleteFile);
+
+fileRouter.get(
+  "/medical-record/:recordId",
+  authenticate,
+  fileController.getFileByMedicalRecordId
 );
 
 export default fileRouter;
