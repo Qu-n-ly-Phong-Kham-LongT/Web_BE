@@ -56,6 +56,7 @@ enum InputType {
 
 enum Session {
   Morning
+  Noon
   Afternoon
   Evening
 }
@@ -83,9 +84,26 @@ model Clinic {
 
   users User[]
 
-  patients       Patient[]
-  medicines      Medicine[]
-  medicalRecords MedicalRecord[]
+  patients              Patient[]
+  medicines             Medicine[]
+  medicalRecords        MedicalRecord[]
+  clinicWorkingSessions ClinicWorkingSession[]
+}
+
+model ClinicWorkingSession {
+  workingSessionId String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  clinicId String @db.Uuid
+  clinic   Clinic @relation(fields: [clinicId], references: [clinicId], onDelete: Cascade)
+
+  sessionType Session
+  startTime   String
+  endTime     String
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@unique([clinicId, sessionType])
 }
 
 model User {
@@ -219,6 +237,8 @@ model ClinicalExamination {
   clinicalExamination String?
   pregnancyStatus     PregnancyStatus? @default(None)
   pregnancyWeeks      Int?
+  hasPoorAppetite     Boolean          @default(false)
+  hasWeightLoss       Boolean          @default(false)
   clinicalNotes       String?
   examinedAt          DateTime?        @default(now()) @db.Timestamptz
   examinedBy          String?          @db.Uuid

@@ -1,4 +1,11 @@
 import Joi from "joi";
+import { Session } from "@prisma/client";
+
+export interface ClinicSessionResponseDto {
+  sessionType: Session;
+  startTime: string;
+  endTime: string;
+}
 
 export interface ClinicResponseDto {
   clinicId: string;
@@ -7,6 +14,7 @@ export interface ClinicResponseDto {
   phone: string | null;
   email: string | null;
   clinicCode: string | null;
+  sessions: ClinicSessionResponseDto[];
 }
 
 export const ClinicResponseSchema = Joi.object<ClinicResponseDto>({
@@ -16,6 +24,13 @@ export const ClinicResponseSchema = Joi.object<ClinicResponseDto>({
   phone: Joi.string().allow(null),
   email: Joi.string().email().allow(null),
   clinicCode: Joi.string().allow(null),
+  sessions: Joi.array().items(
+    Joi.object({
+      sessionType: Joi.string(),
+      startTime: Joi.string(),
+      endTime: Joi.string(),
+    })
+  ),
 }).required();
 
 export interface ClinicListResponseDto {

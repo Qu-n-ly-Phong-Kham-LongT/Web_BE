@@ -1,34 +1,72 @@
 import { prisma } from "../../../config/database.config";
-import { Prisma, Clinic } from "@prisma/client";
+import { ClinicRequestDto } from "../dtos/clinic.request.dto";
 
 export class ClinicRepository {
-  public async findClinicById(id: string): Promise<Clinic | null> {
-    return prisma.clinic.findUnique({ where: { clinicId: id } });
-  }
-
-  public async findClinicByCode(code: string): Promise<Clinic | null> {
-    return prisma.clinic.findUnique({ where: { clinicCode: code } });
-  }
-
-  public async findClinicByEmail(email: string): Promise<Clinic | null> {
-    return prisma.clinic.findUnique({ where: { email: email } });
-  }
-
-  public async createClinic(
-    createData: Prisma.ClinicCreateInput
-  ): Promise<Clinic> {
-    return await prisma.clinic.create({
-      data: createData,
+  public async findClinicById(id: string) {
+    return prisma.clinic.findUnique({
+      where: { clinicId: id },
+      include: { clinicWorkingSessions: { orderBy: { sessionType: "asc" } } },
     });
   }
 
-  public async updateClinic(
-    id: string,
-    updateData: Prisma.ClinicUpdateInput
-  ): Promise<Clinic> {
+  public async findClinicByCode(code: string) {
+    return prisma.clinic.findUnique({ where: { clinicCode: code } });
+  }
+
+  public async findClinicByEmail(email: string) {
+    return prisma.clinic.findUnique({ where: { email: email } });
+  }
+
+  public async createClinic(createData: ClinicRequestDto) {
+    const sessions = createData.sessions ?? [];
+    const data = {
+      clinicName: createData.clinicName,
+      address: createData.address,
+      phone: createData.phone,
+      email: createData.email,
+      ...(sessions.length
+        ? {
+            clinicWorkingSessions: {
+              create: sessions.map((session) => ({
+                sessionType: session.sessionType,
+                startTime: session.startTime,
+                endTime: session.endTime,
+              })),
+            },
+          }
+        : {}),
+    };
+
+    return await prisma.clinic.create({
+      data,
+      include: { clinicWorkingSessions: { orderBy: { sessionType: "asc" } } },
+    });
+  }
+
+  public async updateClinic(id: string, updateData: ClinicRequestDto) {
+    const data = {
+      clinicName: updateData.clinicName,
+      address: updateData.address,
+      phone: updateData.phone,
+      email: updateData.email,
+      ...(updateData.sessions
+        ? {
+            clinicWorkingSessions: {
+              deleteMany: {},
+              create: updateData.sessions.map((session) => ({
+                sessionType: session.sessionType,
+                startTime: session.startTime,
+                endTime: session.endTime,
+              })),
+            },
+          }
+        : {}),
+    };
+
     return await prisma.clinic.update({
       where: { clinicId: id },
-      data: updateData,
+      data,
+      include: { clinicWorkingSessions: { orderBy: { sessionType: "asc" } } },
     });
   }
 
@@ -36,7 +74,7 @@ export class ClinicRepository {
     page: number = 1,
     size: number = 10,
     search?: string
-  ): Promise<{ clinics: Clinic[]; totalItems: number }> {
+  ) {
     const skip = (page - 1) * size;
 
     const where = search
@@ -57,6 +95,7 @@ export class ClinicRepository {
         skip,
         take: size,
         orderBy: { clinicCode: "asc" },
+        include: { clinicWorkingSessions: { orderBy: { sessionType: "asc" } } },
       }),
       prisma.clinic.count({ where }),
     ]);
@@ -64,7 +103,7 @@ export class ClinicRepository {
     return { clinics, totalItems };
   }
 
-  public async findClinicCodeByClinicId(clinicId: string): Promise<any> {
+  public async findClinicCodeByClinicId(clinicId: string) {
     const clinic = await prisma.clinic.findUnique({
       where: { clinicId: clinicId },
       select: { clinicCode: true },

@@ -85,7 +85,7 @@ export class PatientService {
     }
 
     let clinic = await this.clinicRepository.findClinicCodeByClinicId(clinicId);
-    let patientCode = await generatePatientCode(clinic.clinicCode);
+    let patientCode = await generatePatientCode(clinic?.clinicCode || "");
 
     const result = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
