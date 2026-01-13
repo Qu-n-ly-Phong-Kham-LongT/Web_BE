@@ -247,6 +247,8 @@ model ClinicalExamination {
   clinicalExamination String?
   pregnancyStatus     PregnancyStatus? @default(None)
   pregnancyWeeks      Int?
+  isBreastfeeding     Boolean          @default(false)
+  hasHealthInsurance  Boolean          @default(false)
   hasPoorAppetite     Boolean          @default(false)
   hasWeightLoss       Boolean          @default(false)
   clinicalNotes       String?
