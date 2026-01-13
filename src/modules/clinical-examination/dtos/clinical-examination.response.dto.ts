@@ -19,6 +19,8 @@ export interface ClinicalExaminationResponseDto {
   pregnancyWeeks: number | null;
   hasPoorAppetite: boolean | null;
   hasWeightLoss: boolean | null;
+  hasHealthInsurance: boolean | null;
+  isBreastfeeding: boolean | null;
   clinicalNotes: string | null;
   examinedAt: Date | null;
   examinedBy: string | null;
@@ -43,6 +45,8 @@ export const ClinicalExaminationResponseSchema =
     pregnancyWeeks: Joi.number().allow(null),
     hasPoorAppetite: Joi.boolean().allow(null),
     hasWeightLoss: Joi.boolean().allow(null),
+    isBreastfeeding: Joi.boolean().allow(null),
+    hasHealthInsurance: Joi.boolean().allow(null),
     clinicalNotes: Joi.string().allow(null),
     examinedAt: Joi.date().allow(null),
     examinedBy: Joi.string().allow(null),
@@ -84,6 +88,8 @@ export const mapToClinicalExaminationResponse = (
     pregnancyWeeks: exam.pregnancyWeeks,
     hasPoorAppetite: exam.hasPoorAppetite ?? null,
     hasWeightLoss: exam.hasWeightLoss ?? null,
+    isBreastfeeding: exam.isBreastfeeding ?? null,
+    hasHealthInsurance: exam.hasHealthInsurance ?? null,
     clinicalNotes: exam.clinicalNotes,
     examinedAt: exam.examinedAt,
     examinedBy: exam.examinedBy,
