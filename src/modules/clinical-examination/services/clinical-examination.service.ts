@@ -104,6 +104,8 @@ export class ClinicalExaminationService {
       pregnancyWeeks: exam.pregnancyWeeks ?? null,
       hasPoorAppetite: exam.hasPoorAppetite ?? null,
       hasWeightLoss: exam.hasWeightLoss ?? null,
+      isBreastfeeding: exam.isBreastfeeding ?? null,
+      hasHealthInsurance: exam.hasHealthInsurance ?? null,
       clinicalNotes: exam.clinicalNotes ?? null,
       examinedAt: exam.examinedAt ?? null,
       examinedBy: exam.examinedBy ?? null,
