@@ -79,19 +79,19 @@ export class MedicineRepository {
                 mode: "insensitive" as const,
               },
             },
-            {
-              registrationNo: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              medicineCodeBhyt: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            { supplier: { contains: search, mode: "insensitive" as const } },
+            // {
+            //   registrationNo: {
+            //     contains: search,
+            //     mode: "insensitive" as const,
+            //   },
+            // },
+            // {
+            //   medicineCodeBhyt: {
+            //     contains: search,
+            //     mode: "insensitive" as const,
+            //   },
+            // },
+            // { supplier: { contains: search, mode: "insensitive" as const } },
           ],
         }
       : baseWhere;
