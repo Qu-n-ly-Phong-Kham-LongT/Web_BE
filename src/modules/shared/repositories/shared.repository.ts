@@ -1,6 +1,7 @@
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 import { prisma } from "../../../config/database.config";
 import { FullMedicalRecordDto } from "../dtos/medical-record-detail.dto";
+import { MedicalRecordPrintDto } from "../dtos/medical-record.print";
 import {
   mapToClinicalExaminationResponse,
 } from "../../clinical-examination/dtos/clinical-examination.response.dto";
@@ -48,7 +49,11 @@ type MedicalRecordWithFullRelations = Prisma.MedicalRecordGetPayload<{
     clinicalExamination: true;
     prescription: {
       include: {
-        details: true;
+        details: {
+          include: {
+            medicine: true;
+          };
+        };
       };
     };
     followUp: true;
@@ -78,7 +83,15 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
-        prescription: { include: { details: true } },
+        prescription: {
+          include: {
+            details: {
+              include: {
+                medicine: true,
+              },
+            },
+          },
+        },
         followUp: true,
         serviceRequests: {
           include: {
@@ -131,7 +144,15 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
-        prescription: { include: { details: true } },
+        prescription: {
+          include: {
+            details: {
+              include: {
+                medicine: true,
+              },
+            },
+          },
+        },
         followUp: true,
         serviceRequests: {
           include: {
@@ -182,7 +203,15 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
-        prescription: { include: { details: true } },
+        prescription: {
+          include: {
+            details: {
+              include: {
+                medicine: true,
+              },
+            },
+          },
+        },
         followUp: true,
         serviceRequests: {
           include: {
@@ -233,7 +262,15 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
-        prescription: { include: { details: true } },
+        prescription: {
+          include: {
+            details: {
+              include: {
+                medicine: true,
+              },
+            },
+          },
+        },
         followUp: true,
         serviceRequests: {
           include: {
@@ -430,6 +467,7 @@ export class SharedRepository {
           updateAt: record.prescription.updatedAt ?? new Date(0),
           details: record.prescription.details.map((detail) => ({
             medicineId: detail.medicineId ?? "",
+            medicineName: detail.medicine?.medicineName ?? "",
             frequencyPerDay: detail.frequencyPerDay ?? 0,
             quantityPerTime: detail.quantityPerTime ? Number(detail.quantityPerTime) : 0,
             quantity: detail.quantity ? Number(detail.quantity) : 0,
@@ -458,6 +496,241 @@ export class SharedRepository {
       serviceRequest,
       prescription,
       followUp,
+    };
+  }
+
+  public buildMedicalRecordTemplateData(
+    dto: FullMedicalRecordDto
+  ): MedicalRecordPrintDto {
+    const formatDate = (value?: string | Date | null) => {
+      if (!value) {
+        return "";
+      }
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      return date.toLocaleDateString("vi-VN");
+    };
+    const toStringValue = (value: unknown) =>
+      value === null || value === undefined ? "" : String(value);
+    const toBoolString = (value?: boolean | null) => {
+      if (value === null || value === undefined) {
+        return "";
+      }
+      return value ? "Co" : "Khong";
+    };
+
+    const medicalRecord = dto.medicalRecord;
+    const patient = dto.patient;
+    const clinicalExamination = dto.clinicalExamination;
+    const prescription = dto.prescription;
+    const followUp = dto.followUp;
+
+    const diagnoses = medicalRecord.diagnoses;
+    const diagnosisLines: string[] = [];
+    if (diagnoses?.main) {
+      diagnosisLines.push(
+        `${diagnoses.main.code} - ${diagnoses.main.description}`
+      );
+    }
+    if (diagnoses?.secondary?.length) {
+      diagnosisLines.push(
+        diagnoses.secondary
+          .map((item) => `${item.code} - ${item.description}`)
+          .join("; ")
+      );
+    }
+
+    const prescriptionDetails = (prescription?.details ?? []).map((detail) => ({
+      medicineId: toStringValue(detail.medicineId),
+      medicineName: toStringValue(detail.medicineName),
+      frequencyPerDay: toStringValue(detail.frequencyPerDay),
+      quantityPerTime: toStringValue(detail.quantityPerTime),
+      quantity: toStringValue(detail.quantity),
+      unit: toStringValue(detail.unit),
+      administrationRoute: toStringValue(detail.administrationRoute),
+      timing: toStringValue(detail.timing),
+      daysToTake: toStringValue(detail.daysToTake),
+      note: toStringValue(detail.note),
+      isInsuranceCovered: toBoolString(detail.isInsuranceCovered),
+    }));
+
+    const medicines = prescriptionDetails.map((detail) => {
+      const usageParts: string[] = [];
+      if (detail.frequencyPerDay) {
+        usageParts.push(`Freq/day: ${detail.frequencyPerDay}`);
+      }
+      if (detail.quantityPerTime) {
+        usageParts.push(`Qty/time: ${detail.quantityPerTime}`);
+      }
+      if (detail.timing) {
+        usageParts.push(`Timing: ${detail.timing}`);
+      }
+      if (detail.administrationRoute) {
+        usageParts.push(`Route: ${detail.administrationRoute}`);
+      }
+      if (detail.daysToTake) {
+        usageParts.push(`Days: ${detail.daysToTake}`);
+      }
+      if (detail.note) {
+        usageParts.push(`Note: ${detail.note}`);
+      }
+
+      return {
+        medicineId: detail.medicineId,
+        medicineName: detail.medicineName,
+        quantity: detail.quantity,
+        unit: detail.unit,
+        usage: usageParts.join(" | "),
+      };
+    });
+
+    const serviceRequestHeaders = dto.serviceRequest.map((request) => ({
+      requestId: toStringValue(request.requestId),
+      requestCode: toStringValue(request.requestCode),
+      recordId: toStringValue(request.recordId),
+      recordCode: toStringValue(request.recordCode),
+      orderingDoctorId: toStringValue(request.orderingDoctorId),
+      diagnoses: request.diagnoses ?? "",
+      isPatientRequested: toBoolString(request.isPatientRequested),
+      receiveResultAtClinic: toBoolString(request.receiveResultAtClinic),
+      isForFollowUp: toBoolString(request.isForFollowUp),
+      note: toStringValue(request.note),
+      createdAt: toStringValue(request.createdAt),
+      patientId: toStringValue(request.patientId),
+    }));
+
+    const serviceRequestDetails = dto.serviceRequest.flatMap((request) =>
+      request.details.map((detail) => ({
+        requestId: toStringValue(request.requestId),
+        requestDetailId: toStringValue(detail.requestDetailId),
+        itemId: toStringValue(detail.itemId),
+        itemCode: toStringValue(detail.itemCode),
+        itemName: toStringValue(detail.itemName),
+        selectedOptions: detail.selectedOptions ?? "",
+      }))
+    );
+
+    const serviceRequestSelectedConfigs = dto.serviceRequest.flatMap((request) =>
+      request.details.flatMap((detail) =>
+        detail.selectedConfigs.map((config) => ({
+          requestId: toStringValue(request.requestId),
+          requestDetailId: toStringValue(detail.requestDetailId),
+          itemId: toStringValue(detail.itemId),
+          configId: toStringValue(config.configId),
+          configCode: toStringValue(config.configCode),
+          displayName: toStringValue(config.displayName),
+          selectedValues: config.selectedValues ?? [],
+          totalSurcharge: toStringValue(config.totalSurcharge),
+        }))
+      )
+    );
+
+    const serviceRequestResults = dto.serviceRequest.flatMap((request) =>
+      request.details.flatMap((detail) =>
+        detail.results.map((result) => ({
+          resultId: toStringValue(result.resultId),
+          detailId: toStringValue(result.detailId),
+          requestId: toStringValue(request.requestId),
+          requestDetailId: toStringValue(detail.requestDetailId),
+          itemId: toStringValue(detail.itemId),
+          configId: toStringValue(result.configId),
+          indicatorName: toStringValue(result.indicatorName),
+          valueString: toStringValue(result.valueString),
+          valueNumber: toStringValue(result.valueNumber),
+          unit: toStringValue(result.unit),
+          images: result.images ?? "",
+          executedAt: toStringValue(result.executedAt),
+        }))
+      )
+    );
+
+    return {
+      recordId: toStringValue(medicalRecord.recordId),
+      recordCode: toStringValue(medicalRecord.recordCode),
+      recordDate: formatDate(medicalRecord.createdAt),
+      patientId: toStringValue(medicalRecord.patientId),
+      doctorId: toStringValue(medicalRecord.doctorId),
+      clinicId: toStringValue(medicalRecord.clinicId),
+      evidenceBasedDiagnosis: toBoolString(medicalRecord.evidenceBasedDiagnosis),
+      diagnosisMainCode: toStringValue(diagnoses?.main?.code),
+      diagnosisMainDescription: toStringValue(diagnoses?.main?.description),
+      diagnosisMainNote: toStringValue(diagnoses?.main?.note),
+      diagnosisSecondary: diagnoses?.secondary ?? [],
+      diagnosisText: diagnosisLines.join("; "),
+      doctorAdvice: toStringValue(medicalRecord.doctorAdvice),
+      treatmentNote: toStringValue(medicalRecord.treatmentNote),
+      consultationFee: toStringValue(medicalRecord.consultationFee),
+      recordCreatedAt: formatDate(medicalRecord.createdAt),
+      recordUpdatedAt: formatDate(medicalRecord.updatedAt),
+      patientCode: toStringValue(patient?.patientCode),
+      fullName: toStringValue(patient?.fullName),
+      gender:
+        patient?.gender === "Male"
+          ? "Nam"
+          : patient?.gender === "Female"
+            ? "Nu"
+            : patient?.gender === "Other"
+              ? "Khac"
+              : "",
+      dob: formatDate(patient?.dob ?? null),
+      age: toStringValue(patient?.age),
+      patientCategory: toStringValue(patient?.patientCategory),
+      phone: toStringValue(patient?.phone),
+      email: toStringValue(patient?.email),
+      identityCard: toStringValue(patient?.identityCard),
+      insuranceNumber: toStringValue(patient?.insuranceNumber),
+      occupation: toStringValue(patient?.occupation),
+      address: toStringValue(patient?.address),
+      patientCreatedAt: formatDate(patient?.createdAt ?? null),
+      patientUpdatedAt: formatDate(patient?.updatedAt ?? null),
+      patientAllergies: (patient?.patientAllergies ?? []).map((item) => ({
+        drug: toStringValue(item.drug),
+        reaction: toStringValue(item.reaction),
+      })),
+      examId: toStringValue(clinicalExamination?.examId),
+      examRecordId: toStringValue(clinicalExamination?.recordId),
+      reasonForVisit: toStringValue(clinicalExamination?.reasonForVisit),
+      medicalHistory: toStringValue(clinicalExamination?.medicalHistory),
+      pastMedicalHistory: toStringValue(clinicalExamination?.pastMedicalHistory),
+      clinicalExamination: toStringValue(clinicalExamination?.clinicalExamination),
+      heartRate: toStringValue(clinicalExamination?.heartRate),
+      pressure: toStringValue(clinicalExamination?.bloodPressure),
+      temperature: toStringValue(clinicalExamination?.temperature),
+      height: toStringValue(clinicalExamination?.height),
+      weight: toStringValue(clinicalExamination?.weight),
+      bmi: toStringValue(clinicalExamination?.bmi),
+      pregnancyStatus: toStringValue(clinicalExamination?.pregnancyStatus),
+      weeks: toStringValue(clinicalExamination?.pregnancyWeeks),
+      hasPoorAppetite: toBoolString(clinicalExamination?.hasPoorAppetite),
+      hasWeightLoss: toBoolString(clinicalExamination?.hasWeightLoss),
+      hasHealthInsurance: toBoolString(clinicalExamination?.hasHealthInsurance),
+      isBreastfeeding: toBoolString(clinicalExamination?.isBreastfeeding),
+      clinicalNotes: toStringValue(clinicalExamination?.clinicalNotes),
+      examinedAt: formatDate(clinicalExamination?.examinedAt ?? null),
+      examinedBy: toStringValue(clinicalExamination?.examinedBy),
+      allergies: (clinicalExamination?.allergies ?? []).map((item) => ({
+        drug: toStringValue(item.drug),
+        reaction: toStringValue(item.reaction),
+      })),
+      prescriptionId: toStringValue(prescription?.prescriptionId),
+      pdfPath: toStringValue(prescription?.pdfPath),
+      fileName: toStringValue(prescription?.fileName),
+      prescriptionNote: toStringValue(prescription?.note),
+      totalPrice: toStringValue(prescription?.totalPrice),
+      status: toStringValue(prescription?.status),
+      prescriptionCreatedAt: formatDate(prescription?.createdAt ?? null),
+      prescriptionUpdatedAt: formatDate(prescription?.updateAt ?? null),
+      prescriptionDetails,
+      medicines,
+      requests: serviceRequestHeaders,
+      requestDetails: serviceRequestDetails,
+      requestSelectedConfigs: serviceRequestSelectedConfigs,
+      requestResults: serviceRequestResults,
+      appointmentDate: formatDate(followUp?.appointmentDate ?? null),
+      appointmentSession: toStringValue(followUp?.session),
+      appointmentReason: toStringValue(followUp?.reason),
     };
   }
 }

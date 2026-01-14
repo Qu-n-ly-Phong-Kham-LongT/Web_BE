@@ -46,7 +46,7 @@ export const PatientResponseSchema = Joi.object<PatientResponseDto>({
   patientAllergies: Joi.array()
     .items(PatientAllergyItemSchema)
     .required()
-    .description("Danh sach di ung"),
+    .description("Danh sách dị ứng"),
 }).required();
 
 export enum QueueStatus {

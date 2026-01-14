@@ -12,7 +12,7 @@ export interface CreatePatientAllergyRequestDto {
 export const CreatePatientAllergyItemSchema = Joi.object<CreatePatientAllergyItemDto>({
   drug: Joi.string().trim().min(1).required().messages({
     "string.empty": "Thuốc dị ứng là bắt buộc",
-    "any.required": "Thuốc dị ứng là bắt buộc",
+    "any.required": "Thuốc dị ứng là bắt buộc"
   }),
   reaction: Joi.string().trim().allow("", null).optional(),
 });
