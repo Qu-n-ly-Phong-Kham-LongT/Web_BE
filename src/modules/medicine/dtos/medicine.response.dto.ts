@@ -1,7 +1,7 @@
 import Joi from "joi";
 
 export interface MedicineResponseDto {
-  medicineID: string;
+  medicineId: string;
   medicineCode: string;
   medicineName: string;
   activeIngredient: string | null;
@@ -20,7 +20,7 @@ export interface MedicineResponseDto {
 }
 
 export const MedicineResponseSchema = Joi.object<MedicineResponseDto>({
-  medicineID: Joi.string().uuid().description("Medicine ID"),
+  medicineId: Joi.string().uuid().description("Medicine ID"),
   medicineCode: Joi.string().description("Mã thuốc"),
   medicineName: Joi.string().description("Tên thuốc"),
   activeIngredient: Joi.string().allow(null).description("Hoạt chất"),

@@ -35,7 +35,7 @@ export interface BasicMedicalRecordCreateBodyDto {
   consultationFee?: number;
 }
 
-const DiagnosisItemSchema = Joi.object({
+export const DiagnosisItemSchema = Joi.object({
   code: Joi.string()
     .uppercase()
     .pattern(ICD10_REGEX)
@@ -51,7 +51,7 @@ const DiagnosisItemSchema = Joi.object({
   note: Joi.string().allow(null, "").optional(),
 });
 
-const DiagnosisSchema = Joi.object({
+export const DiagnosisSchema = Joi.object({
   main: DiagnosisItemSchema.required().messages({
     "any.required": "Phải có chẩn đoán chính",
   }),

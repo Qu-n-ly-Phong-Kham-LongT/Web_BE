@@ -1,4 +1,8 @@
 import Joi from "joi";
+import {
+  MedicalDiagnosisDto,
+  DiagnosisSchema,
+} from "../../medical-record/dtos/medical-record.request.dto";
 
 export interface ServiceRequestDetailResponseDto {
   requestDetailId: string;
@@ -41,7 +45,7 @@ export interface ServiceRequestResponseDto {
   requestCode: string | null;
   recordId: string | null;
   orderingDoctorId: string | null;
-  diagnoses: any;
+  diagnoses: MedicalDiagnosisDto | null;
   isPatientRequested: boolean | null;
   receiveResultAtClinic: boolean | null;
   isForFollowUp: boolean | null;
@@ -100,7 +104,7 @@ export const ServiceRequestResponseSchema = Joi.object({
   requestCode: Joi.string().allow(null),
   recordId: Joi.string().allow(null),
   orderingDoctorId: Joi.string().allow(null),
-  diagnoses: Joi.any().allow(null),
+  diagnoses: DiagnosisSchema.allow(null),
   isPatientRequested: Joi.boolean().allow(null),
   receiveResultAtClinic: Joi.boolean().allow(null),
   isForFollowUp: Joi.boolean().allow(null),
@@ -115,7 +119,7 @@ export const ServiceRequestFullResponseSchema = Joi.object({
   recordId: Joi.string().allow(null),
   recordCode: Joi.string().allow(null),
   orderingDoctorId: Joi.string().allow(null),
-  diagnoses: Joi.any().allow(null),
+  diagnoses: DiagnosisSchema.allow(null),
   isPatientRequested: Joi.boolean().allow(null),
   receiveResultAtClinic: Joi.boolean().allow(null),
   isForFollowUp: Joi.boolean().allow(null),
