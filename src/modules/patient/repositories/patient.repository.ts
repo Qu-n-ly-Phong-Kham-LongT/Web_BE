@@ -292,8 +292,15 @@ export class PatientRepository {
   public async getDailyQueue(
     clinicId: string | undefined,
     start: Date,
-    end: Date
+    end: Date,
+    search?: string,
+    status?: string
   ) {
+    const normalizedSearch = search?.trim().toLocaleLowerCase();
+    let medicalRecordFilter: any = {
+      ...(clinicId ? { clinicId: clinicId } : {}),
+      createdAt: { gte: start, lte: end },
+    };
     return await prisma.patient.findMany({
       where: {
         ...(clinicId ? { clinicId: clinicId } : {}),
@@ -309,6 +316,34 @@ export class PatientRepository {
               },
             },
           },
+          ...(normalizedSearch
+            ? [
+                {
+                  fullName: {
+                    contains: normalizedSearch,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  patientCode: {
+                    contains: normalizedSearch,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  phone: {
+                    contains: normalizedSearch,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  identityCard: {
+                    contains: normalizedSearch,
+                    mode: "insensitive" as const,
+                  },
+                },
+              ]
+            : []),
         ],
       },
       select: {
@@ -324,8 +359,9 @@ export class PatientRepository {
         medicalRecords: {
           where: {
             ...(clinicId ? { clinicId: clinicId } : {}),
-            createdAt: { gte: start, lte: end },
           },
+          orderBy: { createdAt: "desc" },
+          take: 1,
           select: {
             recordId: true,
             createdAt: true,
@@ -335,7 +371,7 @@ export class PatientRepository {
           },
         },
       },
-      orderBy: { updatedAt: "asc" },
+      orderBy: { updatedAt: "desc" },
     });
   }
 }

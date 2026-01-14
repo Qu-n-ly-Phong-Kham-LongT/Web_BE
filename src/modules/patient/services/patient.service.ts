@@ -103,10 +103,10 @@ export class PatientService {
             }
             return Boolean(
               (relative.fullName && relative.fullName.trim()) ||
-                (relative.phone && relative.phone.trim()) ||
-                (relative.relationship && relative.relationship.trim()) ||
-                (relative.identityCard && relative.identityCard.trim()) ||
-                (relative.address && relative.address.trim())
+              (relative.phone && relative.phone.trim()) ||
+              (relative.relationship && relative.relationship.trim()) ||
+              (relative.identityCard && relative.identityCard.trim()) ||
+              (relative.address && relative.address.trim())
             );
           }
         );
@@ -132,8 +132,9 @@ export class PatientService {
     if (!patient) {
       throw new BaseError(404, "Không tìm thấy bệnh nhân");
     }
-    const allergies =
-      await this.patientRepository.findAllergiesByPatientId(patient.patientId);
+    const allergies = await this.patientRepository.findAllergiesByPatientId(
+      patient.patientId
+    );
 
     return this.mapToResponseDto(patient, allergies);
   }
@@ -512,7 +513,9 @@ export class PatientService {
     page: number = 1,
     size: number = 10,
     search?: string,
-    date?: string
+    date?: string,
+    status?: QueueStatus,
+    sortDirection: "asc" | "desc" = "desc"
   ): Promise<{
     queue: PatientQueueItemDto[];
     pagination: ReturnType<typeof createPagination>;
@@ -533,33 +536,42 @@ export class PatientService {
 
     const start = new Date(baseDate);
     start.setHours(0, 0, 0, 0);
-    const end = new Date( );
+    const end = new Date();
     end.setHours(23, 59, 59, 999);
 
     const patients = await this.patientRepository.getDailyQueue(
       clinicId,
       start,
-      end
+      end,
+      search
     );
 
-    const mappedList = patients.map((p) => {
+    let mappedList = patients.map((p) => {
       const age = calculateAge(p.dob);
 
-      const record = p.medicalRecords?.[0] || null;
+      const lastRecord = p.medicalRecords?.[0] || null;
+      const isRecordToday =
+        !!lastRecord?.createdAt &&
+        new Date(lastRecord.createdAt) >= start &&
+        new Date(lastRecord.createdAt) <= end;
       let status = QueueStatus.WAITING;
       let recordId = null;
       let arrivedAt = p.createdAt ? new Date(p.createdAt) : new Date();
 
-      if (record) {
-        recordId = record.recordId;
-        if (record.createdAt) arrivedAt = new Date(record.createdAt);
-        if (record.diagnoses || (record as any).prescription) {
+      if (isRecordToday && lastRecord?.createdAt) {
+        recordId = lastRecord.recordId;
+        arrivedAt = new Date(lastRecord.createdAt);
+
+        if (lastRecord.prescription) {
           status = QueueStatus.COMPLETED;
-        } else if ((record as any).clinicalExamination) {
+        } else if (lastRecord.clinicalExamination) {
           status = QueueStatus.IN_PROGRESS;
         }
+      } else {
+        status = QueueStatus.WAITING
+        recordId = null
       }
-
+    
       return {
         patientId: p.patientId,
         patientCode: p.patientCode ?? "",
@@ -574,14 +586,23 @@ export class PatientService {
       };
     });
 
-    mappedList.sort((a, b) => a.arrivedAt.getTime() - b.arrivedAt.getTime());
+    if (status) {
+      mappedList = mappedList.filter((item) => item.status === status);
+    }
+
+    mappedList.sort((a, b) => {
+      const timeA = a.arrivedAt.getTime();
+      const timeB = b.arrivedAt.getTime();
+      return sortDirection === "asc" ? timeA - timeB : timeB - timeA;
+    });
 
     const listWithSTT = mappedList.map((item, index) => ({
       ...item,
-      queueNumber: index + 1,
+      queueNumber:
+        sortDirection === "desc"
+          ? mappedList.length - index // Nếu đang hiện mới nhất lên đầu
+          : index + 1, // Nếu đang hiện cũ nhất lên đầu
     }));
-
-    listWithSTT.sort((a, b) => b.arrivedAt.getTime() - a.arrivedAt.getTime());
 
     const normalizedSearch = search?.trim().toLowerCase();
     const filteredList = normalizedSearch

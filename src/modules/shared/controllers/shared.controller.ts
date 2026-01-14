@@ -17,4 +17,24 @@ export class SharedController {
     );
     return successResponse(res, 200, result, "Lấy bệnh án bệnh nhân thành công");
   };
+  public printMedicalRecordPdf = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const result = await this.sharedService.printMedicalRecordDocx(
+      req.params.id,
+      clinicId
+    );
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${result.recordCode}.docx"`
+    );
+    return res.send(result.buffer);
+  };
 }
