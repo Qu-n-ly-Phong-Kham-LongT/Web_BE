@@ -518,7 +518,7 @@ export class SharedRepository {
       if (value === null || value === undefined) {
         return "";
       }
-      return value ? "Co" : "Khong";
+      return value ? "Có" : "Không";
     };
 
     const medicalRecord = dto.medicalRecord;
@@ -559,22 +559,13 @@ export class SharedRepository {
     const medicines = prescriptionDetails.map((detail) => {
       const usageParts: string[] = [];
       if (detail.frequencyPerDay) {
-        usageParts.push(`Freq/day: ${detail.frequencyPerDay}`);
+        usageParts.push(`Ngày uống: ${detail.frequencyPerDay} lần`);
       }
       if (detail.quantityPerTime) {
-        usageParts.push(`Qty/time: ${detail.quantityPerTime}`);
+        usageParts.push(`Mỗi lần: ${detail.quantityPerTime} ${detail.unit}`);
       }
       if (detail.timing) {
-        usageParts.push(`Timing: ${detail.timing}`);
-      }
-      if (detail.administrationRoute) {
-        usageParts.push(`Route: ${detail.administrationRoute}`);
-      }
-      if (detail.daysToTake) {
-        usageParts.push(`Days: ${detail.daysToTake}`);
-      }
-      if (detail.note) {
-        usageParts.push(`Note: ${detail.note}`);
+        usageParts.push(`${detail.timing}`);
       }
 
       return {
@@ -582,11 +573,11 @@ export class SharedRepository {
         medicineName: detail.medicineName,
         quantity: detail.quantity,
         unit: detail.unit,
-        usage: usageParts.join(" | "),
+        usage: usageParts.join(", "),
       };
     });
 
-    const serviceRequestHeaders = dto.serviceRequest.map((request) => ({
+    const serviceRequests = dto.serviceRequest.map((request) => ({
       requestId: toStringValue(request.requestId),
       requestCode: toStringValue(request.requestCode),
       recordId: toStringValue(request.recordId),
@@ -599,18 +590,29 @@ export class SharedRepository {
       note: toStringValue(request.note),
       createdAt: toStringValue(request.createdAt),
       patientId: toStringValue(request.patientId),
-    }));
-
-    const serviceRequestDetails = dto.serviceRequest.flatMap((request) =>
-      request.details.map((detail) => ({
+      details: request.details.map((detail) => ({
         requestId: toStringValue(request.requestId),
         requestDetailId: toStringValue(detail.requestDetailId),
         itemId: toStringValue(detail.itemId),
         itemCode: toStringValue(detail.itemCode),
         itemName: toStringValue(detail.itemName),
         selectedOptions: detail.selectedOptions ?? "",
-      }))
-    );
+        results: detail.results.map((result) => ({
+          resultId: toStringValue(result.resultId),
+          detailId: toStringValue(result.detailId),
+          requestId: toStringValue(request.requestId),
+          requestDetailId: toStringValue(detail.requestDetailId),
+          itemId: toStringValue(detail.itemId),
+          configId: toStringValue(result.configId),
+          indicatorName: toStringValue(result.indicatorName),
+          valueString: toStringValue(result.valueString),
+          valueNumber: toStringValue(result.valueNumber),
+          unit: toStringValue(result.unit),
+          images: result.images ?? "",
+          executedAt: toStringValue(result.executedAt),
+        })),
+      })),
+    }));
 
     const serviceRequestSelectedConfigs = dto.serviceRequest.flatMap((request) =>
       request.details.flatMap((detail) =>
@@ -627,24 +629,12 @@ export class SharedRepository {
       )
     );
 
-    const serviceRequestResults = dto.serviceRequest.flatMap((request) =>
-      request.details.flatMap((detail) =>
-        detail.results.map((result) => ({
-          resultId: toStringValue(result.resultId),
-          detailId: toStringValue(result.detailId),
-          requestId: toStringValue(request.requestId),
-          requestDetailId: toStringValue(detail.requestDetailId),
-          itemId: toStringValue(detail.itemId),
-          configId: toStringValue(result.configId),
-          indicatorName: toStringValue(result.indicatorName),
-          valueString: toStringValue(result.valueString),
-          valueNumber: toStringValue(result.valueNumber),
-          unit: toStringValue(result.unit),
-          images: result.images ?? "",
-          executedAt: toStringValue(result.executedAt),
-        }))
-      )
-    );
+    const hasPregnancyStatus =
+      !!clinicalExamination?.pregnancyStatus &&
+      clinicalExamination.pregnancyStatus !== "None";
+    const pregnancyWeeks = hasPregnancyStatus
+      ? toStringValue(clinicalExamination?.pregnancyWeeks)
+      : "";
 
     return {
       recordId: toStringValue(medicalRecord.recordId),
@@ -670,9 +660,9 @@ export class SharedRepository {
         patient?.gender === "Male"
           ? "Nam"
           : patient?.gender === "Female"
-            ? "Nu"
+            ? "Nữ"
             : patient?.gender === "Other"
-              ? "Khac"
+              ? "Khác"
               : "",
       dob: formatDate(patient?.dob ?? null),
       age: toStringValue(patient?.age),
@@ -702,7 +692,7 @@ export class SharedRepository {
       weight: toStringValue(clinicalExamination?.weight),
       bmi: toStringValue(clinicalExamination?.bmi),
       pregnancyStatus: toStringValue(clinicalExamination?.pregnancyStatus),
-      weeks: toStringValue(clinicalExamination?.pregnancyWeeks),
+      weeks: pregnancyWeeks,
       hasPoorAppetite: toBoolString(clinicalExamination?.hasPoorAppetite),
       hasWeightLoss: toBoolString(clinicalExamination?.hasWeightLoss),
       hasHealthInsurance: toBoolString(clinicalExamination?.hasHealthInsurance),
@@ -724,10 +714,8 @@ export class SharedRepository {
       prescriptionUpdatedAt: formatDate(prescription?.updateAt ?? null),
       prescriptionDetails,
       medicines,
-      requests: serviceRequestHeaders,
-      requestDetails: serviceRequestDetails,
+      requests: serviceRequests,
       requestSelectedConfigs: serviceRequestSelectedConfigs,
-      requestResults: serviceRequestResults,
       appointmentDate: formatDate(followUp?.appointmentDate ?? null),
       appointmentSession: toStringValue(followUp?.session),
       appointmentReason: toStringValue(followUp?.reason),
