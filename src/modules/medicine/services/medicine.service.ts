@@ -123,7 +123,7 @@ export class MedicineService {
 
   private mapToResponseDto(medicine: Medicine): MedicineResponseDto {
     return {
-      medicineID: medicine.medicineId,
+      medicineId: medicine.medicineId,
       medicineCode: medicine.medicineCode ?? "",
       medicineName: medicine.medicineName ?? "",
       activeIngredient: medicine.activeIngredient,

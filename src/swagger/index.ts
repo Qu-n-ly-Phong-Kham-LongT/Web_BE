@@ -21,6 +21,7 @@ import { joiToSwagger } from "../utils/joi-swagger.util";
 import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
 import { ServiceRequestFullResponseSchema } from "../modules/service-request/dtos/service-request.response.dto";
 import { ClinicalExaminationResponseSchema } from "../modules/clinical-examination/dtos/clinical-examination.response.dto";
+import { DiagnosisSchema } from "../modules/medical-record/dtos/medical-record.request.dto";
 
 const FullMedicalRecordSchema = {
   type: "object",
@@ -42,7 +43,7 @@ const FullMedicalRecordSchema = {
         doctorId: { type: "string", format: "uuid" },
         clinicId: { type: "string", format: "uuid" },
         evidenceBasedDiagnosis: { type: "boolean", nullable: true },
-        diagnoses: { type: "object", nullable: true },
+        diagnoses: { ...joiToSwagger(DiagnosisSchema), nullable: true },
         doctorAdvice: { type: "string", nullable: true },
         treatmentNote: { type: "string", nullable: true },
         consultationFee: { type: "number" },

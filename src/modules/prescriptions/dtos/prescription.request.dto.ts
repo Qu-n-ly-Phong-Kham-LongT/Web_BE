@@ -1,4 +1,7 @@
-import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
+import {
+  MedicalDiagnosisDto,
+  DiagnosisSchema,
+} from "../../medical-record/dtos/medical-record.request.dto";
 import { FollowUpDto } from "../../follow-up/dtos/follow-up.request.dto"
 import { Session } from "@prisma/client"
 import Joi from "joi";
@@ -77,7 +80,7 @@ export const upsertDiagnosisPrescriptionSchema = Joi.object({
   }),
   evidenceBasedDiagnosis: Joi.boolean().default(false),
 
-  diagnoses: Joi.object().allow(null),
+  diagnoses: DiagnosisSchema.optional().allow(null),
 
   doctorAdvice: Joi.string().allow("", null),
   treatmentNote: Joi.string().allow("", null),
