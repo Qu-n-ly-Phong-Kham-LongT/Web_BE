@@ -81,7 +81,8 @@ const PatientSwagger = {
           in: "query",
           required: false,
           schema: { type: "string" },
-          description: "Tìm kiếm theo tên, mã, số điện thoại, email hoặc CMND/CCCD",
+          description:
+            "Tìm kiếm theo tên, mã, số điện thoại, email hoặc CMND/CCCD",
         },
       ],
       security: [{ bearerAuth: [] }],
@@ -177,7 +178,8 @@ const PatientSwagger = {
     get: {
       tags: ["Core Businesses"],
       summary: "Lấy danh sách hàng đợi khám trong ngày",
-      description: "Danh sách bệnh nhân đến trong ngày tại phòng khám, kèm trạng thái chờ/đang khám/hoàn tất.",
+      description:
+        "Danh sách bệnh nhân đến trong ngày tại phòng khám, kèm trạng thái chờ/đang khám/hoàn tất.",
       parameters: [
         {
           name: "page",
@@ -206,6 +208,28 @@ const PatientSwagger = {
           required: false,
           schema: { type: "string", example: "2026-07-01" },
           description: "Ngày cần lấy danh sách (YYYY-MM-DD hoặc ISO)",
+        },
+        {
+          name: "status",
+          in: "query",
+          require: false,
+          schema: {
+            type: "string",
+            enum: ["WAITING", "IN_PROGRESS", "COMPLETED"],
+          },
+          description: "Lọc theo trạng thái khám",
+        },
+        {
+          name: "sort",
+          in: "query",
+          required: false,
+          schema: {
+            type: "string",
+            enum: ["asc", "desc"],
+            default: "desc",
+          },
+          description:
+            "Sắp xếp theo thời gian đến (arrivedAt). 'asc' để hiện người đến sớm nhất lên đầu, 'desc' để hiện người mới nhất lên đầu.",
         },
       ],
       security: [{ bearerAuth: [] }],
@@ -322,7 +346,6 @@ const PatientSwagger = {
       },
     },
   },
-
 };
 
 export default PatientSwagger;

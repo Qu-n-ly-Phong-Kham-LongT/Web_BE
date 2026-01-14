@@ -12,6 +12,7 @@ import { PatientAllergyResponseDto } from "../dtos/patient-allergy.response.dto"
 import { CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.request.dto";
 import { UpdatePatientAllergyRequestDto } from "../dtos/update-patient-allergy.request.dto";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
+import { QueueStatus } from "../dtos/patient.response.dto";
 
 export class PatientController {
   private patientService = new PatientService();
@@ -55,6 +56,8 @@ export class PatientController {
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
     const date = req.query.date as string | undefined;
+    const status = req.query.status as QueueStatus | undefined; 
+    const sort = (req.query.sort as string)?.toLowerCase() === 'asc' ? 'asc' : 'desc';
     const clinicId = req.payload?.clinicId ?? undefined;
 
     const { queue, pagination } = await this.patientService.getDailyQueue(
@@ -62,7 +65,9 @@ export class PatientController {
       page,
       size,
       search,
-      date
+      date,
+      status,
+      sort
     );
     return successResponse(res, 200, queue, "Lấy danh sách hàng đợi thành công", pagination);
   };
