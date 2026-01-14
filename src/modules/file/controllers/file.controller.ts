@@ -7,7 +7,8 @@ export class FileController {
   private fileService = new FileService();
 
   public getFileByMedicalRecordId = async (req: Request, res: Response) => {
-    const { recordId } = req.params;
+    const rawRecordId = req.params.recordId;
+    const recordId = Array.isArray(rawRecordId) ? rawRecordId[0] : rawRecordId;
     const result = await this.fileService.findByMedicalRecordId(recordId);
     return successResponse(res, 200, result, "Lấy bệnh án thành công");
   }
