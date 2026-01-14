@@ -37,6 +37,7 @@ export interface MedicalRecordPrintServiceRequestHeaderDto {
   note: string;
   createdAt: string;
   patientId: string;
+  details: MedicalRecordPrintServiceRequestDetailDto[];
 }
 
 export interface MedicalRecordPrintServiceRequestDetailDto {
@@ -46,6 +47,7 @@ export interface MedicalRecordPrintServiceRequestDetailDto {
   itemCode: string;
   itemName: string;
   selectedOptions: any;
+  results: MedicalRecordPrintServiceRequestResultDto[];
 }
 
 export interface MedicalRecordPrintServiceRequestSelectedConfigDto {
@@ -140,9 +142,7 @@ export interface MedicalRecordPrintDto {
   prescriptionDetails: MedicalRecordPrintPrescriptionDetailDto[];
   medicines: MedicalRecordPrintMedicineDto[];
   requests: MedicalRecordPrintServiceRequestHeaderDto[];
-  requestDetails: MedicalRecordPrintServiceRequestDetailDto[];
   requestSelectedConfigs: MedicalRecordPrintServiceRequestSelectedConfigDto[];
-  requestResults: MedicalRecordPrintServiceRequestResultDto[];
   appointmentDate: string;
   appointmentSession: string;
   appointmentReason: string;
