@@ -442,7 +442,9 @@ export class SharedRepository {
           recordId: request.recordId ?? null,
           recordCode: record.recordCode ?? null,
           orderingDoctorId: request.orderingDoctorId ?? null,
-          diagnoses: request.diagnoses ?? null,
+          diagnoses: request.diagnoses
+            ? (request.diagnoses as unknown as MedicalDiagnosisDto)
+            : null,
           isPatientRequested: request.isPatientRequested ?? null,
           receiveResultAtClinic: request.receiveResultAtClinic ?? null,
           isForFollowUp: request.isForFollowUp ?? null,
@@ -511,6 +513,19 @@ export class SharedRepository {
         return "";
       }
       return date.toLocaleDateString("vi-VN");
+    };
+    const formatDateLong = (value?: string | Date | null) => {
+      if (!value) {
+        return "";
+      }
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `Ngày ${day} tháng ${month} năm ${year}`;
     };
     const toStringValue = (value: unknown) =>
       value === null || value === undefined ? "" : String(value);
@@ -710,7 +725,7 @@ export class SharedRepository {
       prescriptionNote: toStringValue(prescription?.note),
       totalPrice: toStringValue(prescription?.totalPrice),
       status: toStringValue(prescription?.status),
-      prescriptionCreatedAt: formatDate(prescription?.createdAt ?? null),
+      prescriptionCreatedAt: formatDateLong(prescription?.createdAt ?? null),
       prescriptionUpdatedAt: formatDate(prescription?.updateAt ?? null),
       prescriptionDetails,
       medicines,

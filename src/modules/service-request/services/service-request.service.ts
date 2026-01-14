@@ -2,6 +2,7 @@ import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
 import { Prisma } from "@prisma/client";
 import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
+import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 import {
   ServiceRequestResponseDto,
   ServiceRequestDetailResponseDto,
@@ -135,7 +136,9 @@ export class ServiceRequestService {
       recordId: request.recordId ?? null,
       recordCode: request.medicalRecord?.recordCode ?? null,
       orderingDoctorId: request.orderingDoctorId ?? null,
-      diagnoses: request.diagnoses ?? null,
+      diagnoses: request.diagnoses
+        ? (request.diagnoses as unknown as MedicalDiagnosisDto)
+        : null,
       isPatientRequested: request.isPatientRequested ?? null,
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
@@ -329,7 +332,9 @@ export class ServiceRequestService {
       requestCode: request.requestCode ?? null,
       recordId: request.recordId ?? null,
       orderingDoctorId: request.orderingDoctorId ?? null,
-      diagnoses: request.diagnoses ?? null,
+      diagnoses: request.diagnoses
+        ? (request.diagnoses as unknown as MedicalDiagnosisDto)
+        : null,
       isPatientRequested: request.isPatientRequested ?? null,
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
