@@ -33,10 +33,21 @@ export class UserService {
     if (duplicatedEmail) {
       throw new BaseError(409, "Email này đã được sử dụng.");
     }
+
+    if (!createData.clinicId) {
+      throw new BaseError(403, "Forbidden")
+    }
     await this.clinicService.getClinicById(createData.clinicId);
 
     const hashedPassword = await bcrypt.hash(createData.password, 10);
     const rolesAssigned = createData.roles || [UserRoleEnum.Doctor];
+    if (
+      rolesAssigned.some(
+        (role) => !Object.values(UserRoleEnum).includes(role as UserRoleEnum)
+      )
+    ) {
+      throw new BaseError(400, "Role không hợp lệ");
+    }
 
     const newUser = await this.userRepository.createUser(
       {
@@ -67,8 +78,11 @@ export class UserService {
     };
   }
 
-  public async getUserById(id: string): Promise<UserResponseDto> {
-    const user = await this.userRepository.findUserById(id);
+  public async getUserById(
+    id: string,
+    clinicId?: string
+  ): Promise<UserResponseDto> {
+    const user = await this.userRepository.findUserById(id, clinicId);
     if (!user) {
       throw new BaseError(404, "Người dùng không tồn tại");
     }
@@ -98,7 +112,7 @@ export class UserService {
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      throw new BaseError(400, "Role khong hop le");
+      throw new BaseError(400, "Role không hợp lệ");
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -109,14 +123,23 @@ export class UserService {
 
   public async updateUser(
     id: string,
-    updateData: UpdateUserRequestDto
+    updateData: UpdateUserRequestDto,
+    clinicId?: string
   ): Promise<void> {
-    const existingUser = await this.userRepository.findUserById(id);
+    const existingUser = await this.userRepository.findUserById(id, clinicId);
     if (!existingUser) {
-      throw new BaseError(404, "Không tìm thấy người dùng.");
+      throw new BaseError(404, "Không tìm thấy người dùng");
+    }
+
+    if (clinicId && existingUser.clinicId !== clinicId) {
+      throw new BaseError(403, "Không có quyền truy cập người dùng phòng khám khác");
     }
 
     const statusToUpdate = updateData.status as UserStatus | undefined;
+
+    if (updateData.clinicId && clinicId && updateData.clinicId !== clinicId) {
+      throw new BaseError(403, "Không có quyền thay đổi người dùng phòng khám khác");
+    }
 
     if (updateData.clinicId) {
       await this.clinicService.getClinicById(updateData.clinicId);
@@ -129,6 +152,15 @@ export class UserService {
       clinicId: updateData.clinicId ?? existingUser.clinicId,
       status: statusToUpdate ?? existingUser.status,
     };
+
+    if (
+      updateData.roles &&
+      updateData.roles.some(
+        (role) => !Object.values(UserRoleEnum).includes(role as UserRoleEnum)
+      )
+    ) {
+      throw new BaseError(400, "Role không hợp lệ");
+    }
 
     if (updateData.roles !== undefined) {
       updatePayload.roles = {

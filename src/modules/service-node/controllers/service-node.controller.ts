@@ -25,19 +25,38 @@ export class ServiceNodeController {
 
   public list = async (req: Request, res: Response) => {
     const nodeTypeRaw = req.query.nodeType as string | undefined;
-    const includeInactive = (req.query.includeInactive as string | undefined) === "true";
+    const isActiveParam = req.query.isActive as string | undefined;
+    const isActive =
+      isActiveParam === undefined ? undefined : isActiveParam === "true";
     const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
     const size = Math.max(parseInt(req.query.size as string, 10) || 10, 1);
+    const search = req.query.search as string | undefined;
+    const sortBy = req.query.sortBy as string | undefined;
+    const sortDir = req.query.sortDir as string | undefined;
 
     let nodeType: NodeType | undefined;
     if (nodeTypeRaw) {
       if (!Object.values(NodeType).includes(nodeTypeRaw as NodeType)) {
-        throw new BaseError(400, "Danh mục/Loại dịch vụ CLS không hợp lệ");
+        throw new BaseError(400, "NodeType không hợp lệ");
       }
       nodeType = nodeTypeRaw as NodeType;
     }
-    const { nodes, pagination } = await this.service.list(nodeType, includeInactive, page, size);
-    return successResponse(res, 200, nodes, "Lấy danh sách dịch vụ CLS thành công", pagination);
+    const { nodes, pagination } = await this.service.list(
+      nodeType,
+      isActive,
+      page,
+      size,
+      search,
+      sortBy,
+      sortDir
+    );
+    return successResponse(
+      res,
+      200,
+      nodes,
+      "Lấy danh sách thành công",
+      pagination
+    );
   };
 
   public getNodeTypes = async (_req: Request, res: Response) => {

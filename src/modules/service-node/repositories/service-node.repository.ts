@@ -27,7 +27,10 @@ export class ServiceNodeRepository {
     nodeType?: NodeType,
     onlyActive: boolean = true,
     page: number = 1,
-    size: number = 10
+    size: number = 10,
+    search?: string,
+    sortBy: "code" | "name" | "createdAt" | "updatedAt" = "code",
+    sortDir: "asc" | "desc" = "asc"
   ): Promise<{ nodes: ServiceNode[]; totalItems: number }> {
     const safePage = Math.max(page, 1);
     const safeSize = Math.max(size, 1);
@@ -36,14 +39,24 @@ export class ServiceNodeRepository {
     const where = {
       nodeType: nodeType ?? undefined,
       isActive: onlyActive ? true : undefined,
+      ...(search
+        ? {
+            OR: [
+              { code: { contains: search, mode: "insensitive" as const } },
+              { name: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
     };
+
+    const orderBy = { [sortBy]: sortDir } as Record<string, "asc" | "desc">;
 
     const [nodes, totalItems] = await Promise.all([
       prisma.serviceNode.findMany({
         where,
         skip,
         take: safeSize,
-        orderBy: { code: "asc" },
+        orderBy,
       }),
       prisma.serviceNode.count({ where }),
     ]);

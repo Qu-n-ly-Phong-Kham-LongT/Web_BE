@@ -66,10 +66,17 @@ export class UserRepository {
     });
   }
 
-  public async findUserById(id: string, tx?: Prisma.TransactionClient) {
+  public async findUserById(
+    id: string,
+    clinicId?: string,
+    tx?: Prisma.TransactionClient
+  ) {
     const client = tx ?? prisma;
-    return await client.user.findUnique({
-      where: { userId: id },
+    return await client.user.findFirst({
+      where: {
+        userId: id,
+        ...(clinicId ? { clinicId } : {}),
+      },
       include: {
         clinic: true,
         roles: {
