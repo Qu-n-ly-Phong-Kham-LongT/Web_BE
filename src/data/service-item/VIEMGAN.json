@@ -1,0 +1,43 @@
+[
+  {
+    "itemCode": "HBSAG",
+    "name": "HBsAg",
+    "basePrice": 250000,
+    "categoryId": "5b83f3b5-afb0-4812-b3d7-202fd0323200",
+    "typeId": "e189d763-2ed1-4e62-a72e-68fd95b31422",
+    "unit": "s/co",
+    "specimen": "Máu",
+    "prepNote": "Nhịn ăn trước 1 tiếng trước khi thực hiện siêu âm",
+    "isActive": true,
+    "configs": [
+      {
+        "configCode": "HBsAg",
+        "displayName": "Kết luận",
+        "inputType": "Text",
+        "unit": "s/co",
+        "refRange": "0.00 - 1.00"
+      }
+    ]
+  },
+
+  {
+    "itemCode": "XN_ANTIHBS",
+    "name": "Định lượng Anti-HBs",
+    "basePrice": 250000,
+    "categoryId": "5b83f3b5-afb0-4812-b3d7-202fd0323200",
+    "typeId": "e189d763-2ed1-4e62-a72e-68fd95b31422",
+    "unit": "huyết thanh",
+    "specimen": "Máu",
+    "prepNote": "Lấy máu buổi sáng",
+    "isActive": true,
+    "configs": [
+      {
+        "configCode": "AntiHBs",
+        "displayName": "Kết luận",
+        "inputType": "Text",
+        "unit": "mIU/mL",
+        "refRange": ">=10"
+      }
+    ]
+  }
+]

@@ -1,0 +1,130 @@
+{
+  "itemCode": "CTSCAN_SONAO",
+  "name": "Sọ não",
+  "basePrice": 500000,
+  "categoryId": "023ba30d-63d3-4783-b17e-5183cb741525",
+  "typeId": "c22f9cc3-cf5c-4983-bbcc-34add57c0df9",
+  "unit": "",
+  "specimen": "",
+  "prepNote": "Nhịn ăn trước 1 tiếng nếu có tiêm phản quang",
+  "isActive": true,
+  "configs": [
+    {
+      "configCode": "CONTRAST",
+      "displayName": "Tiêm phản quang",
+      "inputType": "Text",
+      "unit": "",
+      "refRange": "",
+      "metaData": {
+        "uiStyle": "Select",
+        "allowMultiple": false,
+        "options": [
+          {
+            "label": "Có",
+            "value": "Yes",
+            "surcharge": 0
+          },
+          {
+            "label": "Không",
+            "value": "No",
+            "surcharge": 0
+          }
+        ]
+      }
+    },
+    {
+      "configCode": "CTA",
+      "displayName": "CTA",
+      "inputType": "Text",
+      "unit": "",
+      "refRange": "",
+      "metaData": {
+        "uiStyle": "Select",
+        "allowMultiple": false,
+        "options": [
+          {
+            "label": "Có",
+            "value": "Yes",
+            "surcharge": 0
+          },
+          {
+            "label": "Không",
+            "value": "No",
+            "surcharge": 0
+          }
+        ]
+      }
+    },
+    {
+      "configCode": "TAITAOMACHMAU",
+      "displayName": "Tái tạo mạch máu",
+      "inputType": "Text",
+      "unit": "",
+      "refRange": "",
+      "metaData": {
+        "uiStyle": "Select",
+        "allowMultiple": false,
+        "options": [
+          {
+            "label": "Có",
+            "value": "Yes",
+            "surcharge": 0
+          },
+          {
+            "label": "Không",
+            "value": "No",
+            "surcharge": 0
+          }
+        ]
+      }
+    },
+    {
+      "configCode": "3D",
+      "displayName": "Tái tạo 3D",
+      "inputType": "Text",
+      "unit": "",
+      "refRange": "",
+      "metaData": {
+        "uiStyle": "Select",
+        "allowMultiple": false,
+        "options": [
+          {
+            "label": "Có",
+            "value": "Yes",
+            "surcharge": 0
+          },
+          {
+            "label": "Không",
+            "value": "No",
+            "surcharge": 0
+          }
+        ]
+      }
+    },
+    {
+      "configCode": "BONE",
+      "displayName": "Cửa sổ xương",
+      "inputType": "Text",
+      "unit": "",
+      "refRange": "",
+      "metaData": {
+        "uiStyle": "Select",
+        "allowMultiple": false,
+        "options": [
+          {
+            "label": "Có",
+            "value": "Yes",
+            "surcharge": 0
+          },
+          {
+            "label": "Không",
+            "value": "No",
+            "surcharge": 0
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
