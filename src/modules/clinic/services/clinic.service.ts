@@ -19,14 +19,6 @@ export class ClinicService {
   public async createClinic(
     createData: ClinicRequestDto
   ): Promise<ClinicResponseDto> {
-    const existingClinic = await this.clinicRepository.findClinicByEmail(
-      createData.email
-    );
-
-    if (existingClinic) {
-      throw new BaseError(409, "Phòng khám đã tồn tại.");
-    }
-
     const clinic = await this.clinicRepository.createClinic(createData);
     return this.mapToResponse(clinic);
   }
@@ -39,19 +31,6 @@ export class ClinicService {
     if (!clinicToUpdate) {
       throw new BaseError(404, "Phòng khám không tồn tại");
     }
-
-    if (updateData.email && updateData.email !== clinicToUpdate.email) {
-      const duplicateCheck = await this.clinicRepository.findClinicByEmail(
-        updateData.email
-      );
-      if (duplicateCheck && duplicateCheck.clinicId !== id) {
-        throw new BaseError(
-          409,
-          "Email này đang được sử dụng bởi 1 phòng khám khác."
-        );
-      }
-    }
-
     const clinic = await this.clinicRepository.updateClinic(id, updateData);
     return this.mapToResponse(clinic);
   }

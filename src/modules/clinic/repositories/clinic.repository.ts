@@ -13,10 +13,6 @@ export class ClinicRepository {
     return prisma.clinic.findUnique({ where: { clinicCode: code } });
   }
 
-  public async findClinicByEmail(email: string) {
-    return prisma.clinic.findUnique({ where: { email: email } });
-  }
-
   public async createClinic(createData: ClinicRequestDto) {
     const sessions = createData.sessions ?? [];
     const data = {

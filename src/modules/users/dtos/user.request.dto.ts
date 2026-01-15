@@ -5,7 +5,7 @@ export interface CreateUserRequestDto {
   username: string;
   password: string;
   fullname: string;
-  email?: string;
+  email: string;
   clinicId: string;
   roles: UserRoleEnum[];
 }
@@ -25,7 +25,9 @@ export interface UpdateUserRequestDto {
 
 const roleEnumValues = Object.values(UserRoleEnum);
 const normalizeRole = (value: string, helpers: CustomHelpers) => {
-  const match = roleEnumValues.find((r) => r.toLowerCase() === String(value).toLowerCase());
+  const match = roleEnumValues.find(
+    (r) => r.toLowerCase() === String(value).toLowerCase()
+  );
   if (!match) {
     return helpers.error("any.only", { valids: roleEnumValues });
   }
@@ -105,7 +107,9 @@ export const CreateUserRequestSchema = Joi.object<CreateUserRequestDto>({
     "string.empty": "Fullname không được để trống",
   }),
 
-  email: Joi.string().email().allow(null, "").messages({
+  email: Joi.string().email().required().messages({
+    "any.required": "Email là bắt buộc",
+    "string.empty": "Email không được để trống",
     "string.email": "Email không hợp lệ",
   }),
 
@@ -123,4 +127,3 @@ export const CreateUserRequestSchema = Joi.object<CreateUserRequestDto>({
     "any.invalid": "Roles phải là mảng hoặc chuỗi (phân tách bởi dấu phẩy)",
   }),
 });
-
