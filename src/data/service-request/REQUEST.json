@@ -1,0 +1,51 @@
+{
+  "recordId": "0ef0793d-f6f2-4e6f-a8d9-43d92c41f3f5",
+  "orderingDoctorId": "c10065eb-fd3a-4887-bcf6-423a2e6c9de7",
+  "diagnoses": {
+    "main": {
+      "code": "C54.6",
+      "description": "Đau bao tử kéo dài; Trào ngược dạ dày, thực quản",
+      "note": "string"
+    },
+    "secondary": []
+  },
+  "isPatientRequested": false,
+  "receiveResultAtClinic": false,
+  "isForFollowUp": false,
+  "note": "string",
+  "details": [
+    {
+      "itemId": "fe8040de-67ef-4998-b7a1-f39dd4dc307b",
+      "selectedConfigs": [
+        {
+          "configId": "45d14fd2-7cb9-4a51-9342-dd7d9e886467",
+          "selectedValues": ["Yes"]
+        },
+        {
+          "configId": "d5652f01-04c5-4e01-9d12-93397e2f8386",
+          "selectedValues": ["Yes"]
+        }
+      ],
+      "note": "string"
+    },
+    {
+      "itemId": "bc6ee459-e09a-4a0f-abb2-c7e8059587b8",
+      "selectedConfigs": [
+        {
+          "configId": "d869521e-4aea-4aa5-bb02-817450b37346",
+          "selectedValues": ["Yes"]
+        }
+      ],
+      "note": "string"
+    },
+    {
+      "itemId": "9b20993b-11f9-4986-88b1-296947c9c604",
+      "selectedConfigs": [
+        {
+          "configId": "1b540d22-c353-42c7-a752-5f065f90ed67"
+        }
+      ],
+      "note": "string"
+    }
+  ]
+}

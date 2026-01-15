@@ -5,6 +5,6 @@ export const generateBarcodeBuffer = async (text: string): Promise<Buffer> => {
     bcid: 'code128',       
     text: text,            
     scale: 3,             
-    height: 10,
+    height: 8,
   });
 };

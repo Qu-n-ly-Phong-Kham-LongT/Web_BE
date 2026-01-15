@@ -25,8 +25,8 @@ export const serviceResultItemSchema = Joi.object({
   indicatorName: Joi.string().allow("", null),
   valueString: Joi.string().allow("", null),
   valueNumber: Joi.number().allow(null),
-  unit: Joi.string().allow("", null),
-  images: Joi.any(),
+  unit: Joi.string().allow("", null).optional(),
+  images: Joi.any().optional(),
   executedAt: Joi.string().allow("", null),
 });
 
