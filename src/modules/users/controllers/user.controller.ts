@@ -71,7 +71,6 @@ export class UserController {
   public getMyProfile = async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
   ) => {
     const userId = req.payload?.userId ?? "";
 
