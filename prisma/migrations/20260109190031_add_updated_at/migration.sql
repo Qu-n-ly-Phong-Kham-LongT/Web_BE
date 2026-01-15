@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ServiceRequest" ADD COLUMN     "updatedAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;

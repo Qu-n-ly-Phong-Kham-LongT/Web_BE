@@ -6,7 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-// --- ENUMS ---
 enum UserStatus {
   Active
   Inactive
@@ -16,7 +15,6 @@ enum UserRoleEnum {
   Manager
   Doctor
   Admin
-  Staff
 }
 
 enum Gender {
@@ -38,9 +36,9 @@ enum PregnancyStatus {
   Breastfeeding
 }
 
-enum PaymentStatus {
-  Unpaid
-  Paid
+enum PrescriptionStatus {
+  Issued
+  Fulfilled
 }
 
 enum NodeType {
@@ -49,13 +47,16 @@ enum NodeType {
 }
 
 enum InputType {
-  Boolean
   Text
+  Number
   Select
+  Boolean
+  LongText
 }
 
 enum Session {
   Morning
+  Noon
   Afternoon
   Evening
 }
@@ -64,354 +65,457 @@ enum InventoryLogType {
   Import
   Export
   Adjustment
-  Return
 }
 
+enum FileType {
+  MEDICAL_RECORD
+  PRESCRIPTION
+  SERVICE_REQUEST
+  SERVICE_RESULT
+  OTHER
+}
 
-// --- MODELS ---
 model Role {
-  RoleID   String     @id @default(uuid()) @db.Uuid
-  RoleName UserRoleEnum?
-  users    UserRole[]
+  roleId   String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  roleName UserRoleEnum @unique
 
-  @@map("Roles")
+  users UserRole[]
+}
+
+model Clinic {
+  clinicId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicName String? @db.VarChar(255)
+  address    String? @db.VarChar(255)
+  phone      String? @db.VarChar(255)
+  email      String? @db.VarChar(150)
+  clinicCode String? @unique @default(dbgenerated("generate_clinic_code()")) @db.VarChar(100)
+
+  users User[]
+
+  patients              Patient[]
+  medicines             Medicine[]
+  medicalRecords        MedicalRecord[]
+  clinicWorkingSessions ClinicWorkingSession[]
+}
+
+model ClinicWorkingSession {
+  workingSessionId String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  clinicId String @db.Uuid
+  clinic   Clinic @relation(fields: [clinicId], references: [clinicId], onDelete: Cascade)
+
+  sessionType Session
+  startTime   String
+  endTime     String
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  @@unique([clinicId, sessionType])
 }
 
 model User {
-  UserID    String     @id @default(uuid()) @db.Uuid
-  Username  String?     @unique
-  Password  String?
-  FullName  String?
-  Phone     String?    @unique
-  Email     String?    @unique
-  Status    UserStatus? @default(Active)
-  CreatedAt DateTime?   @default(now()) @map("Created_At")
-  UpdatedAt DateTime?   @updatedAt @map("Updated_At")
-  roles     UserRole[]
+  userId    String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username  String     @unique @db.VarChar(100)
+  password  String     @db.VarChar(255)
+  fullName  String     @db.VarChar(200)
+  email     String     @unique @db.VarChar(150)
+  status    UserStatus @default(Active)
+  createdAt DateTime   @default(now()) @db.Timestamptz
+  updatedAt DateTime   @default(now()) @updatedAt @db.Timestamptz
+
+  clinicId String? @db.Uuid
+  clinic   Clinic? @relation(fields: [clinicId], references: [clinicId])
+
+  roles                 UserRole[]
   medicalRecords        MedicalRecord[]
   prescriptionTemplates PrescriptionTemplate[]
   serviceRequests       ServiceRequest[]
-  serviceResults        ServiceResult[]
   inventoryLogs         InventoryLog[]
-  @@map("Users")
+  refreshTokens         RefreshToken[]
+  examinationsPerformed ClinicalExamination[]  @relation("ExaminedByUser")
+  clinicalExaminations  ClinicalExamination[]
+}
+
+model RefreshToken {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  token     String   @unique @db.VarChar(500)
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  expiresAt DateTime @db.Timestamptz
+  createdAt DateTime @default(now()) @db.Timestamptz
+  isRevoked Boolean  @default(false)
+
+  @@index([userId])
 }
 
 model UserRole {
-  UserID String @db.Uuid
-  RoleID String @db.Uuid
+  userId String @db.Uuid
+  roleId String @db.Uuid
 
-  user User @relation(fields: [UserID], references: [UserID])
-  role Role @relation(fields: [RoleID], references: [RoleID])
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [roleId], onDelete: Restrict)
 
-  @@id([UserID, RoleID])
-  @@map("UserRoles")
+  @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
 }
 
 model Patient {
-  PatientID       String            @id @default(uuid()) @db.Uuid
-  PatientCode     String?            @unique
-  FullName        String?
-  Gender          Gender?
-  DOB             DateTime?
-  PatientCategory PatientCategory?   @default(DichVu)
-  Phone           String?            @unique
-  Email           String?
-  IdentityCard    String?           @unique
-  InsuranceNumber String?           @unique
-  Occupation      String?
-  Address         String?
-  CreatedAt       DateTime?   @default(now()) @map("Created_At")
-  UpdatedAt       DateTime?   @updatedAt @map("Updated_At")
+  patientId       String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  patientCode     String?           @unique
+  fullName        String?
+  gender          Gender?
+  dob             DateTime?         @db.Timestamptz
+  patientCategory PatientCategory?  @default(DichVu)
+  phone           String?           @unique
+  email           String?
+  identityCard    String?           @unique
+  insuranceNumber String?           @unique
+  occupation      String?
+  address         String?
+  createdAt       DateTime?         @default(now()) @db.Timestamptz
+  updatedAt       DateTime?         @updatedAt @db.Timestamptz
   relatives       PatientRelative[]
   medicalRecords  MedicalRecord[]
-
-  @@map("Patients")
+  allergies       PatientAllergy[]
+  clinic          Clinic?           @relation(fields: [clinicId], references: [clinicId])
+  clinicId        String?           @db.Uuid
 }
 
 model PatientRelative {
-  RelativeID   String   @id @default(uuid()) @db.Uuid
-  PatientID    String?  @db.Uuid
-  patient      Patient? @relation(fields: [PatientID], references: [PatientID])
-  FullName     String?
-  Phone        String?
-  Relationship String?
-  IdentityCard String?  @unique
-  Address      String?
+  relativeId   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  patientId    String?  @db.Uuid
+  patient      Patient? @relation(fields: [patientId], references: [patientId])
+  fullName     String?
+  phone        String?
+  relationship String?
+  identityCard String?
+  address      String?
+}
 
-  @@map("PatientRelatives")
+model PatientAllergy {
+  allergyId String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  patientId String   @unique @db.Uuid
+  patient   Patient  @relation(fields: [patientId], references: [patientId])
+  data      Json?
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz
 }
 
 model MedicalRecord {
-  RecordID               String                @id @default(uuid()) @db.Uuid
-  RecordCode             String?               @unique
-  PatientID              String?               @db.Uuid
-  patient                Patient?             @relation(fields: [PatientID], references: [PatientID])
-  DoctorID               String?               @db.Uuid
-  doctor                 User?                @relation(fields: [DoctorID], references: [UserID])
-  Diagnoses              Json?
-  EvidenceBasedDiagnosis Boolean?              @default(false)
-  DoctorAdvice           String?
-  TreatmentNote          String?
-  ConsultationFee        Decimal?              @default(0)
-  Created_At             DateTime?             @default(now())
-  Updated_At             DateTime?             @updatedAt
+  recordId               String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  recordCode             String?              @unique @default(dbgenerated("generate_record_code()"))
+  patientId              String?              @db.Uuid
+  patient                Patient?             @relation(fields: [patientId], references: [patientId])
+  doctorId               String?              @db.Uuid
+  doctor                 User?                @relation(fields: [doctorId], references: [userId])
+  diagnoses              Json?
+  evidenceBasedDiagnosis Boolean?             @default(false)
+  doctorAdvice           String?
+  treatmentNote          String?
+  consultationFee        Decimal?             @default(0) @db.Decimal(18, 0)
+  createdAt              DateTime?            @default(now()) @db.Timestamptz
+  updatedAt              DateTime?            @updatedAt @db.Timestamptz
   clinicalExamination    ClinicalExamination?
   prescription           Prescription?
   followUp               FollowUp?
   serviceRequests        ServiceRequest[]
+  clinic                 Clinic?              @relation(fields: [clinicId], references: [clinicId])
+  clinicId               String?              @db.Uuid
+  file                   File?                @relation()
+}
 
-  @@map("MedicalRecords")
+model MedicalRecordSequence {
+  monthKey   String @id @db.VarChar(4)
+  currentVal Int    @default(0)
 }
 
 model ClinicalExamination {
-  ExamID              String          @id @default(uuid()) @db.Uuid
-  RecordID            String?         @unique @db.Uuid
-  medicalRecord       MedicalRecord? @relation(fields: [RecordID], references: [RecordID])
-  ReasonForVisit      String?
-  MedicalHistory      String?
-  PastMedicalHistory  String?
-  HeartRate           Int?
-  BloodPressure       String?
-  Temperature         Float?
-  Height              Float?
-  Weight              Float?
-  ClinicalExamination String?
-  PregnancyStatus     PregnancyStatus? @default(None)
-  PregnancyWeeks      Int?
-  DrugAllergies       String?
-  ClinicalNotes       String?
-  ExaminedAt          DateTime?       @default(now())
-  ExaminedBy          String?         @db.Uuid
-
-  @@map("ClinicalExaminations")
+  examId              String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  recordId            String?          @unique @db.Uuid
+  medicalRecord       MedicalRecord?   @relation(fields: [recordId], references: [recordId])
+  reasonForVisit      String?
+  medicalHistory      String?
+  pastMedicalHistory  String?
+  heartRate           Int?
+  bloodPressure       String?
+  temperature         Float?
+  height              Float?
+  weight              Float?
+  bmi                 Float?
+  clinicalExamination String?
+  pregnancyStatus     PregnancyStatus? @default(None)
+  pregnancyWeeks      Int?
+  isBreastfeeding     Boolean          @default(false)
+  hasHealthInsurance  Boolean          @default(false)
+  hasPoorAppetite     Boolean          @default(false)
+  hasWeightLoss       Boolean          @default(false)
+  clinicalNotes       String?
+  examinedAt          DateTime?        @default(now()) @db.Timestamptz
+  examinedBy          String?          @db.Uuid
+  examiner            User?            @relation("ExaminedByUser", fields: [examinedBy], references: [userId])
+  userId              String?          @db.Uuid
+  user                User?            @relation(fields: [userId], references: [userId])
 }
 
-model ICD10_Dictionary {
-  Code        String  @id
-  Description String?
+model Icd10Dictionary {
+  code        String  @id
+  description String?
 }
 
 model Prescription {
-  PrescriptionID String                @id @default(uuid()) @db.Uuid
-  RecordID       String?               @unique @db.Uuid
-  medicalRecord  MedicalRecord?       @relation(fields: [RecordID], references: [RecordID])
-  PdfPath        String?
-  FileName       String?
-  Note           String?
-  TotalPrice     Decimal?
-  PaymentStatus  PaymentStatus?        @default(Unpaid)
-  Created_At     DateTime?             @default(now())
+  prescriptionId String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  recordId       String?              @unique @db.Uuid
+  medicalRecord  MedicalRecord?       @relation(fields: [recordId], references: [recordId])
+  pdfPath        String?
+  fileName       String?
+  note           String?
+  totalPrice     Decimal?             @db.Decimal(18, 0)
+  status         PrescriptionStatus?  @default(Issued)
+  createdAt      DateTime?            @default(now()) @db.Timestamptz
+  updatedAt      DateTime?            @default(now()) @db.Timestamptz
   details        PrescriptionDetail[]
-
-  @@map("Prescriptions")
+  file           File?                @relation()
 }
 
 model PrescriptionDetail {
-  DetailID            String         @id @default(uuid()) @db.Uuid
-  PrescriptionID      String?        @db.Uuid
-  prescription        Prescription? @relation(fields: [PrescriptionID], references: [PrescriptionID])
-  MedicineID          String?        @db.Uuid
-  medicine            Medicine?     @relation(fields: [MedicineID], references: [MedicineID])
-  Unit                String?
-  FrequencyPerDay     Int?
-  QuantityPerTime     Float?
-  AdministrationRoute String?
-  Timing              String?
-  Quantity            Int?
-  DaysToTake          Int?
-  Price               Float?
-  IsInsuranceCovered  Boolean?       @default(false)
-  AppliedExportPrice  Decimal?
-  Note                String?
-
-  @@map("PrescriptionDetails")
-}
-
-model PrescriptionTemplate {
-  TemplateID   String                        @id @default(uuid()) @db.Uuid
-  TemplateName String?
-  Description  String?
-  CreatedBy    String?                       @db.Uuid
-  creator      User?                        @relation(fields: [CreatedBy], references: [UserID])
-  details      PrescriptionTemplateDetail[]
-
-  @@map("PrescriptionTemplates")
-}
-
-model PrescriptionTemplateDetail {
-  TemplateDetailID       String                @id @default(uuid()) @db.Uuid
-  TemplateID             String?               @db.Uuid
-  template               PrescriptionTemplate? @relation(fields: [TemplateID], references: [TemplateID])
-  MedicineID             String?               @db.Uuid
-  medicine               Medicine?            @relation(fields: [MedicineID], references: [MedicineID])
-  DefaultFrequency       Int?
-  DefaultQuantityPerTime Float?
-  DefaultRoute           String?
-  DefaultTiming          String?
-
-  @@map("PrescriptionTemplateDetails")
+  detailId            String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  prescriptionId      String?       @db.Uuid
+  prescription        Prescription? @relation(fields: [prescriptionId], references: [prescriptionId])
+  medicineId          String?       @db.Uuid
+  medicine            Medicine?     @relation(fields: [medicineId], references: [medicineId])
+  unit                String?
+  frequencyPerDay     Int?
+  quantityPerTime     Decimal?      @db.Decimal(10, 2)
+  administrationRoute String?
+  timing              String?
+  quantity            Decimal?      @db.Decimal(10, 2)
+  daysToTake          Int?
+  isInsuranceCovered  Boolean?      @default(false)
+  appliedExportPrice  Decimal?      @db.Decimal(18, 0)
+  totalPrice          Decimal?      @db.Decimal(18, 0)
+  note                String?
 }
 
 model FollowUp {
-  FollowUpID      String          @id @default(uuid()) @db.Uuid
-  RecordID        String?         @unique @db.Uuid
-  medicalRecord   MedicalRecord? @relation(fields: [RecordID], references: [RecordID])
-  AppointmentDate DateTime?       @db.Date
-  Session         Session?
-  Reason          String?
-
-  @@map("FollowUps")
+  followUpId      String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  recordId        String?        @unique @db.Uuid
+  medicalRecord   MedicalRecord? @relation(fields: [recordId], references: [recordId])
+  appointmentDate DateTime?      @db.Date
+  session         Session?
+  reason          String?
 }
 
 model ServiceNode {
-  NodeID          String         @id @default(uuid()) @db.Uuid
-  NodeType        NodeType?
-  ParentID        String?        @db.Uuid
-  parent          ServiceNode?  @relation("NodeHierarchy", fields: [ParentID], references: [NodeID])
-  children        ServiceNode[] @relation("NodeHierarchy")
-  Code            String?        @unique
-  Name            String?
-  Note            String?
-  IsActive        Boolean?       @default(true)
+  nodeId   String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nodeType NodeType?
+  parentId String?       @db.Uuid
+  parent   ServiceNode?  @relation("NodeHierarchy", fields: [parentId], references: [nodeId])
+  children ServiceNode[] @relation("NodeHierarchy")
+
+  code     String?  @unique
+  name     String?
+  note     String?
+  isActive Boolean? @default(true)
+
   itemsAsCategory ServiceItem[] @relation("CategoryNode")
   itemsAsType     ServiceItem[] @relation("TypeNode")
-
-  @@map("ServiceNodes")
 }
 
 model ServiceItem {
-  ItemID          String                  @id @default(uuid()) @db.Uuid
-  ItemCode        String?                 @unique
-  Name            String?
-  CategoryID      String?                 @db.Uuid
-  category        ServiceNode?           @relation("CategoryNode", fields: [CategoryID], references: [NodeID])
-  TypeID          String?                 @db.Uuid
-  type            ServiceNode?           @relation("TypeNode", fields: [TypeID], references: [NodeID])
-  Unit            String?
-  Specimen        String?
-  PrepNote        String?
-  IsActive        Boolean?                @default(true)
+  itemId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  itemCode String? @unique
+  name     String?
+
+  categoryId String?      @db.Uuid
+  category   ServiceNode? @relation("CategoryNode", fields: [categoryId], references: [nodeId])
+  typeId     String?      @db.Uuid
+  type       ServiceNode? @relation("TypeNode", fields: [typeId], references: [nodeId])
+  basePrice  Decimal?     @db.Decimal(18, 0)
+  unit       String?
+  specimen   String?
+  prepNote   String?
+  isActive   Boolean?     @default(true)
+
   configs         ServiceItemConfig[]
   requestDetails  ServiceRequestDetail[]
   templateDetails ServiceTemplateDetail[]
-
-  @@map("ServiceItems")
+  serviceResults  ServiceResult[]
 }
 
 model ServiceItemConfig {
-  ConfigID    String        @id @default(uuid()) @db.Uuid
-  ItemID      String?       @db.Uuid
-  serviceItem ServiceItem? @relation(fields: [ItemID], references: [ItemID])
-  ConfigCode  String?
-  DisplayName String?
-  InputType   InputType?    @default(Boolean)
-  GroupName   String?
-  MetaData    Json?
+  configId    String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  itemId      String?      @db.Uuid
+  serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
 
-  @@map("ServiceItemConfigs")
+  configCode     String?
+  displayName    String?
+  inputType      InputType?      @default(Text)
+  unit           String?
+  metaData       Json?
+  refRange       String?
+  serviceResults ServiceResult[]
 }
 
 model ServiceRequest {
-  RequestID        String                  @id @default(uuid()) @db.Uuid
-  RequestCode      String?                 @unique
-  RecordID         String?                 @db.Uuid
-  medicalRecord    MedicalRecord?         @relation(fields: [RecordID], references: [RecordID])
-  OrderingDoctorID String?                 @db.Uuid
-  orderingDoctor   User?                  @relation(fields: [OrderingDoctorID], references: [UserID])
-  Note             String?
-  CreatedAt        DateTime?               @default(now())
-  details          ServiceRequestDetail[]
+  requestId     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requestCode   String         @unique @default(dbgenerated())
+  recordId      String?        @db.Uuid
+  medicalRecord MedicalRecord? @relation(fields: [recordId], references: [recordId])
 
-  @@map("ServiceRequests")
+  orderingDoctorId      String?   @db.Uuid
+  orderingDoctor        User?     @relation(fields: [orderingDoctorId], references: [userId])
+  diagnoses             Json?
+  isPatientRequested    Boolean   @default(false)
+  receiveResultAtClinic Boolean   @default(false)
+  isForFollowUp         Boolean   @default(false)
+  note                  String?
+  createdAt             DateTime? @default(now()) @db.Timestamptz
+  updatedAt             DateTime? @default(now()) @db.Timestamptz
+  finalReportPath       String?
+
+  details        ServiceRequestDetail[]
+  serviceResults ServiceResult[]
+  files          File[]
 }
 
 model ServiceRequestDetail {
-  RequestDetailID String           @id @default(uuid()) @db.Uuid
-  RequestID       String?          @db.Uuid
-  serviceRequest  ServiceRequest? @relation(fields: [RequestID], references: [RequestID])
-  ItemID          String?          @db.Uuid
-  serviceItem     ServiceItem?    @relation(fields: [ItemID], references: [ItemID])
-  SelectedOptions Json?
-  result          ServiceResult?
+  requestDetailId String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requestId       String?         @db.Uuid
+  serviceRequest  ServiceRequest? @relation(fields: [requestId], references: [requestId])
 
-  @@map("ServiceRequestDetails")
+  itemId      String?      @db.Uuid
+  serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
+
+  selectedOptions Json?
 }
 
 model ServiceResult {
-  ResultID           String                 @id @default(uuid()) @db.Uuid
-  DetailID           String?                @unique @db.Uuid
-  requestDetail      ServiceRequestDetail? @relation(fields: [DetailID], references: [RequestDetailID])
-  ResultCode         String?
-  Description        String?
-  Conclusion         String?
-  Note               String?
-  IsPDF              Boolean?               @default(false)
-  PdfUrl             String?
-  PerformingDoctorID String?                @db.Uuid
-  performingDoctor   User?                 @relation(fields: [PerformingDoctorID], references: [UserID])
-  ExecutedAt         DateTime?
+  resultId String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
 
-  @@map("ServiceResults")
+  detailId       String?         @db.Uuid
+  requestId      String?         @db.Uuid
+  serviceRequest ServiceRequest? @relation(fields: [requestId], references: [requestId])
+
+  itemId      String?      @db.Uuid
+  serviceItem ServiceItem? @relation(fields: [itemId], references: [itemId])
+
+  configId          String?            @db.Uuid
+  serviceItemConfig ServiceItemConfig? @relation(fields: [configId], references: [configId])
+
+  parentId      String?         @db.Uuid
+  parent        ServiceResult?  @relation("ResultHierarchy", fields: [parentId], references: [resultId])
+  children      ServiceResult[] @relation("ResultHierarchy")
+  indicatorName String?
+
+  valueString String?  @db.Text
+  valueNumber Decimal? @db.Decimal(10, 2)
+
+  unit       String?
+  images     Json?
+  executedAt DateTime? @default(now()) @db.Timestamptz
+  files      File[]
 }
 
 model ServiceTemplate {
-  TemplateID   String                   @id @default(uuid()) @db.Uuid
-  TemplateName String?
-  Description  String?
-  CreatedBy    String?                  @db.Uuid
-  IsActive     Boolean?                 @default(true)
+  templateId   String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  templateName String?
+  description  String?
+  isActive     Boolean?                @default(true)
   details      ServiceTemplateDetail[]
-
-  @@map("ServiceTemplates")
 }
 
 model ServiceTemplateDetail {
-  TemplateDetailID String            @id @default(uuid()) @db.Uuid
-  TemplateID       String?           @db.Uuid
-  template         ServiceTemplate? @relation(fields: [TemplateID], references: [TemplateID])
-  ItemID           String?           @db.Uuid
-  serviceItem      ServiceItem?     @relation(fields: [ItemID], references: [ItemID])
-  Note             String?
-
-  @@map("ServiceTemplateDetails")
+  templateDetailId String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  templateId       String?          @db.Uuid
+  template         ServiceTemplate? @relation(fields: [templateId], references: [templateId])
+  itemId           String?          @db.Uuid
+  serviceItem      ServiceItem?     @relation(fields: [itemId], references: [itemId])
+  configSelections Json?
+  note             String?
 }
 
 model Medicine {
-  MedicineID         String           @id @default(uuid()) @db.Uuid
-  MedicineCode       String?          @unique
-  MedicineName       String?
-  ActiveIngredient   String?
-  IsInsuranceCovered Boolean?         @default(false)
-  MedicineCodeBHYT   String?
-  InsurancePrice     Decimal?
-  BaseUnit           String?
-  TotalQuantity      Int?             @default(0)
-  SellPrice          Decimal?
-  Note               String?
-  Supplier           String?
-  SideEffects        String?
-  IsActive           Boolean?         @default(true)
-  CreatedAt          DateTime?        @default(now())
+  medicineId          String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  medicineCode        String?                      @unique
+  medicineName        String?
+  activeIngredient    String?
+  registrationNo      String?
+  isInsuranceCovered  Boolean?                     @default(false)
+  medicineCodeBhyt    String?
+  insurancePrice      Decimal?                     @db.Decimal(18, 0)
+  baseUnit            String?
+  totalQuantity       Int?                         @default(0)
+  sellPrice           Decimal?                     @db.Decimal(18, 0)
+  note                String?
+  supplier            String?
+  sideEffects         String?
+  isActive            Boolean?                     @default(true)
+  createdAt           DateTime?                    @default(now()) @db.Timestamptz
   prescriptionDetails PrescriptionDetail[]
   templateDetails     PrescriptionTemplateDetail[]
   inventoryLogs       InventoryLog[]
-
-  @@map("Medicines")
+  clinic              Clinic?                      @relation(fields: [clinicId], references: [clinicId])
+  clinicId            String?                      @db.Uuid
 }
 
 model InventoryLog {
-  LogID        String            @id @default(uuid()) @db.Uuid
-  MedicineID   String?           @db.Uuid
-  medicine     Medicine?        @relation(fields: [MedicineID], references: [MedicineID])
-  Type         InventoryLogType?
-  Quantity     Int?
-  QuantityBase Int?
-  UnitPrice    Decimal?
-  TotalPrice   Decimal?
-  PerformedBy  String?           @db.Uuid
-  performer    User?            @relation(fields: [PerformedBy], references: [UserID])
-  Note         String?
-  CreatedAt    DateTime?         @default(now())
+  logId        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  medicineId   String?           @db.Uuid
+  medicine     Medicine?         @relation(fields: [medicineId], references: [medicineId])
+  type         InventoryLogType?
+  quantity     Int?
+  quantityBase Int?
+  unitPrice    Decimal?          @db.Decimal(18, 0)
+  totalPrice   Decimal?          @db.Decimal(18, 0)
+  performedBy  String?           @db.Uuid
+  performer    User?             @relation(fields: [performedBy], references: [userId])
+  note         String?
+  createdAt    DateTime?         @default(now()) @db.Timestamptz
+}
 
-  @@map("InventoryLogs")
+model PrescriptionTemplate {
+  templateId   String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  templateName String
+  description  String?
+  createdBy    String?                      @db.Uuid
+  creator      User?                        @relation(fields: [createdBy], references: [userId])
+  details      PrescriptionTemplateDetail[]
+}
+
+model PrescriptionTemplateDetail {
+  templateDetailId       String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  templateId             String                @db.Uuid
+  template               PrescriptionTemplate? @relation(fields: [templateId], references: [templateId])
+  medicineId             String                @db.Uuid
+  medicine               Medicine              @relation(fields: [medicineId], references: [medicineId])
+  defaultFrequency       Int?
+  defaultQuantityPerTime Float?
+  daysToTake             Int?
+  defaultRoute           String?
+  defaultTiming          String?
+}
+
+model File {
+  fileID String @id @default(dbgenerated("uuid_generate_v4()"))
+
+  relativePath String
+  type         FileType
+  mimeType     String
+
+  size      Int
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  medicalRecordId String?        @unique @db.Uuid
+  medicalRecord   MedicalRecord? @relation(fields: [medicalRecordId], references: [recordId])
+
+  prescriptionId String?       @unique @db.Uuid
+  prescription   Prescription? @relation(fields: [prescriptionId], references: [prescriptionId])
+
+  serviceRequestId String?         @db.Uuid
+  serviceRequest   ServiceRequest? @relation(fields: [serviceRequestId], references: [requestId])
+
+  serviceResultId String?        @db.Uuid
+  serviceResult   ServiceResult? @relation(fields: [serviceResultId], references: [resultId])
 }

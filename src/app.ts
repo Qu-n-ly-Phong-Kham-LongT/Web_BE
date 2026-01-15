@@ -1,29 +1,61 @@
 import express, { Request, Response } from "express";
-import { errorHandler } from "./middlewares/errorHandler";
+import basicAuth from "express-basic-auth";
+import swaggerUi from "swagger-ui-express";
+import ENV from "./config/environment.config";
 import { prisma } from "./config/database.config";
+import { errorHandler } from "./middlewares/error-handler";
+import rootRouter from "./routes/root.route";
+import swaggerDocument from "./swagger/index";
+import { BaseError } from "./utils/base-error.util";
+import { runSeeds } from "./seed";
+import { corsMiddleware } from "./middlewares/cors.middleware";
+import { apiLimiter } from "./middlewares/rate-limit.middleware";
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static("public"));
 
 const checkDatabase = async () => {
   try {
-    await await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
     console.log("Database connected successfully");
   } catch (err: any) {
-    console.error("Database connection failed");
-    console.error(err);
-    process.exit(1); // dừng app nếu DB lỗi
+    const dbError =
+      err instanceof BaseError
+        ? err
+        : new BaseError(500, "Database connection failed", err);
+    console.error(dbError);
+    process.exit(1); // stop app if DB fails
   }
-}
+};
 
-checkDatabase();
+const ALLOWED_CORS_ORIGIN = ENV.cors;
 
-app.get("/health", (req: Request, res: Response) => {
+app.use(corsMiddleware(ALLOWED_CORS_ORIGIN));
+
+(async () => {
+  await checkDatabase();
+  await runSeeds();
+})();
+
+app.get("/health", (_req: Request, res: Response) => {
   res.status(200).send("OK");
 });
-2
+
+app.use(
+  "/api-docs",
+  basicAuth({
+    users: { [ENV.swaggerUsername]: ENV.swaggerPassword },
+    challenge: true,
+  }),
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument)
+);
+
+app.use("/api", apiLimiter, rootRouter);
+
 app.use(errorHandler);
 
 export default app;

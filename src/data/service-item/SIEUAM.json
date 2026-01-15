@@ -1,0 +1,43 @@
+[
+  {
+    "itemCode": "SIEUAM_BUNG",
+    "name": "Bụng",
+    "basePrice": 250000,
+    "categoryId": "023ba30d-63d3-4783-b17e-5183cb741525",
+    "typeId": "9bab7fce-f8ef-4ae2-809a-b9dc439ed45e",
+    "unit": "",
+    "specimen": "",
+    "prepNote": "Nhịn ăn trước 1 tiếng trước khi thực hiện siêu âm",
+    "isActive": true,
+    "configs": [
+      {
+        "configCode": "SIEUAMBUNG",
+        "displayName": "Kết luận",
+        "inputType": "Text",
+        "unit": "",
+        "refRange": ""
+      }
+    ]
+  },
+
+  {
+    "itemCode": "SIEUAM_MOMEM",
+    "name": "Mô mềm",
+    "basePrice": 250000,
+    "categoryId": "023ba30d-63d3-4783-b17e-5183cb741525",
+    "typeId": "9bab7fce-f8ef-4ae2-809a-b9dc439ed45e",
+    "unit": "",
+    "specimen": "",
+    "prepNote": "Nhịn ăn trước 1 tiếng trước khi thực hiện siêu âm",
+    "isActive": true,
+    "configs": [
+      {
+        "configCode": "SIEUAMMOMEM",
+        "displayName": "Kết luận",
+        "inputType": "Text",
+        "unit": "",
+        "refRange": ""
+      }
+    ]
+  }
+]
