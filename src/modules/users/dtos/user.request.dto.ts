@@ -6,7 +6,7 @@ export interface CreateUserRequestDto {
   password: string;
   fullname: string;
   email: string;
-  clinicId: string;
+  clinicId?: string;
   roles: UserRoleEnum[];
 }
 
@@ -18,7 +18,7 @@ export interface ChangeUserPasswordDto {
 export interface UpdateUserRequestDto {
   fullname?: string;
   email?: string;
-  clinicId: string;
+  clinicId?: string;
   status?: string;
   roles?: UserRoleEnum[];
 }
@@ -60,12 +60,6 @@ export const UpdateUserRequestSchema = Joi.object<UpdateUserRequestDto>({
   email: Joi.string().email().allow(null, "").messages({
     "string.email": "Email không hợp lệ",
   }),
-  clinicId: Joi.string()
-    .guid({ version: ["uuidv4"] })
-    .messages({
-      "string.empty": "ClinicId không được để trống",
-      "string.guid": "ClinicId phải là UUID v4 hợp lệ",
-    }),
   status: Joi.string().valid("Active", "Inactive").messages({
     "any.only": "Status phải là Active hoặc Inactive",
   }),
@@ -77,7 +71,6 @@ export const UpdateUserRequestSchema = Joi.object<UpdateUserRequestDto>({
 
 export const ChangeUserPasswordSchema = Joi.object<ChangeUserPasswordDto>({
   oldPassword: Joi.string().required().messages({
-    "any.required": "Mật khẩu cũ là bắt buộc",
     "string.empty": "Mật khẩu cũ không được để trống",
   }),
 
@@ -112,15 +105,6 @@ export const CreateUserRequestSchema = Joi.object<CreateUserRequestDto>({
     "string.empty": "Email không được để trống",
     "string.email": "Email không hợp lệ",
   }),
-
-  clinicId: Joi.string()
-    .guid({ version: ["uuidv4"] })
-    .required()
-    .messages({
-      "any.required": "ClinicId là bắt buộc",
-      "string.empty": "ClinicId không được để trống",
-      "string.guid": "ClinicId phải là UUID v4 hợp lệ",
-    }),
 
   roles: Joi.custom(parseRolesArray, "parse roles").messages({
     "any.only": "Roles chứa giá trị không hợp lệ",

@@ -168,7 +168,11 @@ export class ServiceRequestService {
       }
 
       const orderingDoctorId = data.orderingDoctorId ?? "";
-      const orderingDoctor = await this.userRepository.findUserById(orderingDoctorId, tx);
+      const orderingDoctor = await this.userRepository.findUserById(
+        orderingDoctorId,
+        undefined,
+        tx
+      );
       if (!orderingDoctor) {
         throw new BaseError(404, "Không tìm thấy bác sĩ chỉ định");
       }

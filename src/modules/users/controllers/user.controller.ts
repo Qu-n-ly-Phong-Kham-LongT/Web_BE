@@ -1,5 +1,5 @@
 import { UserService } from "../services/user.service";
-import { Request, Response, NextFunction } from "express";
+import { Response } from "express";
 import { successResponse } from "../../../utils/response.util";
 import {
   ChangeUserPasswordDto,
@@ -12,41 +12,39 @@ export class UserController {
   private userService = new UserService();
 
   public createUser = async (
-    req: Request<{}, {}, CreateUserRequestDto>,
-    res: Response,
-    next: NextFunction
+    req: AuthenticatedRequest<{}, {}, CreateUserRequestDto>,
+    res: Response
   ) => {
-    const createData = req.body;
+    const clinicId = req.payload?.clinicId ?? "";
+    let createData = req.body;
+    createData.clinicId = clinicId;
     const result = await this.userService.createUser(createData);
     return successResponse(res, 201, result, "Tạo người dùng thành công");
   };
 
   public getUserById = async (
-    req: Request<{ id: string }, {}, {}>,
-    res: Response,
-    next: NextFunction
+    req: AuthenticatedRequest<{ id: string }, {}, {}>,
+    res: Response
   ) => {
-    try {
-      const result = await this.userService.getUserById(req.params.id);
-      return successResponse(
-        res,
-        200,
-        result,
-        "Lấy thông tin người dùng thành công"
-      );
-    } catch (err) {
-      next(err);
-    }
+    const clinicId = req.payload?.clinicId ?? undefined;
+    const result = await this.userService.getUserById(req.params.id, clinicId);
+    return successResponse(
+      res,
+      200,
+      result,
+      "Lấy thông tin người dùng thành công"
+    );
   };
 
   public updateUser = async (
-    req: Request<{ id: string }, {}, UpdateUserRequestDto>,
+    req: AuthenticatedRequest<{ id: string }, {}, UpdateUserRequestDto>,
     res: Response
   ) => {
     const { id } = req.params;
     const updateData = req.body;
-    await this.userService.updateUser(id, updateData);
-    return successResponse(res, 200, null, "Cập nhật người dùng thành công");
+    const clinicId = req.payload?.clinicId ?? undefined;
+    await this.userService.updateUser(id, updateData, clinicId);
+    return successResponse(res, 200, null, "Cập nhật thành công");
   };
 
   public changePassword = async (
@@ -101,7 +99,13 @@ export class UserController {
     const role = req.query.role as string | undefined;
     const clinicId = req.payload?.clinicId as string | undefined;
 
-    const result = await this.userService.getUsers(page, size, search, role, clinicId);
+    const result = await this.userService.getUsers(
+      page,
+      size,
+      search,
+      role,
+      clinicId
+    );
     return successResponse(
       res,
       200,
@@ -111,4 +115,3 @@ export class UserController {
     );
   };
 }
-
