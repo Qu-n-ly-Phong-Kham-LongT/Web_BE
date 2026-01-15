@@ -7,6 +7,7 @@ export interface UserResponseDto {
     fullname: string;
     email: string | null;
     clinicId: string | null;
+    clinicCode: string | null;
     status: number;
     createdAt: Date;
     roles: UserRoleEnum[]; 
