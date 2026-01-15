@@ -1,13 +1,17 @@
 import fs from "fs";
 import path from "path";
 import Docxtemplater from "docxtemplater";
+import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { BaseError } from "../../../utils/base-error.util";
 import { FullMedicalRecordDto } from "../dtos/medical-record-detail.dto";
 import { SharedRepository } from "../repositories/shared.repository";
+import { FileService } from "../../file/services/file.service";
+import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 
 export class SharedService {
     private sharedReposoitory = new SharedRepository();
+    private fileService = new FileService();
 
     public async getFullMedicalRecord(recordId: string, clinicId: string): Promise<FullMedicalRecordDto> {
         const result = await this.sharedReposoitory.getFullMedicalRecord(recordId);
@@ -28,6 +32,9 @@ export class SharedService {
     ): Promise<{ buffer: Buffer; recordCode: string }> {
         const result = await this.getFullMedicalRecord(recordId, clinicId);
         const templateData = this.sharedReposoitory.buildMedicalRecordTemplateData(result);
+        const recordCode = result.medicalRecord.recordCode ?? recordId;
+        const barcodeBuffer = await generateBarcodeBuffer(recordCode);
+        templateData.barcode = barcodeBuffer.toString("base64");
 
         const templatePath = path.resolve(
             process.cwd(),
@@ -37,10 +44,27 @@ export class SharedService {
         );
         const content = fs.readFileSync(templatePath);
         const zip = new PizZip(content);
+        const imageModule = new ImageModule({
+            centered: true,
+            getImage: (tagValue: unknown) => {
+                if (!tagValue) {
+                    return Buffer.alloc(0);
+                }
+                if (Buffer.isBuffer(tagValue)) {
+                    return tagValue;
+                }
+                if (typeof tagValue === "string") {
+                    return Buffer.from(tagValue, "base64");
+                }
+                return Buffer.alloc(0);
+            },
+            getSize: () => [200, 30],
+        });
         const doc = new Docxtemplater(zip, {
             paragraphLoop: true,
             linebreaks: true,
             delimiters: { start: "{{", end: "}}" },
+            modules: [imageModule],
         });
 
         try {
@@ -49,9 +73,10 @@ export class SharedService {
             throw new BaseError(500, "Khong the render template benh an");
         }
         const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
+        await this.fileService.saveMedicalRecordDocx(recordId, recordCode, docxBuffer);
         return {
             buffer: docxBuffer,
-            recordCode: result.medicalRecord.recordCode ?? recordId,
+            recordCode,
         };
     }
 }

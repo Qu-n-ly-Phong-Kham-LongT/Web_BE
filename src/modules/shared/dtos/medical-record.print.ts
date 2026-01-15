@@ -77,6 +77,7 @@ export interface MedicalRecordPrintServiceRequestResultDto {
 }
 
 export interface MedicalRecordPrintDto {
+  barcode?: Buffer | string | null;
   recordId: string;
   recordCode: string;
   recordDate: string;

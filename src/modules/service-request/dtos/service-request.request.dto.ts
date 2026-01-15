@@ -4,12 +4,12 @@ import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.re
 
 export interface SelectedConfigsDto {
   configId: string;
-  selectedValues: string[];
+  selectedValues?: string[];
 }
 
 export interface CreateServiceRequestDetailDto {
   itemId: string;
-  selectedConfigs: SelectedConfigsDto[];
+  selectedConfigs?: SelectedConfigsDto[];
   note?: string;
 }
 
@@ -45,7 +45,7 @@ const DiagnosisSchema = Joi.object({
 
 const selectedConfigSchema = Joi.object({
   configId: Joi.string().required(),
-  selectedValues: Joi.array().items(Joi.string()).min(1).required(),
+  selectedValues: Joi.array().items(Joi.string()).optional(),
 });
 
 const createServiceRequestDetailSchema = Joi.object({

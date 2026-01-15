@@ -4,8 +4,14 @@ import { BaseError } from "../../../utils/base-error.util";
 import { FileRepository } from "../repositories/file.repository";
 import { FileType } from "@prisma/client";
 import fs from "fs";
+import { formatFileName } from "../../../utils/file-name.util";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
+const normalizeRelativePath = (relativePath: string) =>
+  relativePath.replace(/^[/\\]+/, "");
+
+const resolvePublicPath = (relativePath: string) =>
+  path.join(PUBLIC_DIR, normalizeRelativePath(relativePath));
 export class FileService {
   private fileRepository = new FileRepository();
 
@@ -59,15 +65,49 @@ export class FileService {
   }
 
   public async deleteByRelativePath(relativePath: string): Promise<void> {
-    const fullPath = path.join(PUBLIC_DIR, relativePath);
+    const fullPath = resolvePublicPath(relativePath);
     await this.fileRepository.deleteByRelativePath(relativePath);
 
     try {
       await fs.promises.unlink(fullPath);
     } catch (err) {
+      const error = err as NodeJS.ErrnoException;
+      if (error?.code === "ENOENT") {
+        return;
+      }
       console.error(`Xoá thất bại: ${fullPath}`, err);
       throw new BaseError(500, "Xoá thất bại");
     }
+  }
+
+  public async saveMedicalRecordDocx(
+    recordId: string,
+    recordCode: string | null | undefined,
+    buffer: Buffer
+  ) {
+    const type = FileType.MEDICAL_RECORD;
+    const fileName = formatFileName(`${recordCode || recordId}.docx`);
+    const relativePath = path
+      .join("/uploads", type, fileName)
+      .replace(/\\/g, "/");
+    const fullPath = resolvePublicPath(relativePath);
+
+    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
+    if (existing?.relativePath) {
+      await this.deleteByRelativePath(existing.relativePath);
+    }
+
+    await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.promises.writeFile(fullPath, buffer);
+
+    return await this.fileRepository.createFileRecord({
+      relativePath,
+      type,
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      size: buffer.length,
+      medicalRecordId: recordId,
+    });
   }
 
   public async findByMedicalRecordId(recordId: string) {

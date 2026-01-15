@@ -249,7 +249,8 @@ export class ServiceRequestService {
           throw new BaseError(400, "Dịch vụ không hợp lệ cho phiếu chỉ định");
         }
 
-        const configIds = detail.selectedConfigs.map((cfg) => cfg.configId);
+        const selectedConfigs = detail.selectedConfigs ?? [];
+        const configIds = selectedConfigs.map((cfg) => cfg.configId);
         const uniqueConfigIds = [...new Set(configIds)];
         if (uniqueConfigIds.length !== configIds.length) {
           throw new BaseError(400, "Không được chọn trùng lặp cấu hình cận lâm sàng");
@@ -263,7 +264,7 @@ export class ServiceRequestService {
         }[] = [];
         let totalSurcharge = 0;
 
-        for (const config of detail.selectedConfigs) {
+        for (const config of selectedConfigs) {
           const configMeta = itemMeta.configs.get(config.configId);
           if (!configMeta) {
             throw new BaseError(400, "Cấu hình không thuộc dịch vụ đã chọn");
