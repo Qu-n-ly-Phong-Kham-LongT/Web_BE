@@ -50,12 +50,6 @@ const UserSwagger = {
           required: false,
           schema: { type: "string", enum: Object.values(UserRoleEnum) },
         },
-        {
-          name: "clinicId",
-          in: "query",
-          required: false,
-          schema: { type: "string", format: "uuid" },
-        },
       ],
       responses: {
         200: {
