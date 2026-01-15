@@ -68,10 +68,7 @@ export class UserController {
     return successResponse(res, 200, null, "Đổi mật khẩu thành công");
   };
 
-  public getMyProfile = async (
-    req: AuthenticatedRequest,
-    res: Response,
-  ) => {
+  public getMyProfile = async (req: AuthenticatedRequest, res: Response) => {
     const userId = req.payload?.userId ?? "";
 
     const result = await this.userService.getUserById(userId);
@@ -84,6 +81,16 @@ export class UserController {
       200,
       result,
       "Lấy thông tin người dùng thành công"
+    );
+  };
+
+  public getUserEnum = async (req: AuthenticatedRequest, res: Response) => {
+    const result = await this.userService.getUserRoleEnum();
+    return successResponse(
+      res,
+      200,
+      result,
+      "Lấy danh sách vai trò thành công"
     );
   };
 }
