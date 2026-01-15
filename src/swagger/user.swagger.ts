@@ -1,3 +1,4 @@
+import { UserRoleEnum } from "@prisma/client";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import {
   CreateUserRequestSchema,
@@ -8,8 +9,78 @@ import {
   UserRoleEnumResponseSchema,
 } from "../modules/users/dtos/user.response.dto";
 
+const paginationSchema = {
+  type: "object",
+  properties: {
+    currentPage: { type: "integer" },
+    size: { type: "integer" },
+    totalItems: { type: "integer" },
+    totalPages: { type: "integer" },
+  },
+};
+
 const UserSwagger = {
   "/api/users": {
+    get: {
+      summary: "Lấy ds người dùng (Admin)",
+      tags: ["Users"],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 1 },
+        },
+        {
+          name: "size",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 10 },
+        },
+        {
+          name: "search",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+        },
+        {
+          name: "role",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: Object.values(UserRoleEnum) },
+        },
+        {
+          name: "clinicId",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "uuid" },
+        },
+      ],
+      responses: {
+        200: {
+          description: "Lấy ds người dùng thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "array",
+                    items: joiToSwagger(UserResponseSchema),
+                  },
+                  pagination: paginationSchema,
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        403: { description: "Forbidden" },
+      },
+    },
     post: {
       summary: "Tạo tài khoản người dùng mới (Admin)",
       tags: ["Users"],

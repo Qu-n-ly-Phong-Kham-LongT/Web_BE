@@ -24,11 +24,19 @@ UserRouter.post(
   userController.createUser
 );
 
+UserRouter.get(
+  "/",
+  authenticate,
+  authorize([UserRoleEnum.Admin]),
+  userController.getUsers
+);
+
 UserRouter.get("/me", authenticate, userController.getMyProfile);
 
 UserRouter.put("/change-password", authenticate, userController.changePassword);
 
-UserRouter.get("/roles",
+UserRouter.get(
+  "/roles",
   authenticate,
   authorize([UserRoleEnum.Admin]),
   userController.getUserEnum

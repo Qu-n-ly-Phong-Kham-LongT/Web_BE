@@ -11,6 +11,7 @@ import {
 } from "../dtos/user.response.dto";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicService } from "../../clinic/services/clinic.service";
+import { createPagination } from "../../../utils/pagination.util";
 
 export class UserService {
   private userRepository = new UserRepository();
@@ -26,7 +27,9 @@ export class UserService {
       throw new BaseError(409, "Tài khoản đăng nhập đã tồn tại.");
     }
 
-    const duplicatedEmail = await this.userRepository.findUserByEmail(createData.email);
+    const duplicatedEmail = await this.userRepository.findUserByEmail(
+      createData.email
+    );
     if (duplicatedEmail) {
       throw new BaseError(409, "Email này đã được sử dụng.");
     }
@@ -95,7 +98,7 @@ export class UserService {
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      throw new BaseError(400, "Mật khẩu cũ không đúng.");
+      throw new BaseError(400, "Role khong hop le");
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -141,5 +144,41 @@ export class UserService {
 
   public async getUserRoleEnum(): Promise<UserRoleEnumResponseDto> {
     return { roles: Object.values(UserRoleEnum) };
+  }
+
+  public async getUsers(
+    page = 1,
+    size = 10,
+    search?: string,
+    role?: string,
+    clinicId?: string
+  ) {
+    if (role && !Object.values(UserRoleEnum).includes(role as UserRoleEnum)) {
+      throw new BaseError(400, "Role không hợp lệ");
+    }
+
+    const normalizedRole = role as UserRoleEnum | undefined;
+
+    const { users, totalItems } = await this.userRepository.getAllUser(
+      page,
+      size,
+      search,
+      normalizedRole,
+      clinicId
+    );
+    return {
+      users: users.map((u) => ({
+        id: u.userId,
+        username: u.username,
+        fullname: u.fullName,
+        email: u.email ?? null,
+        clinicId: u.clinicId,
+        clinicCode: u.clinic?.clinicCode ?? null,
+        status: u.status as unknown as number,
+        createdAt: u.createdAt,
+        roles: u.roles.map((ur: any) => ur.role.roleName),
+      })),
+      pagination: createPagination(page, size, totalItems),
+    };
   }
 }

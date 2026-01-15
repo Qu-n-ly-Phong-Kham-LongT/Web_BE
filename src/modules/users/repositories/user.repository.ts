@@ -22,9 +22,9 @@ export class UserRepository {
   public async findUserByEmail(email: string): Promise<User | null> {
     return await prisma.user.findUnique({
       where: {
-        email: email
-      }
-    })
+        email: email,
+      },
+    });
   }
 
   public async createUser(
@@ -81,19 +81,43 @@ export class UserRepository {
     });
   }
 
-  public async getAllUser(): Promise<User[]> {
-    return await prisma.user.findMany({
-      include: {
-        clinic: true,
-        roles: {
-          include: {
-            role: true,
-          },
+  public async getAllUser(
+    page: number = 1,
+    size: number = 10,
+    search?: string,
+    role?: UserRoleEnum,
+    clinicId?: string
+  ): Promise<{ users: UserWithRoles[]; totalItems: number }> {
+    const skip = (page - 1) * size;
+    const where: Prisma.UserWhereInput = {
+      ...(clinicId ? { clinicId } : {}),
+      ...(role
+        ? { roles: { some: { role: { roleName: role } } } }
+        : {}),
+      ...(search
+        ? {
+            OR: [
+              { username: { contains: search, mode: "insensitive" as const } },
+              { fullName: { contains: search, mode: "insensitive" as const } },
+              { email: { contains: search, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+    const [users, totalItems] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: size,
+        include: {
+          clinic: true,
+          roles: { include: { role: true } },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return { users, totalItems };
   }
 }
