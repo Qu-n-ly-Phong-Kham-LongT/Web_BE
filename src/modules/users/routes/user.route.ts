@@ -28,6 +28,12 @@ UserRouter.get("/me", authenticate, userController.getMyProfile);
 
 UserRouter.put("/change-password", authenticate, userController.changePassword);
 
+UserRouter.get("/roles",
+  authenticate,
+  authorize([UserRoleEnum.Admin]),
+  userController.getUserEnum
+);
+
 UserRouter.put(
   "/:id",
   authenticate,

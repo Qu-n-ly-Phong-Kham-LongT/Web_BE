@@ -1,8 +1,14 @@
 import bcrypt from "bcrypt";
 import { Prisma, UserRoleEnum, UserStatus } from "@prisma/client";
 import { UserRepository } from "../repositories/user.repository";
-import { CreateUserRequestDto, UpdateUserRequestDto } from "../dtos/user.request.dto";
-import { UserResponseDto } from "../dtos/user.response.dto";
+import {
+  CreateUserRequestDto,
+  UpdateUserRequestDto,
+} from "../dtos/user.request.dto";
+import {
+  UserResponseDto,
+  UserRoleEnumResponseDto,
+} from "../dtos/user.response.dto";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicService } from "../../clinic/services/clinic.service";
 
@@ -10,10 +16,19 @@ export class UserService {
   private userRepository = new UserRepository();
   private clinicService = new ClinicService();
 
-  public async createUser(createData: CreateUserRequestDto): Promise<UserResponseDto> {
-    const checkExisting = await this.userRepository.findUserByUsername(createData.username);
+  public async createUser(
+    createData: CreateUserRequestDto
+  ): Promise<UserResponseDto> {
+    const checkExisting = await this.userRepository.findUserByUsername(
+      createData.username
+    );
     if (checkExisting) {
       throw new BaseError(409, "Tài khoản đăng nhập đã tồn tại.");
+    }
+
+    const duplicatedEmail = await this.userRepository.findUserByEmail(createData.email);
+    if (duplicatedEmail) {
+      throw new BaseError(409, "Email này đã được sử dụng.");
     }
     await this.clinicService.getClinicById(createData.clinicId);
 
@@ -25,7 +40,7 @@ export class UserService {
         username: createData.username,
         password: hashedPassword,
         fullName: createData.fullname,
-        email: createData.email ?? null,
+        email: createData.email,
         clinicId: createData.clinicId,
         status: UserStatus.Active,
       },
@@ -52,7 +67,7 @@ export class UserService {
   public async getUserById(id: string): Promise<UserResponseDto> {
     const user = await this.userRepository.findUserById(id);
     if (!user) {
-      throw new BaseError(404, "Người dùng không tồn tại")
+      throw new BaseError(404, "Người dùng không tồn tại");
     }
 
     return {
@@ -68,7 +83,11 @@ export class UserService {
     };
   }
 
-  public async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  public async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string
+  ): Promise<void> {
     const user = await this.userRepository.findUserById(userId);
     if (!user) {
       throw new BaseError(404, "Không tìm thấy người dùng.");
@@ -80,10 +99,15 @@ export class UserService {
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    await this.userRepository.updateUser(userId, { password: hashedNewPassword });
+    await this.userRepository.updateUser(userId, {
+      password: hashedNewPassword,
+    });
   }
 
-  public async updateUser(id: string, updateData: UpdateUserRequestDto): Promise<void> {
+  public async updateUser(
+    id: string,
+    updateData: UpdateUserRequestDto
+  ): Promise<void> {
     const existingUser = await this.userRepository.findUserById(id);
     if (!existingUser) {
       throw new BaseError(404, "Không tìm thấy người dùng.");
@@ -97,7 +121,8 @@ export class UserService {
 
     const updatePayload: Prisma.UserUncheckedUpdateInput = {
       fullName: updateData.fullname ?? existingUser.fullName,
-      email: updateData.email !== undefined ? updateData.email : existingUser.email,
+      email:
+        updateData.email !== undefined ? updateData.email : existingUser.email,
       clinicId: updateData.clinicId ?? existingUser.clinicId,
       status: statusToUpdate ?? existingUser.status,
     };
@@ -112,5 +137,9 @@ export class UserService {
     }
 
     await this.userRepository.updateUser(id, updatePayload);
+  }
+
+  public async getUserRoleEnum(): Promise<UserRoleEnumResponseDto> {
+    return { roles: Object.values(UserRoleEnum) };
   }
 }

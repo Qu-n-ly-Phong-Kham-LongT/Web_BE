@@ -19,6 +19,14 @@ export class UserRepository {
     });
   }
 
+  public async findUserByEmail(email: string): Promise<User | null> {
+    return await prisma.user.findUnique({
+      where: {
+        email: email
+      }
+    })
+  }
+
   public async createUser(
     createData: Prisma.UserUncheckedCreateInput,
     roles: UserRoleEnum[]
@@ -69,6 +77,22 @@ export class UserRepository {
             role: true,
           },
         },
+      },
+    });
+  }
+
+  public async getAllUser(): Promise<User[]> {
+    return await prisma.user.findMany({
+      include: {
+        clinic: true,
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
   }

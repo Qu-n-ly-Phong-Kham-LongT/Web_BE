@@ -1,6 +1,12 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { CreateUserRequestSchema, UpdateUserRequestSchema } from "../modules/users/dtos/user.request.dto";
-import { UserResponseSchema } from "../modules/users/dtos/user.response.dto";
+import {
+  CreateUserRequestSchema,
+  UpdateUserRequestSchema,
+} from "../modules/users/dtos/user.request.dto";
+import {
+  UserResponseSchema,
+  UserRoleEnumResponseSchema,
+} from "../modules/users/dtos/user.response.dto";
 
 const UserSwagger = {
   "/api/users": {
@@ -134,6 +140,26 @@ const UserSwagger = {
       responses: {
         200: { description: "Đổi mật khẩu thành công" },
         400: { description: "Mật khẩu cũ không đúng" },
+        401: { description: "Unauthorized" },
+        403: { description: "Forbidden" },
+      },
+    },
+  },
+
+  "/api/users/roles": {
+    get: {
+      summary: "Danh sách role",
+      tags: ["Users"],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Lấy danh sách roles thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(UserRoleEnumResponseSchema),
+            },
+          },
+        },
         401: { description: "Unauthorized" },
         403: { description: "Forbidden" },
       },
