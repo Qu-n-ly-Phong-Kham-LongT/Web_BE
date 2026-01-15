@@ -93,4 +93,22 @@ export class UserController {
       "Lấy danh sách vai trò thành công"
     );
   };
+
+  public getUsers = async (req: AuthenticatedRequest, res: Response) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const size = parseInt(req.query.size as string) || 10;
+    const search = req.query.search as string | undefined;
+    const role = req.query.role as string | undefined;
+    const clinicId = req.payload?.clinicId as string | undefined;
+
+    const result = await this.userService.getUsers(page, size, search, role, clinicId);
+    return successResponse(
+      res,
+      200,
+      result.users,
+      "Lấy ds người dùng thành công",
+      result.pagination
+    );
+  };
 }
+
