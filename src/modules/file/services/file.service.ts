@@ -127,6 +127,35 @@ export class FileService {
     });
   }
 
+  public async saveMedicalRecordPdf(
+    recordId: string,
+    recordCode: string | null | undefined,
+    buffer: Buffer
+  ) {
+    const type = FileType.MEDICAL_RECORD;
+    const fileName = formatFileName(`${recordCode || recordId}.pdf`);
+    const relativePath = path
+      .join("/uploads", type, fileName)
+      .replace(/\\/g, "/");
+    const fullPath = resolvePublicPath(relativePath);
+
+    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
+    if (existing?.relativePath) {
+      await this.deleteByRelativePath(existing.relativePath);
+    }
+
+    await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.promises.writeFile(fullPath, buffer);
+
+    return await this.fileRepository.createFileRecord({
+      relativePath,
+      type,
+      mimeType: "application/pdf",
+      size: buffer.length,
+      medicalRecordId: recordId,
+    });
+  }
+
   public async findByMedicalRecordId(recordId: string) {
     const file = await this.fileRepository.findByMedicalRecordId(recordId);
     if (!file) {

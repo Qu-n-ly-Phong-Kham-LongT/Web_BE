@@ -27,13 +27,10 @@ export class SharedController {
       clinicId
     );
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    );
+    res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${result.recordCode}.docx"`
+      `attachment; filename="${result.recordCode}.pdf"`
     );
     return res.send(result.buffer);
   };
