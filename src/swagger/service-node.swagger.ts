@@ -88,20 +88,6 @@ const ServiceNodeSwagger = {
           schema: { type: "string" },
           description: "Tìm theo code hoặc name",
         },
-        {
-          name: "sortBy",
-          in: "query",
-          required: false,
-          schema: { type: "string", enum: ["code", "name", "createdAt", "updatedAt"] },
-          description: "Trường sắp xếp",
-        },
-        {
-          name: "sortDir",
-          in: "query",
-          required: false,
-          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
-          description: "Thứ tự sắp xếp",
-        },
       ],
       responses: {
         200: {

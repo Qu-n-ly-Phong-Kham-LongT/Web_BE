@@ -499,7 +499,9 @@ export class ServiceRequestService {
       const selectedConfigs = selectedOptions?.selectedConfigs ?? [];
 
       return selectedConfigs.map((config) => {
-        const meta = config.configId ? configMetaMap.get(config.configId) : null;
+        const meta = config.configId
+          ? configMetaMap.get(config.configId)
+          : null;
         return {
           requestId: toStringValue(rawData.requestId),
           requestDetailId: toStringValue(detail.requestDetailId),
@@ -645,15 +647,11 @@ export class ServiceRequestService {
       docxBuffer,
       Buffer.from(footer, "utf-8"),
     ]);
-    const apiKey = process.env.CONVERT_API_KEY || process.env.X_API_KEY || "";
+    const apiKey = process.env.X_API_KEY || "";
 
     const isHttps = url.protocol === "https:";
     const requestFn = isHttps ? https.request : http.request;
-    const port = url.port
-      ? Number(url.port)
-      : isHttps
-        ? 443
-        : 80;
+    const port = url.port ? Number(url.port) : isHttps ? 443 : 80;
 
     return await new Promise<Buffer>((resolve, reject) => {
       const req = requestFn(
@@ -665,21 +663,19 @@ export class ServiceRequestService {
           headers: {
             "Content-Type": `multipart/form-data; boundary=${boundary}`,
             "Content-Length": body.length,
-            ...(apiKey ? { "x-api-key": apiKey } : {}),
+            ...(apiKey ? { "X-API-KEY": apiKey } : {}),
           },
         },
         (res) => {
           const chunks: Buffer[] = [];
           res.on("data", (chunk) => {
-            chunks.push(
-              Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
-            );
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
           });
           res.on("end", () => {
             const buffer = Buffer.concat(chunks);
             const status = res.statusCode ?? 500;
             if (status < 200 || status >= 300) {
-              reject(new BaseError(status, "Convert service failed"));
+              reject(new BaseError(status, "API Key thiếu"));
               return;
             }
             const contentType = String(res.headers["content-type"] ?? "");
@@ -714,5 +710,4 @@ export class ServiceRequestService {
       req.end();
     });
   }
-
 }
