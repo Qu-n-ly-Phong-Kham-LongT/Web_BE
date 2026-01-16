@@ -20,4 +20,9 @@ serviceRequestRouter.get(
   controller.getById
 );
 
+serviceRequestRouter.get(
+  "/:id/print",
+  controller.printServiceRequestPdf
+);
+
 export default serviceRequestRouter;

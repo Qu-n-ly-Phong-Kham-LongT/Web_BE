@@ -2,50 +2,34 @@
   "requestId": "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
   "details": [
     {
-      "detailId": "5789213b-8a4c-4f68-b416-45a1805d0a69",
+      "itemId": "fe8040de-67ef-4998-b7a1-f39dd4dc307b",
       "results": [
         {
           "configId": "45d14fd2-7cb9-4a51-9342-dd7d9e886467",
-          "indicatorName": "Tiêm phản quang",
-          "valueString": "có",
-          "valueNumber": null,
-          "unit": null,
-          "executedAt": null
+          "valueString": "cA3"
         },
-
         {
           "configId": "d5652f01-04c5-4e01-9d12-93397e2f8386",
-          "indicatorName": "Tái tạo mạch máu",
-          "valueString": "Không phát hiện bất thường",
-          "valueNumber": null,
-          "unit": null,
-          "executedAt": null
+          "valueString": "Khong phat hien bat thuong"
         }
       ]
     },
     {
-      "detailId": "3606a6ac-1033-449c-b98d-fe7481e14956",
+      "itemId": "bc6ee459-e09a-4a0f-abb2-c7e8059587b8",
       "results": [
         {
           "configId": "d869521e-4aea-4aa5-bb02-817450b37346",
-          "indicatorName": "Kết luận",
-          "valueString": "Không phát hiện gì bất thường",
-          "valueNumber": null,
-          "unit": null,
-          "executedAt": null
+          "valueString": "Khong phat hien bat thuong"
         }
       ]
     },
     {
-      "detailId": "d194e54f-204a-44f6-a272-226366bdf8ec",
+      "itemId": "9b20993b-11f9-4986-88b1-296947c9c604",
       "results": [
         {
           "configId": "1b540d22-c353-42c7-a752-5f065f90ed67",
-          "indicatorName": "Kết luận",
-          "valueString": null,
           "valueNumber": 0.86,
-          "unit": "mIU/mL",
-          "executedAt": null
+          "unit": "mIU/mL"
         }
       ]
     }

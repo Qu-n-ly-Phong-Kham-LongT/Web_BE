@@ -6,8 +6,19 @@ export class FileRepository {
     return await prisma.file.findUnique({
       where: {
         medicalRecordId: recordId
-      } 
-    })
+      },
+    });
+  }
+
+  public async findByServiceRequestId(requestId: string) {
+    return await prisma.file.findFirst({
+      where: {
+        serviceRequestId: requestId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
   }
   
   public async createFileRecord(data: UploadFileRequestDto) {
@@ -29,6 +40,14 @@ export class FileRepository {
     await prisma.file.deleteMany({
       where: {
         relativePath: relativePath,
+      },
+    });
+  }
+
+  public async deleteByServiceRequestId(requestId: string): Promise<void> {
+    await prisma.file.deleteMany({
+      where: {
+        serviceRequestId: requestId,
       },
     });
   }

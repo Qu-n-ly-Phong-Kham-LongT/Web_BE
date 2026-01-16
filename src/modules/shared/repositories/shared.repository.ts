@@ -410,6 +410,7 @@ export class SharedRepository {
                   configId: cfg.configId,
                   configCode: cfg.configCode ?? (meta?.configCode ?? null),
                   displayName: meta?.displayName ?? null,
+                  unit: meta?.unit ?? null,
                   selectedValues: cfg.selectedValues ?? [],
                   totalSurcharge:
                     cfg.totalSurcharge !== undefined && cfg.totalSurcharge !== null
@@ -638,6 +639,7 @@ export class SharedRepository {
           configId: toStringValue(config.configId),
           configCode: toStringValue(config.configCode),
           displayName: toStringValue(config.displayName),
+          unit: toStringValue(config.unit),
           selectedValues: config.selectedValues ?? [],
           totalSurcharge: toStringValue(config.totalSurcharge),
         }))
