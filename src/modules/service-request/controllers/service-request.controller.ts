@@ -35,12 +35,12 @@ export class ServiceRequestController {
   };
 
   public printServiceRequestPdf = async (
-    req: AuthenticatedRequest<{ requestId: string }>,
+    req: AuthenticatedRequest<{ id: string }>,
     res: Response
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
     const result = await this.serviceRequestService.printServiceRequestPdf(
-      req.params.requestId,
+      req.params.id,
       clinicId
     );
     return successResponse(res, 200, result, "In phiếu chỉ định thành công");

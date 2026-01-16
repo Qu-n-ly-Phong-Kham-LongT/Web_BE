@@ -36,35 +36,24 @@ export class ServiceNodeService {
   }
 
   public async list(
-    nodeType?: NodeType,
-    isActive?: boolean,
     page: number = 1,
     size: number = 10,
-    search?: string,
-    sortBy?: string,
-    sortDir?: string
+    nodeType?: NodeType,
+    isActive?: boolean,
+    search?: string
   ): Promise<{ nodes: ServiceNode[]; pagination: ReturnType<typeof createPagination> }> {
     const safePage = Math.max(page, 1);
     const safeSize = Math.max(size, 1);
-    const onlyActive = isActive === undefined ? true : isActive;
+    const normalizedIsActive = isActive;
 
     const normalizedSearch = search?.trim() || undefined;
-    const allowedSortBy = ["code", "name", "createdAt", "updatedAt"];
-    const normalizedSortBy = sortBy?.trim() || "code";
-    if (normalizedSortBy && !allowedSortBy.includes(normalizedSortBy)) {
-      throw new BaseError(400, "SortBy không hợp lệ");
-    }
-
-    const normalizedSortDir = (sortDir?.toLowerCase() === "desc") ? "desc" : "asc";
 
     const { nodes, totalItems } = await this.repo.findAll(
-      nodeType,
-      onlyActive,
       safePage,
       safeSize,
-      normalizedSearch,
-      normalizedSortBy as "code" | "name" | "createdAt" | "updatedAt",
-      normalizedSortDir
+      nodeType,
+      normalizedIsActive,
+      normalizedSearch
     );
 
     return {
