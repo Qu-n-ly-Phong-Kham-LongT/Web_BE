@@ -16,6 +16,23 @@ export class PrescriptionController {
       req.body,
       clinicId
     );
-    return successResponse(res, 200, result, "Tạo/Cập nhật toa thuốc và chẩn đoán thành công");
+    return successResponse(
+      res,
+      200,
+      result,
+      "Tạo/Cập nhật toa thuốc và chẩn đoán thành công"
+    );
+  };
+
+  public printPrescriptionPdf = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const result = await this.prescriptionService.printServiceRequestPdf(
+      req.params.id,
+      clinicId
+    );
+    return successResponse(res, 200, result, "In toa thành công");
   };
 }

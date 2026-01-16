@@ -414,7 +414,7 @@ export class ServiceRequestService {
   public async prepareForTemplate(
     requestId: string,
     clinicId?: string
-  ): Promise<ServiceRequestPrintData> {
+  ): Promise<ServiceRequestPrintData> {  
     const toStringValue = (value: unknown) =>
       value === null || value === undefined ? "" : String(value);
     const formatDate = (value?: string | Date | null) => {
@@ -580,9 +580,9 @@ export class ServiceRequestService {
         rawData.medicalRecord?.patient?.gender === "Male"
           ? "Nam"
           : rawData.medicalRecord?.patient?.gender === "Female"
-            ? "Nu"
+            ? "Nữ"
             : rawData.medicalRecord?.patient?.gender === "Other"
-              ? "Khac"
+              ? "Khác"
               : "",
       address: toStringValue(rawData.medicalRecord?.patient?.address),
       phone: toStringValue(rawData.medicalRecord?.patient?.phone),

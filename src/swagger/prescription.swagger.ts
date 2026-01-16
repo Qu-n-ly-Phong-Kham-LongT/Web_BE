@@ -22,6 +22,60 @@ const PrescriptionSwagger = {
       },
     },
   },
+
+  "/api/prescriptions/{id}/print": {
+    get: {
+      tags: ["Core Businesses"],
+      summary: "In toa",
+      parameters: [
+        {
+          name: "prescriptionId",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
+          },
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "PDF file",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "object",
+                    properties: {
+                      requestCode: { type: "string" },
+                      file: {
+                        type: "object",
+                        properties: {
+                          fileId: { type: "string" },
+                          relativePath: { type: "string" },
+                          url: { type: "string" },
+                          type: { type: "string" },
+                          size: { type: "number" },
+                          createdAt: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Forbidden" },
+        404: { description: "Not found" },
+      },
+    },
+  },
 };
 
 export default PrescriptionSwagger;

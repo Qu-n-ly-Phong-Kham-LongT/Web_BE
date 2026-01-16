@@ -4,7 +4,6 @@ import {
   ServiceRequestResponseSchema,
   ServiceRequestFullResponseSchema,
 } from "../modules/service-request/dtos/service-request.response.dto";
-import { required } from "joi";
 
 const ServiceRequestSwagger = {
   "/api/service-requests": {

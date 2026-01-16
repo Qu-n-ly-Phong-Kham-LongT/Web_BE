@@ -14,4 +14,9 @@ prescriptionRouter.put(
   prescriptionController.upsertPrescriptionDiagnosis
 );
 
+prescriptionRouter.get("/:id/print",
+  authenticate,
+  prescriptionController.printPrescriptionPdf
+)
+
 export default prescriptionRouter;
