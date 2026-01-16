@@ -439,7 +439,7 @@ export class ServiceRequestService {
       const day = String(date.getDate()).padStart(2, "0");
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
-      return `Ngay ${day} thang ${month} nam ${year}`;
+      return `Ngày ${day} tháng ${month} năm ${year}`;
     };
     const rawData = await this.serviceRequestRepository.getDataPrint(requestId);
     if (!rawData) {
@@ -456,16 +456,70 @@ export class ServiceRequestService {
     const requestCode = toStringValue(rawData.requestCode ?? rawData.requestId);
     const barcode = await generateBarcodeBuffer(requestCode);
 
+    const buildSelectedText = (
+      detail: (typeof rawData.details)[number]
+    ): string => {
+      const configMetaMap = new Map(
+        (detail.serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+      );
+      const selectedOptions = detail.selectedOptions as
+        | {
+            selectedConfigs?: {
+              configId?: string;
+              selectedValues?: string[];
+            }[];
+          }
+        | null
+        | undefined;
+      const selectedConfigs = selectedOptions?.selectedConfigs ?? [];
+      const parts: string[] = [];
+
+      for (const cfg of selectedConfigs) {
+        if (!cfg.configId) {
+          continue;
+        }
+        const meta = configMetaMap.get(cfg.configId);
+        const displayName = meta?.displayName ?? "";
+        if (!displayName) {
+          continue;
+        }
+        const options = Array.isArray((meta?.metaData as any)?.options)
+          ? ((meta?.metaData as any)?.options ?? [])
+          : [];
+        const labels = (cfg.selectedValues ?? [])
+          .map((value) => {
+            const found = options.find(
+              (opt: any) => opt?.value === value
+            );
+            return typeof found?.label === "string" ? found.label : value;
+          })
+          .filter(Boolean);
+
+        if (labels.length > 0) {
+          parts.push(displayName);
+        } else {
+          parts.push(displayName);
+        }
+      }
+
+      return parts.length ? `(${parts.join(", ")})` : "";
+    };
+
     const groupMap = new Map<string, { name: string; quantity: number }[]>();
+
     rawData.details.forEach((detail) => {
-      const typeName = detail.serviceItem?.type?.name || "DICH VU KHAC";
+      const typeName = detail.serviceItem?.type?.name || "DỊCH VỤ KHÁC";
+      const selectedText = buildSelectedText(detail);
+      const itemDisplayName = `${toStringValue(
+        detail.serviceItem?.name
+      )} ${selectedText}`.trim();
 
       if (!groupMap.has(typeName)) {
         groupMap.set(typeName, []);
       }
 
       groupMap.get(typeName)?.push({
-        name: toStringValue(detail.serviceItem?.name),
+        name: itemDisplayName,
         quantity: 1,
       });
     });
@@ -586,7 +640,7 @@ export class ServiceRequestService {
         barcode: barcodeBase64,
       });
     } catch (error) {
-      throw new BaseError(500, "Khong the render template phieu chi dinh");
+      throw new BaseError(500, "Không thể render data của phiếu chỉ định");
     }
 
     const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
@@ -689,7 +743,7 @@ export class ServiceRequestService {
                   return;
                 }
               } catch (error) {
-                reject(new BaseError(500, "Invalid convert response"));
+                reject(new BaseError(500, "Lỗi"));
                 return;
               }
             }
@@ -702,7 +756,7 @@ export class ServiceRequestService {
         reject(
           new BaseError(
             500,
-            error instanceof Error ? error.message : "Convert failed"
+            error instanceof Error ? error.message : "Chuyển đổi thất bại"
           )
         );
       });
