@@ -35,7 +35,7 @@ const SharedSwagger = {
   "/api/medical-records/{id}/print": {
     get: {
       tags: ["Core Businesses"],
-      summary: "In bệnh án (DOCX)",
+      summary: "In bệnh án (PDF)",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
@@ -48,7 +48,7 @@ const SharedSwagger = {
       ],
       responses: {
         200: {
-          description: "DOCX bệnh án",
+          description: "PDF bệnh án",
           content: {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
               schema: { type: "string", format: "binary" },
