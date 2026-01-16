@@ -311,7 +311,7 @@ export class PrecriptionService {
     };
   }
 
-  public async printServiceRequestDocx(
+  public async printPrescriptionDocx(
     prescriptionId: string,
     clinicId?: string
   ): Promise<{ buffer: Buffer; prescriptionCode: string }> {
@@ -368,7 +368,7 @@ export class PrecriptionService {
     };
   }
 
-  public async printServiceRequestPdf(
+  public async printPresctiptionPdf(
     prescriptionId: string,
     clinicId?: string
   ): Promise<{
@@ -382,7 +382,7 @@ export class PrecriptionService {
       createdAt: Date;
     };
   }> {
-    const docxResult = await this.printServiceRequestDocx(
+    const docxResult = await this.printPrescriptionDocx(
       prescriptionId,
       clinicId
     );
@@ -390,7 +390,7 @@ export class PrecriptionService {
       docxResult.buffer,
       `${docxResult.prescriptionCode}.docx`
     );
-    const file = await this.fileService.saveServiceRequestPdf(
+    const file = await this.fileService.savePrescripitonPdf(
       prescriptionId,
       docxResult.prescriptionCode,
       pdfBuffer

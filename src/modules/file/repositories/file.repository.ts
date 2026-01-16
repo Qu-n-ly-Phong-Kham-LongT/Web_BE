@@ -20,6 +20,14 @@ export class FileRepository {
       },
     });
   }
+
+  public async findByPrescriptionId(prescriptionId: string) {
+    return await prisma.file.findUnique({
+      where: {
+        prescriptionId: prescriptionId,
+      }
+    });
+  }
   
   public async createFileRecord(data: UploadFileRequestDto) {
     return await prisma.file.create({
@@ -48,6 +56,14 @@ export class FileRepository {
     await prisma.file.deleteMany({
       where: {
         serviceRequestId: requestId,
+      },
+    });
+  }
+
+  public async deleteByPrescriptionId(prescriptionId: string): Promise<void> {
+    await prisma.file.delete({
+      where: {
+        prescriptionId: prescriptionId,
       },
     });
   }
