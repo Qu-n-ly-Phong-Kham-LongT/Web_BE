@@ -15,6 +15,23 @@ const resolvePublicPath = (relativePath: string) =>
 export class FileService {
   private fileRepository = new FileRepository();
 
+  private mapFileResponse(file: {
+    fileID: string;
+    relativePath: string;
+    type: FileType;
+    size: number;
+    createdAt: Date;
+  }) {
+    return {
+      fileId: file.fileID,
+      relativePath: file.relativePath,
+      url: `${process.env.BASE_URL}${file.relativePath}`,
+      type: file.type,
+      size: file.size,
+      createdAt: file.createdAt,
+    };
+  }
+
   public async uploadFile(req: Request): Promise<any> {
     const getQueryString = (value: unknown): string | undefined => {
       if (typeof value === "string") {
@@ -113,16 +130,49 @@ export class FileService {
   public async findByMedicalRecordId(recordId: string) {
     const file = await this.fileRepository.findByMedicalRecordId(recordId);
     if (!file) {
-      throw new BaseError(404, "Không tìm thấy file")
+      throw new BaseError(404, "Khong tim thay file");
     }
 
-    return {
-      fileId: file.fileID,
-      relativePath: file.relativePath,
-      url: `${process.env.BASE_URL}${file.relativePath}`,
-      type: file.type,
-      size: file.size,
-      createdAt: file.createdAt
+    return this.mapFileResponse(file);
+  }
+
+  public async saveServiceRequestPdf(
+    requestId: string,
+    requestCode: string | null | undefined,
+    buffer: Buffer
+  ) {
+    const type = FileType.SERVICE_REQUEST;
+    const fileName = formatFileName(`${requestCode || requestId}.pdf`);
+    const relativePath = path
+      .join("/uploads", type, fileName)
+      .replace(/\\/g, "/");
+    const fullPath = resolvePublicPath(relativePath);
+
+    const existing = await this.fileRepository.findByServiceRequestId(requestId);
+    if (existing?.relativePath) {
+      await this.deleteByRelativePath(existing.relativePath);
     }
+
+    await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.promises.writeFile(fullPath, buffer);
+
+    const fileRecord = await this.fileRepository.createFileRecord({
+      relativePath,
+      type,
+      mimeType: "application/pdf",
+      size: buffer.length,
+      serviceRequestId: requestId,
+    });
+
+    return this.mapFileResponse(fileRecord);
+  }
+
+  public async findByServiceRequestId(requestId: string) {
+    const file = await this.fileRepository.findByServiceRequestId(requestId);
+    if (!file) {
+      throw new BaseError(404, "Khong tim thay file");
+    }
+
+    return this.mapFileResponse(file);
   }
 }

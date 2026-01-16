@@ -4,6 +4,7 @@ import {
   ServiceRequestResponseSchema,
   ServiceRequestFullResponseSchema,
 } from "../modules/service-request/dtos/service-request.response.dto";
+import { required } from "joi";
 
 const ServiceRequestSwagger = {
   "/api/service-requests": {
@@ -26,6 +27,36 @@ const ServiceRequestSwagger = {
           content: {
             "application/json": {
               schema: joiToSwagger(ServiceRequestResponseSchema),
+              examples: {
+                created: {
+                  summary: "Service request created",
+                  value: {
+                    success: true,
+                    message: "Created",
+                    data: {
+                      requestId: "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
+                      requestCode: "SR-0001",
+                      recordId: "0ef0793d-f6f2-4e6f-a8d9-43d92c41f3f5",
+                      orderingDoctorId: "c10065eb-fd3a-4887-bcf6-423a2e6c9de7",
+                      diagnoses: null,
+                      isPatientRequested: false,
+                      receiveResultAtClinic: false,
+                      isForFollowUp: false,
+                      note: null,
+                      createdAt: "2026-01-16T10:00:00.000Z",
+                      details: [
+                        {
+                          requestDetailId: "5789213b-8a4c-4f68-b416-45a1805d0a69",
+                          itemId: "9b20993b-11f9-4986-88b1-296947c9c604",
+                          itemCode: "HBsAg",
+                          itemName: "HBsAg",
+                          selectedOptions: null,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -59,12 +90,109 @@ const ServiceRequestSwagger = {
           content: {
             "application/json": {
               schema: joiToSwagger(ServiceRequestFullResponseSchema),
+              examples: {
+                detail: {
+                  summary: "Chi tiết phiếu chỉ định với đơn vị kết quả",
+                  value: {
+                    success: true,
+                    message: "OK",
+                    data: {
+                      requestId: "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
+                      requestCode: "SR-0001",
+                      recordId: "0ef0793d-f6f2-4e6f-a8d9-43d92c41f3f5",
+                      recordCode: "MR-0001",
+                      orderingDoctorId: "c10065eb-fd3a-4887-bcf6-423a2e6c9de7",
+                      diagnoses: null,
+                      isPatientRequested: false,
+                      receiveResultAtClinic: false,
+                      isForFollowUp: false,
+                      note: null,
+                      createdAt: "2026-01-16T10:00:00.000Z",
+                      patientId: "11111111-1111-1111-1111-111111111111",
+                      details: [
+                        {
+                          requestDetailId: "5789213b-8a4c-4f68-b416-45a1805d0a69",
+                          itemId: "9b20993b-11f9-4986-88b1-296947c9c604",
+                          itemCode: "HBsAg",
+                          itemName: "HBsAg",
+                          selectedOptions: null,
+                          selectedConfigs: [
+                            {
+                              configId: "1b540d22-c353-42c7-a752-5f065f90ed67",
+                              configCode: "HBsAg",
+                              displayName: "HBsAg",
+                              unit: "mIU/mL",
+                              selectedValues: [],
+                              totalSurcharge: 0,
+                            },
+                          ],
+                          results: [],
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
             },
           },
         },
         401: { description: "Chưa đăng nhập" },
         403: { description: "Không đủ quyền truy cập" },
         404: { description: "Không tìm thấy phiếu chỉ định" },
+      },
+    },
+  },
+
+  "/api/service-requests/{requestId}/print": {
+    get: {
+      tags: ["Core Businesses"],
+      summary: "In phiếu chỉ định",
+      parameters: [
+        {
+          name: "requestId",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
+          },
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "PDF file",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "object",
+                    properties: {
+                      requestCode: { type: "string" },
+                      file: {
+                        type: "object",
+                        properties: {
+                          fileId: { type: "string" },
+                          relativePath: { type: "string" },
+                          url: { type: "string" },
+                          type: { type: "string" },
+                          size: { type: "number" },
+                          createdAt: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Forbidden" },
+        404: { description: "Not found" },
       },
     },
   },

@@ -11,7 +11,8 @@ export interface ServiceResultItemDto {
 }
 
 export interface ServiceResultDetailDto {
-  detailId: string;
+  detailId?: string;
+  itemId?: string;
   results: ServiceResultItemDto[];
 }
 
@@ -35,9 +36,10 @@ export const createServiceResultBulkSchema = Joi.object({
   details: Joi.array()
     .items(
       Joi.object({
-        detailId: Joi.string().required(),
+        detailId: Joi.string().optional(),
+        itemId: Joi.string().optional(),
         results: Joi.array().items(serviceResultItemSchema).min(1).required(),
-      })
+      }).or("detailId", "itemId")
     )
     .min(1)
     .required(),

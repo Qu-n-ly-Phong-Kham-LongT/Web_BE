@@ -19,7 +19,12 @@ export class ServiceResultService {
       const created: ServiceResultResponseDto[] = [];
       for (const detail of data.details) {
         const items = await this.createResultsForDetail(
-          { requestId: data.requestId, detailId: detail.detailId, results: detail.results },
+          {
+            requestId: data.requestId,
+            detailId: detail.detailId,
+            itemId: detail.itemId,
+            results: detail.results,
+          },
           tx
         );
         created.push(...items.map((item) => this.mapToResponseDto(item)));
@@ -35,7 +40,12 @@ export class ServiceResultService {
       const updated: ServiceResultResponseDto[] = [];
       for (const detail of data.details) {
         const items = await this.upsertResultsForDetail(
-          { requestId: data.requestId, detailId: detail.detailId, results: detail.results },
+          {
+            requestId: data.requestId,
+            detailId: detail.detailId,
+            itemId: detail.itemId,
+            results: detail.results,
+          },
           tx
         );
         updated.push(...items);
@@ -48,7 +58,12 @@ export class ServiceResultService {
     data: ServiceResultDetailDto & { requestId: string },
     tx: Prisma.TransactionClient
   ) {
-    const detail = await this.getDetailContext(data.requestId, data.detailId, tx);
+    const detail = await this.getDetailContext(
+      data.requestId,
+      data.detailId,
+      data.itemId,
+      tx
+    );
     const configIds = data.results.map((r) => r.configId);
     const uniqueConfigIds = [...new Set(configIds)];
     if (uniqueConfigIds.length !== configIds.length) {
@@ -56,7 +71,7 @@ export class ServiceResultService {
     }
 
     const existing = await this.serviceResultRepository.findByDetailAndConfigs(
-      data.detailId,
+      detail.detail.requestDetailId,
       configIds,
       tx
     );
@@ -100,7 +115,12 @@ export class ServiceResultService {
     data: ServiceResultDetailDto & { requestId: string },
     tx: Prisma.TransactionClient
   ): Promise<ServiceResultResponseDto[]> {
-    const detail = await this.getDetailContext(data.requestId, data.detailId, tx);
+    const detail = await this.getDetailContext(
+      data.requestId,
+      data.detailId,
+      data.itemId,
+      tx
+    );
     const configIds = data.results.map((r) => r.configId);
     const uniqueConfigIds = [...new Set(configIds)];
     if (uniqueConfigIds.length !== configIds.length) {
@@ -108,7 +128,7 @@ export class ServiceResultService {
     }
 
     const existing = await this.serviceResultRepository.findByDetailAndConfigs(
-      data.detailId,
+      detail.detail.requestDetailId,
       configIds,
       tx
     );
@@ -173,21 +193,38 @@ export class ServiceResultService {
 
   private async getDetailContext(
     requestId: string,
-    detailId: string,
+    detailId: string | undefined,
+    itemId: string | undefined,
     tx: Prisma.TransactionClient
   ) {
-    const detail = await tx.serviceRequestDetail.findUnique({
-      where: { requestDetailId: detailId },
-      include: {
-        serviceRequest: true,
-        serviceItem: { include: { configs: true } },
-      },
-    });
+    let detail = null;
+    if (detailId) {
+      detail = await tx.serviceRequestDetail.findUnique({
+        where: { requestDetailId: detailId },
+        include: {
+          serviceRequest: true,
+          serviceItem: { include: { configs: true } },
+        },
+      });
+    } else if (itemId) {
+      detail = await tx.serviceRequestDetail.findFirst({
+        where: { requestId, itemId },
+        include: {
+          serviceRequest: true,
+          serviceItem: { include: { configs: true } },
+        },
+      });
+    } else {
+      throw new BaseError(400, "Bad Request");
+    }
     if (!detail || !detail.serviceRequest) {
-      throw new BaseError(404, "Không tìm thấy chi tiết phiếu chỉ định");
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
     }
     if (detail.requestId !== requestId) {
       throw new BaseError(400, "Chi tiết không thuộc phiếu chỉ định");
+    }
+    if (itemId && detail.itemId && detail.itemId !== itemId) {
+      throw new BaseError(400, "Dịch vụ không khớp với phiếu chỉ định");
     }
     if (!detail.serviceItem || !detail.itemId) {
       throw new BaseError(400, "Dịch vụ không hợp lệ");

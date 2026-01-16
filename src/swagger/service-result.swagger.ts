@@ -23,6 +23,42 @@ const ServiceResultSwagger = {
         content: {
           "application/json": {
             schema: joiToSwagger(createServiceResultBulkSchema),
+            examples: {
+              byItemId: {
+                summary: "Nhập kết quả cho phiếu chỉ định tương ứng với từng cấu hình đã chọn",
+                value: {
+                  requestId: "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
+                  details: [
+                    {
+                      itemId: "fe8040de-67ef-4998-b7a1-f39dd4dc307b",
+                      results: [
+                        {
+                          configId: "45d14fd2-7cb9-4a51-9342-dd7d9e886467",
+                          valueString: "Co",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+              byDetailId: {
+                summary: "Khó",
+                value: {
+                  requestId: "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
+                  details: [
+                    {
+                      detailId: "5789213b-8a4c-4f68-b416-45a1805d0a69",
+                      results: [
+                        {
+                          configId: "45d14fd2-7cb9-4a51-9342-dd7d9e886467",
+                          valueString: "Co",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
           },
         },
       },
@@ -52,6 +88,25 @@ const ServiceResultSwagger = {
         content: {
           "application/json": {
             schema: joiToSwagger(createServiceResultBulkSchema),
+            examples: {
+              byItemId: {
+                summary: "Upsert kết quả cho phiếu chỉ định với đơn vị cụ thể",
+                value: {
+                  requestId: "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
+                  details: [
+                    {
+                      itemId: "fe8040de-67ef-4998-b7a1-f39dd4dc307b",
+                      results: [
+                        {
+                          configId: "45d14fd2-7cb9-4a51-9342-dd7d9e886467",
+                          valueString: "Co",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
           },
         },
       },

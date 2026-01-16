@@ -27,31 +27,32 @@ export type ServiceRequestWithDetails = Prisma.ServiceRequestGetPayload<{
   };
 }>;
 
-export type ServiceRequestWithDetailsAndResults = Prisma.ServiceRequestGetPayload<{
-  include: {
-    medicalRecord: {
-      select: {
-        recordCode: true;
-        patientId: true;
-        clinicId: true;
+export type ServiceRequestWithDetailsAndResults =
+  Prisma.ServiceRequestGetPayload<{
+    include: {
+      medicalRecord: {
+        select: {
+          recordCode: true;
+          patientId: true;
+          clinicId: true;
+        };
       };
-    };
-    details: {
-      include: {
-        serviceItem: {
-          include: {
-            configs: true;
+      details: {
+        include: {
+          serviceItem: {
+            include: {
+              configs: true;
+            };
           };
         };
       };
-    };
-    serviceResults: {
-      include: {
-        serviceItemConfig: true;
+      serviceResults: {
+        include: {
+          serviceItemConfig: true;
+        };
       };
     };
-  };
-}>;
+  }>;
 
 export class ServiceRequestRepository {
   public async create(
@@ -152,6 +153,30 @@ export class ServiceRequestRepository {
         serviceResults: {
           include: {
             serviceItemConfig: true,
+          },
+        },
+      },
+    });
+  }
+
+  public async getDataPrint(requestId: string) {
+    return await prisma.serviceRequest.findUnique({
+      where: { requestId },
+      include: {
+        medicalRecord: {
+          include: {
+            patient: true,
+          },
+        },
+        orderingDoctor: true,
+        details: {
+          include: {
+            serviceItem: {
+              include: {
+                type: true,
+                configs: true,
+              },
+            },
           },
         },
       },

@@ -33,6 +33,18 @@ export class ServiceRequestController {
     );
     return successResponse(res, 200, result, "Lấy chi tiết phiếu chỉ định");
   };
+
+  public printServiceRequestPdf = async (
+    req: AuthenticatedRequest<{ requestId: string }>,
+    res: Response
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const result = await this.serviceRequestService.printServiceRequestPdf(
+      req.params.requestId,
+      clinicId
+    );
+    return successResponse(res, 200, result, "In phiếu chỉ định thành công");
+  };
 }
 
 
