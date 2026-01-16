@@ -196,10 +196,50 @@ export class FileService {
     return this.mapFileResponse(fileRecord);
   }
 
+  public async savePrescripitonPdf(
+    prescriptionId: string,
+    prescriptionCode: string | null | undefined,
+    buffer: Buffer
+  ) {
+    const type = FileType.SERVICE_REQUEST;
+    const fileName = formatFileName(`${prescriptionCode || prescriptionId}.pdf`);
+    const relativePath = path
+      .join("/uploads", type, fileName)
+      .replace(/\\/g, "/");
+    const fullPath = resolvePublicPath(relativePath);
+
+    const existing = await this.fileRepository.findByPrescriptionId(prescriptionId);
+    if (existing?.relativePath) {
+      await this.deleteByRelativePath(existing.relativePath);
+    }
+
+    await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.promises.writeFile(fullPath, buffer);
+
+    const fileRecord = await this.fileRepository.createFileRecord({
+      relativePath,
+      type,
+      mimeType: "application/pdf",
+      size: buffer.length,
+      prescriptionId: prescriptionId,
+    });
+
+    return this.mapFileResponse(fileRecord);
+  }
+
   public async findByServiceRequestId(requestId: string) {
     const file = await this.fileRepository.findByServiceRequestId(requestId);
     if (!file) {
-      throw new BaseError(404, "Khong tim thay file");
+      throw new BaseError(404, "Không tìm thấy file");
+    }
+
+    return this.mapFileResponse(file);
+  }
+
+  public async findByPrescriptionId(prescriptionId: string) {
+    const file = await this.fileRepository.findByPrescriptionId(prescriptionId);
+    if (!file) {
+      throw new BaseError(404, "Không tìm thấy file")
     }
 
     return this.mapFileResponse(file);
