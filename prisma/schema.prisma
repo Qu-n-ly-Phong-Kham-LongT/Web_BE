@@ -268,7 +268,7 @@ model Prescription {
   prescriptionId   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   prescriptionCode String               @unique @default(dbgenerated("pres_gen_code()"))
   recordId         String?              @unique @db.Uuid
-  medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId])
+  medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId]) 
   pdfPath          String?
   fileName         String?
   note             String?

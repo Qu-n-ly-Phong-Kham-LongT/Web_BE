@@ -8,6 +8,7 @@ import { FullMedicalRecordDto } from "../dtos/medical-record-detail.dto";
 import { SharedRepository } from "../repositories/shared.repository";
 import { FileService } from "../../file/services/file.service";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
+import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
 
 export class SharedService {
     private sharedReposoitory = new SharedRepository();
@@ -17,7 +18,7 @@ export class SharedService {
         const result = await this.sharedReposoitory.getFullMedicalRecord(recordId);
 
         if (!result) {
-            throw new BaseError(400, "Khong tim thay benh an");
+            throw new BaseError(400, "Không tìm thấy bệnh án");
         }
         if (result?.medicalRecord.clinicId && result?.medicalRecord.clinicId !== clinicId) {
             throw new BaseError(403, "Bệnh án không thuộc phòng khám")
@@ -73,9 +74,13 @@ export class SharedService {
             throw new BaseError(500, "Khong the render template benh an");
         }
         const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
-        await this.fileService.saveMedicalRecordDocx(recordId, recordCode, docxBuffer);
+        const pdfBuffer = await convertDocxToPdf(
+            docxBuffer,
+            `${recordCode}.docx`
+        );
+        await this.fileService.saveMedicalRecordPdf(recordId, recordCode, pdfBuffer);
         return {
-            buffer: docxBuffer,
+            buffer: pdfBuffer,
             recordCode,
         };
     }
