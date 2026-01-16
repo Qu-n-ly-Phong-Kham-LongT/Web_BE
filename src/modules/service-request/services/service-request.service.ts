@@ -19,20 +19,35 @@ import {
 import { MedicalRecordRepository } from "../../medical-record/repositories/medical-record.repository";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { ServiceItemRepository } from "../../service-item/repositories/service-item.request.repository";
+import { generateBarcodeBuffer } from "../../../utils/barcode.util";
+import {
+  PrintTypeGroup,
+  ServiceRequestPrintData,
+} from "../dtos/service-request.print.dto";
+import fs from "fs";
+import path from "path";
+import http from "http";
+import https from "https";
+import Docxtemplater from "docxtemplater";
+import ImageModule from "docxtemplater-image-module-free";
+import PizZip from "pizzip";
+import { FileService } from "../../file/services/file.service";
 
 export class ServiceRequestService {
   private serviceRequestRepository = new ServiceRequestRepository();
   private medicalRecordRepository = new MedicalRecordRepository();
   private userRepository = new UserRepository();
   private serviceItemRepository = new ServiceItemRepository();
+  private fileService = new FileService();
 
   public async getRequestById(
     requestId: string,
     clinicId?: string
   ): Promise<ServiceRequestFullResponseDto> {
-    const request = await this.serviceRequestRepository.findByIdWithDetailsAndResults(
-      requestId
-    );
+    const request =
+      await this.serviceRequestRepository.findByIdWithDetailsAndResults(
+        requestId
+      );
     if (!request) {
       throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
     }
@@ -45,8 +60,14 @@ export class ServiceRequestService {
       throw new BaseError(403, "Phiếu chỉ định không thuộc phòng khám");
     }
 
-    const resultsByDetailId = new Map<string, ServiceRequestResultResponseDto[]>();
-    const resultsByItemId = new Map<string, ServiceRequestResultResponseDto[]>();
+    const resultsByDetailId = new Map<
+      string,
+      ServiceRequestResultResponseDto[]
+    >();
+    const resultsByItemId = new Map<
+      string,
+      ServiceRequestResultResponseDto[]
+    >();
 
     for (const result of request.serviceResults) {
       const resultDto: ServiceRequestResultResponseDto = {
@@ -103,6 +124,7 @@ export class ServiceRequestService {
               configId: cfg.configId,
               configCode: cfg.configCode ?? meta?.configCode ?? null,
               displayName: meta?.displayName ?? null,
+              unit: meta?.unit ?? null,
               selectedValues: cfg.selectedValues ?? [],
               totalSurcharge:
                 cfg.totalSurcharge !== undefined && cfg.totalSurcharge !== null
@@ -155,10 +177,16 @@ export class ServiceRequestService {
   ): Promise<ServiceRequestResponseDto> {
     const created = await prisma.$transaction(async (tx) => {
       if (!data.details || data.details.length === 0) {
-        throw new BaseError(400, "Phiếu chỉ định phải có ít nhất 1 dịch vụ cận lâm sàng");
+        throw new BaseError(
+          400,
+          "Phiếu chỉ định phải có ít nhất 1 dịch vụ cận lâm sàng"
+        );
       }
 
-      const record = await this.medicalRecordRepository.findById(data.recordId, tx);
+      const record = await this.medicalRecordRepository.findById(
+        data.recordId,
+        tx
+      );
       if (!record) {
         throw new BaseError(404, "Không tìm thấy bệnh án");
       }
@@ -177,7 +205,11 @@ export class ServiceRequestService {
         throw new BaseError(404, "Không tìm thấy bác sĩ chỉ định");
       }
 
-      if (clinicId && orderingDoctor.clinicId && orderingDoctor.clinicId !== clinicId) {
+      if (
+        clinicId &&
+        orderingDoctor.clinicId &&
+        orderingDoctor.clinicId !== clinicId
+      ) {
         throw new BaseError(403, "Bác sĩ không thuộc phòng khám hiện tại");
       }
 
@@ -192,23 +224,33 @@ export class ServiceRequestService {
       const itemIds = data.details.map((detail) => detail.itemId);
       const uniqueItemIds = [...new Set(itemIds)];
       if (uniqueItemIds.length !== itemIds.length) {
-        throw new BaseError(400, "Không được chọn trùng lặp dịch vụ trong cùng một phiếu");
+        throw new BaseError(
+          400,
+          "Không được chọn trùng lặp dịch vụ trong cùng một phiếu"
+        );
       }
 
-      const items = await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
-        uniqueItemIds,
-        tx
-      );
+      const items =
+        await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
+          uniqueItemIds,
+          tx
+        );
 
       if (items.length !== uniqueItemIds.length) {
-        throw new BaseError(400, "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động");
+        throw new BaseError(
+          400,
+          "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động"
+        );
       }
 
       const itemConfigMap = new Map<
         string,
         {
           basePrice: number;
-          configs: Map<string, { configCode: string | null; options: Map<string, number> }>;
+          configs: Map<
+            string,
+            { configCode: string | null; options: Map<string, number> }
+          >;
         }
       >();
       for (const item of items) {
@@ -218,9 +260,14 @@ export class ServiceRequestService {
         >();
         for (const config of item.configs) {
           const optionsMap = new Map<string, number>();
-          const metaOptions = Array.isArray((config.metaData as { options?: unknown })?.options)
-            ? (config.metaData as { options?: { value?: string; surcharge?: number }[] }).options ??
-              []
+          const metaOptions = Array.isArray(
+            (config.metaData as { options?: unknown })?.options
+          )
+            ? ((
+                config.metaData as {
+                  options?: { value?: string; surcharge?: number }[];
+                }
+              ).options ?? [])
             : [];
           for (const option of metaOptions) {
             if (typeof option?.value !== "string") {
@@ -237,7 +284,9 @@ export class ServiceRequestService {
             options: optionsMap,
           });
         }
-        const basePrice = item.basePrice ? Number(item.basePrice.toString()) : 0;
+        const basePrice = item.basePrice
+          ? Number(item.basePrice.toString())
+          : 0;
         itemConfigMap.set(item.itemId, { basePrice, configs: configMetaMap });
       }
 
@@ -257,7 +306,10 @@ export class ServiceRequestService {
         const configIds = selectedConfigs.map((cfg) => cfg.configId);
         const uniqueConfigIds = [...new Set(configIds)];
         if (uniqueConfigIds.length !== configIds.length) {
-          throw new BaseError(400, "Không được chọn trùng lặp cấu hình cận lâm sàng");
+          throw new BaseError(
+            400,
+            "Không được chọn trùng lặp cấu hình cận lâm sàng"
+          );
         }
 
         const normalizedSelectedConfigs: {
@@ -277,7 +329,10 @@ export class ServiceRequestService {
           let configSurcharge = 0;
           if (configMeta.options.size > 0) {
             if (!config.selectedValues || config.selectedValues.length === 0) {
-              throw new BaseError(400, "Giá trị chọn của cấu hình không hợp lệ");
+              throw new BaseError(
+                400,
+                "Giá trị chọn của cấu hình không hợp lệ"
+              );
             }
             for (const selectedValue of config.selectedValues) {
               const optionSurcharge = configMeta.options.get(selectedValue);
@@ -356,4 +411,308 @@ export class ServiceRequestService {
       ),
     };
   }
+
+  public async prepareForTemplate(
+    requestId: string,
+    clinicId?: string
+  ): Promise<ServiceRequestPrintData> {
+    const toStringValue = (value: unknown) =>
+      value === null || value === undefined ? "" : String(value);
+    const formatDate = (value?: string | Date | null) => {
+      if (!value) {
+        return "";
+      }
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      return date.toLocaleDateString("vi-VN");
+    };
+    const formatDateLong = (value?: string | Date | null) => {
+      if (!value) {
+        return "";
+      }
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `Ngay ${day} thang ${month} nam ${year}`;
+    };
+    const rawData = await this.serviceRequestRepository.getDataPrint(requestId);
+    if (!rawData) {
+      throw new BaseError(404, "Khong tim thay phieu chi dinh");
+    }
+    if (
+      clinicId &&
+      rawData.medicalRecord?.clinicId &&
+      rawData.medicalRecord.clinicId !== clinicId
+    ) {
+      throw new BaseError(403, "Phieu chi dinh khong thuoc phong kham");
+    }
+
+    const requestCode = toStringValue(rawData.requestCode ?? rawData.requestId);
+    const barcode = await generateBarcodeBuffer(requestCode);
+
+    const groupMap = new Map<string, { name: string; quantity: number }[]>();
+    rawData.details.forEach((detail) => {
+      const typeName = detail.serviceItem?.type?.name || "DICH VU KHAC";
+
+      if (!groupMap.has(typeName)) {
+        groupMap.set(typeName, []);
+      }
+
+      groupMap.get(typeName)?.push({
+        name: toStringValue(detail.serviceItem?.name),
+        quantity: 1,
+      });
+    });
+
+    let globalIndex = 1;
+    const groups: PrintTypeGroup[] = Array.from(groupMap.entries()).map(
+      ([name, items]) => ({
+        typeName: name.toUpperCase(),
+        items: items.map((item) => ({ ...item, index: globalIndex++ })),
+      })
+    );
+
+    const diagnoses = rawData.medicalRecord
+      ?.diagnoses as unknown as MedicalDiagnosisDto;
+
+    const serviceRequestSelectedConfigs = rawData.details.flatMap((detail) => {
+      const configMetaMap = new Map(
+        (detail.serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+      );
+      const selectedOptions = detail.selectedOptions as
+        | {
+            selectedConfigs?: {
+              configId?: string;
+              configCode?: string | null;
+              selectedValues?: string[];
+              totalSurcharge?: number;
+            }[];
+          }
+        | null
+        | undefined;
+      const selectedConfigs = selectedOptions?.selectedConfigs ?? [];
+
+      return selectedConfigs.map((config) => {
+        const meta = config.configId ? configMetaMap.get(config.configId) : null;
+        return {
+          requestId: toStringValue(rawData.requestId),
+          requestDetailId: toStringValue(detail.requestDetailId),
+          itemId: toStringValue(detail.itemId),
+          configId: toStringValue(config.configId),
+          configCode: toStringValue(
+            config.configCode ?? meta?.configCode ?? null
+          ),
+          displayName: toStringValue(meta?.displayName ?? null),
+          unit: toStringValue(meta?.unit ?? null),
+          selectedValues: config.selectedValues ?? [],
+          totalSurcharge: toStringValue(config.totalSurcharge),
+        };
+      });
+    });
+
+    return {
+      requestCode,
+      barcode,
+      patientName: rawData.medicalRecord?.patient?.fullName || "",
+      dob: formatDate(rawData.medicalRecord?.patient?.dob ?? null),
+      gender:
+        rawData.medicalRecord?.patient?.gender === "Male"
+          ? "Nam"
+          : rawData.medicalRecord?.patient?.gender === "Female"
+            ? "Nu"
+            : rawData.medicalRecord?.patient?.gender === "Other"
+              ? "Khac"
+              : "",
+      address: toStringValue(rawData.medicalRecord?.patient?.address),
+      phone: toStringValue(rawData.medicalRecord?.patient?.phone),
+      diagnosisMainCode: toStringValue(diagnoses?.main?.code),
+      diagnosisMainDescription: toStringValue(diagnoses?.main?.description),
+      diagnosisSecondary: diagnoses?.secondary ?? [],
+      requestSelectedConfigs: serviceRequestSelectedConfigs,
+      groups,
+      date: formatDateLong(rawData.createdAt ?? null),
+    };
+  }
+
+  public async printServiceRequestDocx(
+    requestId: string,
+    clinicId?: string
+  ): Promise<{ buffer: Buffer; requestCode: string }> {
+    const templateData = await this.prepareForTemplate(requestId, clinicId);
+    const requestCode = templateData.requestCode || requestId;
+    const barcodeBase64 = templateData.barcode.toString("base64");
+    const templatePath = path.resolve(
+      process.cwd(),
+      "src",
+      "templates",
+      "service_request_template.docx"
+    );
+    const content = fs.readFileSync(templatePath);
+    const zip = new PizZip(content);
+    const imageModule = new ImageModule({
+      centered: true,
+      getImage: (tagValue: unknown) => {
+        if (!tagValue) {
+          return Buffer.alloc(0);
+        }
+        if (Buffer.isBuffer(tagValue)) {
+          return tagValue;
+        }
+        if (typeof tagValue === "string") {
+          return Buffer.from(tagValue, "base64");
+        }
+        return Buffer.alloc(0);
+      },
+      getSize: () => [200, 30],
+    });
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+      delimiters: { start: "{{", end: "}}" },
+      modules: [imageModule],
+    });
+
+    try {
+      doc.render({
+        ...templateData,
+        barcode: barcodeBase64,
+      });
+    } catch (error) {
+      throw new BaseError(500, "Khong the render template phieu chi dinh");
+    }
+
+    const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
+    return {
+      buffer: docxBuffer,
+      requestCode,
+    };
+  }
+
+  public async printServiceRequestPdf(
+    requestId: string,
+    clinicId?: string
+  ): Promise<{
+    requestCode: string;
+    file: {
+      fileId: string;
+      relativePath: string;
+      url: string;
+      type: string;
+      size: number;
+      createdAt: Date;
+    };
+  }> {
+    const docxResult = await this.printServiceRequestDocx(requestId, clinicId);
+    const pdfBuffer = await this.convertDocxToPdf(
+      docxResult.buffer,
+      `${docxResult.requestCode}.docx`
+    );
+    const file = await this.fileService.saveServiceRequestPdf(
+      requestId,
+      docxResult.requestCode,
+      pdfBuffer
+    );
+
+    return {
+      requestCode: docxResult.requestCode,
+      file,
+    };
+  }
+
+  private async convertDocxToPdf(
+    docxBuffer: Buffer,
+    filename: string
+  ): Promise<Buffer> {
+    const endpoint = process.env.CONVERT_FILE;
+    if (!endpoint) {
+      throw new BaseError(500, "CONVERT_FILE chưa được cấu hình");
+    }
+    const url = new URL(endpoint);
+    const boundary = `----FormBoundary${Date.now()}`;
+    const header =
+      `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+      "Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n";
+    const footer = `\r\n--${boundary}--\r\n`;
+    const body = Buffer.concat([
+      Buffer.from(header, "utf-8"),
+      docxBuffer,
+      Buffer.from(footer, "utf-8"),
+    ]);
+    const apiKey = process.env.CONVERT_API_KEY || process.env.X_API_KEY || "";
+
+    const isHttps = url.protocol === "https:";
+    const requestFn = isHttps ? https.request : http.request;
+    const port = url.port
+      ? Number(url.port)
+      : isHttps
+        ? 443
+        : 80;
+
+    return await new Promise<Buffer>((resolve, reject) => {
+      const req = requestFn(
+        {
+          method: "POST",
+          hostname: url.hostname,
+          port,
+          path: `${url.pathname}${url.search}`,
+          headers: {
+            "Content-Type": `multipart/form-data; boundary=${boundary}`,
+            "Content-Length": body.length,
+            ...(apiKey ? { "x-api-key": apiKey } : {}),
+          },
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (chunk) => {
+            chunks.push(
+              Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+            );
+          });
+          res.on("end", () => {
+            const buffer = Buffer.concat(chunks);
+            const status = res.statusCode ?? 500;
+            if (status < 200 || status >= 300) {
+              reject(new BaseError(status, "Convert service failed"));
+              return;
+            }
+            const contentType = String(res.headers["content-type"] ?? "");
+            if (contentType.includes("application/json")) {
+              try {
+                const json = JSON.parse(buffer.toString("utf-8"));
+                const base64 =
+                  json?.data ?? json?.file ?? json?.fileBase64 ?? null;
+                if (typeof base64 === "string") {
+                  resolve(Buffer.from(base64, "base64"));
+                  return;
+                }
+              } catch (error) {
+                reject(new BaseError(500, "Invalid convert response"));
+                return;
+              }
+            }
+            resolve(buffer);
+          });
+        }
+      );
+
+      req.on("error", (error) => {
+        reject(
+          new BaseError(
+            500,
+            error instanceof Error ? error.message : "Convert failed"
+          )
+        );
+      });
+      req.write(body);
+      req.end();
+    });
+  }
+
 }
