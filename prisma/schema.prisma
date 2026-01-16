@@ -265,18 +265,19 @@ model Icd10Dictionary {
 }
 
 model Prescription {
-  prescriptionId String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  recordId       String?              @unique @db.Uuid
-  medicalRecord  MedicalRecord?       @relation(fields: [recordId], references: [recordId])
-  pdfPath        String?
-  fileName       String?
-  note           String?
-  totalPrice     Decimal?             @db.Decimal(18, 0)
-  status         PrescriptionStatus?  @default(Issued)
-  createdAt      DateTime?            @default(now()) @db.Timestamptz
-  updatedAt      DateTime?            @default(now()) @db.Timestamptz
-  details        PrescriptionDetail[]
-  file           File?                @relation()
+  prescriptionId   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  prescriptionCode String               @unique @default(dbgenerated("pres_gen_code()"))
+  recordId         String?              @unique @db.Uuid
+  medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId])
+  pdfPath          String?
+  fileName         String?
+  note             String?
+  totalPrice       Decimal?             @db.Decimal(18, 0)
+  status           PrescriptionStatus?  @default(Issued)
+  createdAt        DateTime?            @default(now()) @db.Timestamptz
+  updatedAt        DateTime?            @default(now()) @db.Timestamptz
+  details          PrescriptionDetail[]
+  file             File?                @relation()
 }
 
 model PrescriptionDetail {
