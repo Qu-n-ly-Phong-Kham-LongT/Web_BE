@@ -29,7 +29,7 @@ export class PrescriptionController {
     res: Response
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.prescriptionService.printServiceRequestPdf(
+    const result = await this.prescriptionService.printPresctiptionPdf(
       req.params.id,
       clinicId
     );
