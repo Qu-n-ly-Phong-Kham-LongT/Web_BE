@@ -23,7 +23,7 @@ const PrescriptionSwagger = {
     },
   },
 
-  "/api/prescriptions/{id}/print": {
+  "/api/prescriptions/{prescriptionId}/print": {
     get: {
       tags: ["Core Businesses"],
       summary: "In toa",
