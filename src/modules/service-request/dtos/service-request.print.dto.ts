@@ -1,5 +1,12 @@
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 
+export interface ServiceItemDisplayDto {
+  itemId: string;
+  itemCode: string;
+  name: string;
+  selectedOptionsText: string; // "(Có tiêm phản quang, Tái tạo mạch máu)"
+}
+
 export interface PrintServiceRequestSelectedConfigDto {
   requestId: string;
   requestDetailId: string;
@@ -10,6 +17,7 @@ export interface PrintServiceRequestSelectedConfigDto {
   selectedValues: string[];
   totalSurcharge: string;
 }
+
 export interface PrintServiceItem {
   index: number;
   name: string;
