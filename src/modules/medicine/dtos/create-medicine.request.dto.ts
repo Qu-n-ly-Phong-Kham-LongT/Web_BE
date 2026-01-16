@@ -26,10 +26,14 @@ export const CreateMedicineRequestSchema = Joi.object<CreateMedicineRequestDto>(
     "string.empty": "Tên thuốc không được để trống",
     "any.required": "Tên thuốc là bắt buộc",
   }),
-  activeIngredient: Joi.string().optional().messages({
+  activeIngredient: Joi.string().required().messages({
     "string.empty": "Hoạt chất không được để trống",
+    "any.required": "Hoạt chất là bắt buộc",
   }),
-  registrationNo: Joi.string().optional(),
+  registrationNo: Joi.string().required().messages({
+    "string.empty": "Số đăng ký không được để trống",
+    "any.required": "Số đăng ký là bắt buộc",
+  }),
   isInsuranceCovered: Joi.boolean().optional(),
   medicineCodeBhyt: Joi.string().optional(),
   insurancePrice: Joi.number().min(0).optional().messages({
@@ -44,7 +48,10 @@ export const CreateMedicineRequestSchema = Joi.object<CreateMedicineRequestDto>(
     "number.min": "Giá bán phải lớn hơn hoặc bằng 0",
   }),
   note: Joi.string().optional().allow(null, ""),
-  supplier: Joi.string().optional(),
+  supplier: Joi.string().required().messages({
+    "string.empty": "Nhà cung cấp không được để trống",
+    "any.required": "Nhà cung cấp là bắt buộc",
+  }),
   sideEffects: Joi.string().optional(),
   isActive: Joi.boolean().optional(),
 });
