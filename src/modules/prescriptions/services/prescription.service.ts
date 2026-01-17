@@ -311,7 +311,7 @@ export class PrecriptionService {
     };
   }
 
-  public async printPrescriptionDocx(
+  public async printPrescriptionPdf(
     prescriptionId: string,
     clinicId?: string
   ): Promise<{ buffer: Buffer; prescriptionCode: string }> {
@@ -362,43 +362,49 @@ export class PrecriptionService {
     }
 
     const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
+    const pdfBuffer = await convertDocxToPdf(docxBuffer, `${prescriptionCode}.docx`);
+    await this.fileService.savePrescripitonPdf(
+      prescriptionId,
+      prescriptionCode,
+      pdfBuffer,
+    );
     return {
-      buffer: docxBuffer,
+      buffer: pdfBuffer,
       prescriptionCode,
     };
   }
 
-  public async printPresctiptionPdf(
-    prescriptionId: string,
-    clinicId?: string
-  ): Promise<{
-    prescriptionCode: string;
-    file: {
-      fileId: string;
-      relativePath: string;
-      url: string;
-      type: string;
-      size: number;
-      createdAt: Date;
-    };
-  }> {
-    const docxResult = await this.printPrescriptionDocx(
-      prescriptionId,
-      clinicId
-    );
-    const pdfBuffer = await convertDocxToPdf(
-      docxResult.buffer,
-      `${docxResult.prescriptionCode}.docx`
-    );
-    const file = await this.fileService.savePrescripitonPdf(
-      prescriptionId,
-      docxResult.prescriptionCode,
-      pdfBuffer
-    );
+  // public async printPresctiptionPdf(
+  //   prescriptionId: string,
+  //   clinicId?: string
+  // ): Promise<{
+  //   prescriptionCode: string;
+  //   file: {
+  //     fileId: string;
+  //     relativePath: string;
+  //     url: string;
+  //     type: string;
+  //     size: number;
+  //     createdAt: Date;
+  //   };
+  // }> {
+  //   const docxResult = await this.printPrescriptionDocx(
+  //     prescriptionId,
+  //     clinicId
+  //   );
+  //   const pdfBuffer = await convertDocxToPdf(
+  //     docxResult.buffer,
+  //     `${docxResult.prescriptionCode}.docx`
+  //   );
+  //   const file = await this.fileService.savePrescripitonPdf(
+  //     prescriptionId,
+  //     docxResult.prescriptionCode,
+  //     pdfBuffer
+  //   );
 
-    return {
-      prescriptionCode: docxResult.prescriptionCode,
-      file,
-    };
-  }
+  //   return {
+  //     pres,
+  //     prescriptionCodeCode,
+  //   };
+  // }
 }

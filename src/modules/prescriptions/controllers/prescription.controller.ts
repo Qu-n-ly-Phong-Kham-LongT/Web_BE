@@ -9,30 +9,39 @@ export class PrescriptionController {
 
   public upsertPrescriptionDiagnosis = async (
     req: AuthenticatedRequest<{}, any, UpsertDianosisPrescriptionDto>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
     const result = await this.prescriptionService.upsertPrecriptionDiagnosis(
       req.body,
-      clinicId
+      clinicId,
     );
     return successResponse(
       res,
       200,
       result,
-      "Tạo/Cập nhật toa thuốc và chẩn đoán thành công"
+      "Tạo/Cập nhật toa thuốc và chẩn đoán thành công",
     );
   };
 
   public printPrescriptionPdf = async (
     req: AuthenticatedRequest<{ id: string }>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.prescriptionService.printPresctiptionPdf(
-      req.params.id,
-      clinicId
+    const { id } = req.params;
+
+    const result = await this.prescriptionService.printPrescriptionPdf(
+      id,
+      clinicId,
     );
-    return successResponse(res, 200, result, "In toa thành công");
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${result.prescriptionCode}.pdf"`,
+    );
+
+    return res.send(result.buffer);
   };
 }
