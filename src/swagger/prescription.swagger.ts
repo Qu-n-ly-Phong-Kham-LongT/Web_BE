@@ -33,47 +33,26 @@ const PrescriptionSwagger = {
           in: "path",
           required: true,
           schema: {
-            type: "string",
+            type: "string", format: "uuid",
           },
+          description: "ID Toa"
         },
       ],
       security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "PDF file",
+          description: "PDF Toa thuốc",
           content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: { type: "boolean" },
-                  message: { type: "string" },
-                  data: {
-                    type: "object",
-                    properties: {
-                      requestCode: { type: "string" },
-                      file: {
-                        type: "object",
-                        properties: {
-                          fileId: { type: "string" },
-                          relativePath: { type: "string" },
-                          url: { type: "string" },
-                          type: { type: "string" },
-                          size: { type: "number" },
-                          createdAt: { type: "string" },
-                        },
-                      },
-                    },
-                  },
-                },
+            "application/pdf":
+              {
+                schema: { type: "string", format: "binary" },
               },
-            },
           },
         },
-        401: { description: "Chưa đăng nhập" },
-        403: { description: "Forbidden" },
-        404: { description: "Not found" },
       },
+      401: { description: "Chưa đăng nhập" },
+      403: { description: "Không đủ quyền" },
+      404: { description: "Không tìm thấy toa" },
     },
   },
 };
