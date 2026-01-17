@@ -21,6 +21,15 @@ export class Icd10Service {
     });
   }
 
+  public async deleteIcd10(code: string) {
+    const icd = await this.Icd10Repository.findByCode(code);
+    if (!icd) {
+      throw new BaseError(404, "ICD-10 này không tồn tại")
+    }
+
+    return await this.Icd10Repository.deleteByCode(code);
+  }
+
   public async updateIcd10(
     code: string,
     updateData: Icd10RequestDto

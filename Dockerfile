@@ -15,7 +15,7 @@ RUN npm run build
 # ===== Stage 2: runtime =====
 FROM node:22-alpine AS runner
 WORKDIR /app
-
+    
 RUN apk add --no-cache openssl
 
 # Tạo user thường để chạy app (UID/GID sẽ được Jenkins lấy ra để chown host)

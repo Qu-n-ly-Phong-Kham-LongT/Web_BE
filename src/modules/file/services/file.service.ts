@@ -159,7 +159,7 @@ export class FileService {
   public async findByMedicalRecordId(recordId: string) {
     const file = await this.fileRepository.findByMedicalRecordId(recordId);
     if (!file) {
-      throw new BaseError(404, "Khong tim thay file");
+      throw new BaseError(404, "Không tìm thấy file");
     }
 
     return this.mapFileResponse(file);

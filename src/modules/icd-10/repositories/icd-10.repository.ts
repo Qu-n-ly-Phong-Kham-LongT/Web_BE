@@ -31,7 +31,7 @@ export class Icd10Repository {
       where: { code },
     });
   }
-
+  
   public async getAllIcd10(
     page: number = 1,
     size: number = 10,
