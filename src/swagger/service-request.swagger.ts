@@ -45,7 +45,8 @@ const ServiceRequestSwagger = {
                       createdAt: "2026-01-16T10:00:00.000Z",
                       details: [
                         {
-                          requestDetailId: "5789213b-8a4c-4f68-b416-45a1805d0a69",
+                          requestDetailId:
+                            "5789213b-8a4c-4f68-b416-45a1805d0a69",
                           itemId: "9b20993b-11f9-4986-88b1-296947c9c604",
                           itemCode: "HBsAg",
                           itemName: "HBsAg",
@@ -110,7 +111,8 @@ const ServiceRequestSwagger = {
                       patientId: "11111111-1111-1111-1111-111111111111",
                       details: [
                         {
-                          requestDetailId: "5789213b-8a4c-4f68-b416-45a1805d0a69",
+                          requestDetailId:
+                            "5789213b-8a4c-4f68-b416-45a1805d0a69",
                           itemId: "9b20993b-11f9-4986-88b1-296947c9c604",
                           itemCode: "HBsAg",
                           itemName: "HBsAg",
@@ -159,33 +161,10 @@ const ServiceRequestSwagger = {
       security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "PDF file",
+          description: "PDF Phiếu chỉ định",
           content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: { type: "boolean" },
-                  message: { type: "string" },
-                  data: {
-                    type: "object",
-                    properties: {
-                      requestCode: { type: "string" },
-                      file: {
-                        type: "object",
-                        properties: {
-                          fileId: { type: "string" },
-                          relativePath: { type: "string" },
-                          url: { type: "string" },
-                          type: { type: "string" },
-                          size: { type: "number" },
-                          createdAt: { type: "string" },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
+            "application/pdf": {
+              schema: { type: "string", format: "binary" },
             },
           },
         },
