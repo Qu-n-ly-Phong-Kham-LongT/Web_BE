@@ -2,7 +2,8 @@ import { Router } from "express";
 import { Icd10Controller } from "../controllers/icd-10.controller";
 import { validateBody } from "../../../middlewares/validate";
 import { Icd10RequestSchema } from "../dtos/icd-10.dto";
-import { authenticate } from "../../../middlewares/auth.middleware";
+import { authenticate, authorize } from "../../../middlewares/auth.middleware";
+import { UserRoleEnum } from "@prisma/client";
 
 const icd10Router = Router();
 const icd10Controller = new Icd10Controller();
@@ -26,5 +27,11 @@ icd10Router.put(
   validateBody(Icd10RequestSchema),
   icd10Controller.updateIcd10
 );
+
+icd10Router.delete("/:code",
+  authenticate,
+  authorize([UserRoleEnum.Admin]),
+  icd10Controller.deleteIcd10
+)
 
 export default icd10Router;
