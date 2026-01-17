@@ -595,7 +595,7 @@ export class ServiceRequestService {
     };
   }
 
-  public async printServiceRequestDocx(
+  public async printServiceRequestPdf(
     requestId: string,
     clinicId?: string
   ): Promise<{ buffer: Buffer; requestCode: string }> {
@@ -643,40 +643,15 @@ export class ServiceRequestService {
     }
 
     const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
-    return {
-      buffer: docxBuffer,
-      requestCode,
-    };
-  }
-
-  public async printServiceRequestPdf(
-    requestId: string,
-    clinicId?: string
-  ): Promise<{
-    requestCode: string;
-    file: {
-      fileId: string;
-      relativePath: string;
-      url: string;
-      type: string;
-      size: number;
-      createdAt: Date;
-    };
-  }> {
-    const docxResult = await this.printServiceRequestDocx(requestId, clinicId);
-    const pdfBuffer = await convertDocxToPdf(
-      docxResult.buffer,
-      `${docxResult.requestCode}.docx`
-    );
-    const file = await this.fileService.saveServiceRequestPdf(
+    const pdfBuffer = await convertDocxToPdf(docxBuffer, `${requestCode}.docx`)
+    await this.fileService.saveServiceRequestPdf(
       requestId,
-      docxResult.requestCode,
-      pdfBuffer
+      requestCode,
+      pdfBuffer,
     );
-
     return {
-      requestCode: docxResult.requestCode,
-      file,
+      buffer: pdfBuffer,
+      requestCode,
     };
   }
 }
