@@ -43,7 +43,13 @@ export class ServiceRequestController {
       req.params.id,
       clinicId
     );
-    return successResponse(res, 200, result, "In phiếu chỉ định thành công");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${result.requestCode}.pdf"`,
+    );
+
+    return res.send(result.buffer);
   };
 }
 
