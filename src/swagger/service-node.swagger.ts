@@ -49,7 +49,7 @@ const ServiceNodeSwagger = {
       },
     },
     get: {
-      tags: ["Service-Node (Danh muc/Dich vu CLS)"],
+      tags: ["Service-Node (Danh mục/Dịch vụ CLS)"],
       summary: "Lấy ds service node",
       security: [{ bearerAuth: [] }],
       parameters: [
