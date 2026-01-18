@@ -13,7 +13,19 @@ fileRouter.post(
   fileController.uploadFile
 );
 
-fileRouter.post("/delete", authenticate, fileController.deleteFile);
+fileRouter.get(
+  "/",
+  authenticate,
+  fileController.getFiles
+);
+
+fileRouter.post("/delete", authenticate, fileController.deleteFileByPath);
+
+fileRouter.delete(
+  "/service-results/:requestId",
+  authenticate,
+  fileController.deleteResultsByRequest
+);
 
 fileRouter.get(
   "/medical-record/:recordId",

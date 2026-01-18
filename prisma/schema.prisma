@@ -379,7 +379,6 @@ model ServiceRequest {
   details        ServiceRequestDetail[]
   serviceResults ServiceResult[]
   files          File[]
-  resultFiles    ResultFile[]
 }
 
 model ServiceRequestDetail {
@@ -520,16 +519,4 @@ model File {
 
   serviceResultId String?        @db.Uuid
   serviceResult   ServiceResult? @relation(fields: [serviceResultId], references: [resultId])
-}
-
-model ResultFile {
-  fileID       String @id @default(dbgenerated("uuid_generate_v4()"))
-  relativePath String
-  mimeType     String
-
-  size      Int
-  createdAt DateTime @default(now()) @db.Timestamptz
-
-  serviceRequestId String         @db.Uuid
-  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [requestId])
 }
