@@ -266,7 +266,7 @@ export class PrecriptionService {
       administrationRoute: toStringValue(detail.administrationRoute),
       timing: toStringValue(detail.timing),
       daysToTake: toStringValue(detail.daysToTake),
-      note: toStringValue(detail.note),
+      prepNote: toStringValue(detail.note),
       isInsuranceCovered: toBoolString(detail.medicine?.isInsuranceCovered),
     }));
 
@@ -289,6 +289,7 @@ export class PrecriptionService {
         quantity: detail.quantity,
         unit: detail.unit,
         usage: usageParts.join(", "),
+        prepNote: detail.prepNote
       };
     });
 
@@ -307,7 +308,7 @@ export class PrecriptionService {
       medicines,
       createDate,
       followUpDate,
-      note,
+      note
     };
   }
 

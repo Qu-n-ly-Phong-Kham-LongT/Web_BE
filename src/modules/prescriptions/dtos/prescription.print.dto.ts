@@ -18,5 +18,6 @@ export interface PrescriptionDetail {
   timing: string;
   daysToTake: string;
   note: string;
+  prepNote: string;
   isInsuranceCovered: string;
 }
