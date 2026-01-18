@@ -58,3 +58,29 @@ export const uploadFile = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
 });
+
+const resultStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(process.cwd(), "public", "uploads", "results");
+    ensureDir(dir);
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    cb(null, formatFileName(file.originalname));
+  },
+});
+
+export const uploadResultFile = multer({
+  storage: resultStorage,
+  fileFilter: (_req, file, cb: FileFilterCallback) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isAllowed = allowedExts.has(ext) && allowedMimeTypes.has(file.mimetype);
+
+    if (!isAllowed) {
+      return cb(new BaseError(400, "Chỉ hỗ trợ file .jpg, .jpeg, .docx, .pdf"));
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+

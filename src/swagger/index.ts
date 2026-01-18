@@ -17,6 +17,7 @@ import ServiceTemplateSwagger from "./service-template.swagger";
 import ServiceRequestSwagger from "./service-request.swagger";
 import ServiceResultSwagger from "./service-result.swagger";
 import SharedSwagger from "./shared.swagger";
+import ResultFileSwagger from "./result-file.swagger";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
 import { ServiceRequestFullResponseSchema } from "../modules/service-request/dtos/service-request.response.dto";
@@ -124,6 +125,7 @@ const swaggerDocument = {
     ...ServiceRequestSwagger,
     ...ServiceResultSwagger,
     ...SharedSwagger,
+    ...ResultFileSwagger
   },
   components: {
     securitySchemes: {
