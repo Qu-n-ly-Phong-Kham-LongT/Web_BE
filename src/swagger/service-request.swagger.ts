@@ -74,6 +74,37 @@ const ServiceRequestSwagger = {
           content: {
             "application/json": {
               schema: joiToSwagger(ServiceRequestResponseSchema),
+              examples: {
+                created: {
+                  summary: "Tạo chỉ định thành công",
+                  value: {
+                    success: true,
+                    message: "Created",
+                    data: {
+                      requestId: "7b0eb3bb-5652-4cc5-90e4-493081e22b65",
+                      requestCode: "SR-0001",
+                      recordId: "0ef0793d-f6f2-4e6f-a8d9-43d92c41f3f5",
+                      orderingDoctorId: "c10065eb-fd3a-4887-bcf6-423a2e6c9de7",
+                      diagnoses: null,
+                      isPatientRequested: false,
+                      receiveResultAtClinic: false,
+                      isForFollowUp: false,
+                      note: null,
+                      createdAt: "2026-01-16T10:00:00.000Z",
+                      details: [
+                        {
+                          requestDetailId:
+                            "5789213b-8a4c-4f68-b416-45a1805d0a69",
+                          itemId: "9b20993b-11f9-4986-88b1-296947c9c604",
+                          itemCode: "HBsAg",
+                          itemName: "HBsAg",
+                          selectedOptions: null,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -103,7 +134,7 @@ const ServiceRequestSwagger = {
                 schema: joiToSwagger(ServiceRequestResponseSchema),
                 examples: {
                   created: {
-                    summary: "Service request created",
+                    summary: "Tạo chỉ định thành công",
                     value: {
                       success: true,
                       message: "Created",
