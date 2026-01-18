@@ -5,6 +5,7 @@ import { FileRepository } from "../repositories/file.repository";
 import { FileType } from "@prisma/client";
 import fs from "fs";
 import { formatFileName } from "../../../utils/file-name.util";
+import { createPagination } from "../../../utils/pagination.util";
 
 const PUBLIC_DIR = path.join(process.cwd(), "public");
 const normalizeRelativePath = (relativePath: string) =>
@@ -100,7 +101,7 @@ export class FileService {
   public async saveMedicalRecordDocx(
     recordId: string,
     recordCode: string | null | undefined,
-    buffer: Buffer
+    buffer: Buffer,
   ) {
     const type = FileType.MEDICAL_RECORD;
     const fileName = formatFileName(`${recordCode || recordId}.docx`);
@@ -130,7 +131,7 @@ export class FileService {
   public async saveMedicalRecordPdf(
     recordId: string,
     recordCode: string | null | undefined,
-    buffer: Buffer
+    buffer: Buffer,
   ) {
     const type = FileType.MEDICAL_RECORD;
     const fileName = formatFileName(`${recordCode || recordId}.pdf`);
@@ -168,7 +169,7 @@ export class FileService {
   public async saveServiceRequestPdf(
     requestId: string,
     requestCode: string | null | undefined,
-    buffer: Buffer
+    buffer: Buffer,
   ) {
     const type = FileType.SERVICE_REQUEST;
     const fileName = formatFileName(`${requestCode || requestId}.pdf`);
@@ -177,7 +178,8 @@ export class FileService {
       .replace(/\\/g, "/");
     const fullPath = resolvePublicPath(relativePath);
 
-    const existing = await this.fileRepository.findByServiceRequestId(requestId);
+    const existing =
+      await this.fileRepository.findByServiceRequestId(requestId);
     if (existing?.relativePath) {
       await this.deleteByRelativePath(existing.relativePath);
     }
@@ -199,16 +201,19 @@ export class FileService {
   public async savePrescripitonPdf(
     prescriptionId: string,
     prescriptionCode: string | null | undefined,
-    buffer: Buffer
+    buffer: Buffer,
   ) {
     const type = FileType.SERVICE_REQUEST;
-    const fileName = formatFileName(`${prescriptionCode || prescriptionId}.pdf`);
+    const fileName = formatFileName(
+      `${prescriptionCode || prescriptionId}.pdf`,
+    );
     const relativePath = path
       .join("/uploads", type, fileName)
       .replace(/\\/g, "/");
     const fullPath = resolvePublicPath(relativePath);
 
-    const existing = await this.fileRepository.findByPrescriptionId(prescriptionId);
+    const existing =
+      await this.fileRepository.findByPrescriptionId(prescriptionId);
     if (existing?.relativePath) {
       await this.deleteByRelativePath(existing.relativePath);
     }
@@ -239,9 +244,85 @@ export class FileService {
   public async findByPrescriptionId(prescriptionId: string) {
     const file = await this.fileRepository.findByPrescriptionId(prescriptionId);
     if (!file) {
-      throw new BaseError(404, "Không tìm thấy file")
+      throw new BaseError(404, "Không tìm thấy file");
     }
 
     return this.mapFileResponse(file);
+  }
+
+  public async deleteServiceResults(requestId: string): Promise<void> {
+    const type = FileType.SERVICE_RESULT;
+
+    if (!requestId) {
+      throw new BaseError(400, "Vui lòng nhập phiếu chỉ định");
+    }
+
+    const files = await this.fileRepository.findByRequestIdAndType(
+      requestId,
+      type,
+    );
+
+    if (files.length === 0) {
+      return;
+    }
+    await this.fileRepository.deleteByRequestIdAndType(requestId, type);
+
+    for (const file of files) {
+      const fullPath = resolvePublicPath(file.relativePath);
+      try {
+        if (fs.existsSync(fullPath)) {
+          await fs.promises.unlink(fullPath);
+        }
+      } catch (err) {
+        console.error(`Thất bại khi xóa file vật lý: ${fullPath}`, err);
+      }
+    }
+  }
+
+  public async getFiles(query: {
+    type: FileType;
+    id?: string;
+    page?: number;
+    size?: number;
+    sort?: string;
+  }) {
+    const page = Number(query.page) || 1;
+    const size = Number(query.size) || 10;
+    const { type, id } = query;
+
+    const sortOrder = query.sort === "asc" ? "asc" : "desc";
+    let filters: any = { type };
+
+    switch (type) {
+      case FileType.MEDICAL_RECORD:
+        if (id) filters.medicalRecordId = id;
+        break;
+      case FileType.SERVICE_REQUEST:
+      case FileType.SERVICE_RESULT:
+        if (!id)
+          throw new BaseError(
+            400,
+            `Type ${type} yêu cầu truyền ID của Service Request`,
+          );
+        filters.serviceRequestId = id;
+        break;
+      case FileType.PRESCRIPTION:
+        if (!id) throw new BaseError(400, "Yêu cầu Prescription ID");
+        filters.prescriptionId = id;
+        break;
+    }
+
+    const { items, totalItems } =
+      await this.fileRepository.findFilesWithPagination({
+        filters,
+        page,
+        size,
+        sort: sortOrder,
+      });
+
+    return {
+      data: items.map((f) => this.mapFileResponse(f)),
+      pagination: createPagination(page, size, totalItems),
+    };
   }
 }
