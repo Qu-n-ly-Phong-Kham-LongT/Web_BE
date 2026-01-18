@@ -102,6 +102,7 @@ export class SharedRepository {
             },
             serviceResults: true,
           },
+          orderBy: { createdAt: 'desc' }
         },
       },
     });

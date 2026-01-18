@@ -654,4 +654,27 @@ export class ServiceRequestService {
       requestCode,
     };
   }
+
+  public async initializeNewRequest(recordId: string, doctorId: string) {
+    return await this.serviceRequestRepository.createShell(recordId, doctorId);
+  }
+
+  public async saveServiceRequest(requestId: string, dto: CreateServiceRequestDto) {
+    const payload: CreateServiceRequestPayload & { requestId: string } = {
+      requestId: requestId,
+      recordId: dto.recordId,
+      orderingDoctorId: dto.orderingDoctorId,
+      diagnoses: dto.diagnoses as any,
+      isPatientRequested: dto.isPatientRequested,
+      receiveResultAtClinic: dto.receiveResultAtClinic,
+      isForFollowUp: dto.isFollowUp,
+      note: dto.note, 
+      details: dto.details.map((d) => ({
+        itemId: d.itemId,
+        selectedOptions: d.selectedConfigs as any, 
+      })),
+    };
+
+    return await this.serviceRequestRepository.upsert(payload);
+  }
 }
