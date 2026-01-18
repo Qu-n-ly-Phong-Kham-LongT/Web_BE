@@ -573,7 +573,7 @@ export class SharedRepository {
       isInsuranceCovered: toBoolString(detail.isInsuranceCovered),
     }));
 
-    const medicines = prescriptionDetails.map((detail) => {
+    const medicines = prescriptionDetails.map((detail, index) => {
       const usageParts: string[] = [];
       if (detail.frequencyPerDay) {
         usageParts.push(`Ngày uống: ${detail.frequencyPerDay} lần`);
@@ -585,12 +585,15 @@ export class SharedRepository {
         usageParts.push(`${detail.timing}`);
       }
 
+      const prepNote = toStringValue(detail.note);
       return {
+        index: index + 1,
         medicineId: detail.medicineId,
         medicineName: detail.medicineName,
         quantity: detail.quantity,
         unit: detail.unit,
         usage: usageParts.join(", "),
+        prepNote
       };
     });
 
