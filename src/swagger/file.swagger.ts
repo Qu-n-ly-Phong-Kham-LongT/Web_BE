@@ -141,7 +141,7 @@ const FileSwagger = {
                 file: {
                   type: "string",
                   format: "binary",
-                  description: "File to upload (Max 10MB)",
+                  description: "File upload (Max 10MB)",
                 },
               },
               required: ["file"],
@@ -151,7 +151,7 @@ const FileSwagger = {
       },
       responses: {
         200: {
-          description: "File uploaded successfully",
+          description: "Upload file thành công",
           content: {
             "application/json": {
               schema: {
@@ -160,7 +160,7 @@ const FileSwagger = {
                   statusCode: { type: "number", example: 200 },
                   message: {
                     type: "string",
-                    example: "File uploaded successfully",
+                    example: "Upload file thành công",
                   },
                   data: {
                     type: "object",
@@ -179,10 +179,10 @@ const FileSwagger = {
           },
         },
         400: {
-          description: "Bad request - No file uploaded or invalid file type",
+          description: "Bad request",
         },
         401: {
-          description: "Unauthorized - Token required",
+          description: "Unauthorized",
         },
       },
     },
