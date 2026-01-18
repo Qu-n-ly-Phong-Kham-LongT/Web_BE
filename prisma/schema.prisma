@@ -268,7 +268,7 @@ model Prescription {
   prescriptionId   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   prescriptionCode String               @unique @default(dbgenerated("pres_gen_code()"))
   recordId         String?              @unique @db.Uuid
-  medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId]) 
+  medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId])
   pdfPath          String?
   fileName         String?
   note             String?
@@ -379,6 +379,7 @@ model ServiceRequest {
   details        ServiceRequestDetail[]
   serviceResults ServiceResult[]
   files          File[]
+  resultFiles    ResultFile[]
 }
 
 model ServiceRequestDetail {
@@ -519,4 +520,16 @@ model File {
 
   serviceResultId String?        @db.Uuid
   serviceResult   ServiceResult? @relation(fields: [serviceResultId], references: [resultId])
+}
+
+model ResultFile {
+  fileID       String @id @default(dbgenerated("uuid_generate_v4()"))
+  relativePath String
+  mimeType     String
+
+  size      Int
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  serviceRequestId String         @db.Uuid
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [requestId])
 }

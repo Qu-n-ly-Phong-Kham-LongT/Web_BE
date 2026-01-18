@@ -16,6 +16,7 @@ import serviceTemplateRouter from "../modules/service-template/routes/service-te
 import serviceRequestRouter from "../modules/service-request/routes/service-request.route";
 import serviceResultRouter from "../modules/service-result/routes/service-result.route";
 import sharedRouter from "../modules/shared/routes/shared.route";
+import resultFileRouter from "../modules/result-file/routes/result-file.route";
 
 const rootRouter = Router();
 
@@ -36,6 +37,7 @@ rootRouter.use("/service-templates", serviceTemplateRouter);
 rootRouter.use("/service-requests", serviceRequestRouter);
 rootRouter.use("/service-results", serviceResultRouter);
 rootRouter.use("/medical-records", sharedRouter);
+rootRouter.use("/result-files", resultFileRouter);
 
 export default rootRouter;
 
