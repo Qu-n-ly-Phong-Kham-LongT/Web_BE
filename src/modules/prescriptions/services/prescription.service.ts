@@ -23,10 +23,10 @@ export class PrecriptionService {
 
   public async upsertPrecriptionDiagnosis(
     payload: UpsertDianosisPrescriptionDto,
-    clinicId: string
+    clinicId: string,
   ) {
     const record = await this.medicalRecordRepository.findById(
-      payload.recordId
+      payload.recordId,
     );
     if (!record || record.clinicId !== clinicId) {
       throw new BaseError(403, "Bạn không có quyền truy cập bệnh án này");
@@ -100,7 +100,7 @@ export class PrecriptionService {
         uniqueMedicineIds.length > 0
           ? await this.medicineRepository.findMedicinesByIds(
               uniqueMedicineIds,
-              tx
+              tx,
             )
           : [];
 
@@ -163,7 +163,7 @@ export class PrecriptionService {
         payload.recordId,
         totalPrice,
         prescriptionNote,
-        tx
+        tx,
       );
 
       await tx.prescriptionDetail.deleteMany({
@@ -251,7 +251,7 @@ export class PrecriptionService {
 
     const diagnosisMainCode = toStringValue(diagnoses?.main?.code);
     const diagnosisMainDescription = toStringValue(
-      diagnoses?.main?.description
+      diagnoses?.main?.description,
     );
     const diagnosisSecondary = diagnoses?.secondary ?? [];
     const createDate = formatDateLong(rawData.createdAt);
@@ -282,6 +282,7 @@ export class PrecriptionService {
         usageParts.push(`${detail.timing}`);
       }
 
+      const prepNote = toStringValue(", " + detail.prepNote);
       return {
         index: index + 1,
         medicineId: detail.medicineId,
@@ -289,11 +290,13 @@ export class PrecriptionService {
         quantity: detail.quantity,
         unit: detail.unit,
         usage: usageParts.join(", "),
-        prepNote: detail.prepNote
+        prepNote,
       };
     });
 
-    const followUpDate = formatDate(rawData.medicalRecord?.followUp?.appointmentDate);
+    const followUpDate = formatDate(
+      rawData.medicalRecord?.followUp?.appointmentDate,
+    );
     return {
       prescriptionCode,
       barcode,
@@ -308,17 +311,17 @@ export class PrecriptionService {
       medicines,
       createDate,
       followUpDate,
-      note
+      note,
     };
   }
 
   public async printPrescriptionPdf(
     prescriptionId: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<{ buffer: Buffer; prescriptionCode: string }> {
     const templateData = await this.prepareForTemplate(
       prescriptionId,
-      clinicId
+      clinicId,
     );
     const prescriptionCode = templateData.prescriptionCode || prescriptionId;
     const barcodeBase64 = templateData.barcode.toString("base64");
@@ -326,7 +329,7 @@ export class PrecriptionService {
       process.cwd(),
       "src",
       "templates",
-      "prescription_template.docx"
+      "prescription_template.docx",
     );
     const content = fs.readFileSync(templatePath);
     const zip = new PizZip(content);
@@ -363,7 +366,10 @@ export class PrecriptionService {
     }
 
     const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
-    const pdfBuffer = await convertDocxToPdf(docxBuffer, `${prescriptionCode}.docx`);
+    const pdfBuffer = await convertDocxToPdf(
+      docxBuffer,
+      `${prescriptionCode}.docx`,
+    );
     await this.fileService.savePrescripitonPdf(
       prescriptionId,
       prescriptionCode,
