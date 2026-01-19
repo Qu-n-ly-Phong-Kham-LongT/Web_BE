@@ -15,7 +15,6 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
-import { text } from "stream/consumers";
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -276,6 +275,7 @@ export class PrecriptionService {
     const diagnosisSecondary = diagnoses?.secondary ?? [];
     const createDate = formatDateLong(rawData.createdAt);
     const note = toStringValue(rawData.note);
+    const printCount = rawData.printCount;
     const prescriptionDetails = (rawData.details ?? []).map((detail) => ({
       medicineId: toStringValue(detail.medicineId),
       medicineName: toStringValue(detail.medicine?.medicineName),
@@ -332,6 +332,7 @@ export class PrecriptionService {
       createDate,
       followUpDate,
       note,
+      printCount,
     };
   }
 
@@ -422,10 +423,7 @@ export class PrecriptionService {
     };
   }
 
-  public async updateStatusToDraft(
-    prescriptionId: string,
-    clinicId?: string,
-  ) {
+  public async updateStatusToDraft(prescriptionId: string, clinicId?: string) {
     const prescription = await prisma.prescription.findUnique({
       where: { prescriptionId },
       select: {
