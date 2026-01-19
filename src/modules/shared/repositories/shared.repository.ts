@@ -489,6 +489,8 @@ export class SharedRepository {
           status: record.prescription.status ?? "Issued",
           createdAt: record.prescription.createdAt ?? new Date(0),
           updateAt: record.prescription.updatedAt ?? new Date(0),
+          printedAt: record.prescription.printedAt ?? null,
+          printCount: record.prescription.printCount ?? 0,
           details: record.prescription.details.map((detail) => ({
             medicineId: detail.medicineId ?? "",
             medicineName: detail.medicine?.medicineName ?? "",
