@@ -22,7 +22,7 @@ export class ServiceItemService {
     size: number,
     search?: string,
     typeId?: string,
-    categoryId?: string
+    categoryId?: string,
   ) {
     const skip = (page - 1) * size;
 
@@ -44,14 +44,14 @@ export class ServiceItemService {
 
   public async createItem(createData: CreateServiceItemRequestDto) {
     const existingItem = await this.serviceItemRepository.findByCode(
-      createData.itemCode
+      createData.itemCode,
     );
     if (existingItem) {
       throw new BaseError(409, "Dịch vụ này đã tồn tại");
     }
 
     const typeNode = await this.serviceNodeRepository.findNodeById(
-      createData.typeId
+      createData.typeId,
     );
     if (!typeNode) {
       throw new BaseError(409, "Loại dịch vụ này không tồn tại");
@@ -59,7 +59,7 @@ export class ServiceItemService {
 
     if (createData.categoryId) {
       const categoryNode = await this.serviceNodeRepository.findNodeById(
-        createData.categoryId
+        createData.categoryId,
       );
       if (!categoryNode) {
         throw new BaseError(409, "Danh mục dịch vụ này không tồn tại");
@@ -67,7 +67,7 @@ export class ServiceItemService {
     }
 
     return await this.serviceItemRepository.createServiceItemWithConfig(
-      createData
+      createData,
     );
   }
 
@@ -85,5 +85,20 @@ export class ServiceItemService {
       basePrice: item.basePrice || 0,
       configs: item.configs,
     };
+  }
+
+  public async updateStatus(itemId: string, isActive: boolean) {
+    const item = await this.serviceItemRepository.findById(itemId);
+
+    if (!item) {
+      throw new BaseError(404, "Không tìm thy dịch vụ");
+    }
+
+    const updated = await this.serviceItemRepository.updateStatus(
+      itemId,
+      isActive,
+    );
+
+    return this.mapToResponseDto(updated);
   }
 }

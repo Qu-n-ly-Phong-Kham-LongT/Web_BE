@@ -33,6 +33,13 @@ export interface CreateServiceItemRequestDto {
   configs?: CreateServiceItemConfigDto[];
 }
 
+export interface UpdateServiceItemDto {
+  isActive: boolean;
+}
+
+export const updateServiceItemSchema = Joi.object<UpdateServiceItemDto>({
+  isActive: Joi.boolean().required(),
+}).options({ abortEarly: false, stripUnknown: true });
 
 const createServiceConfigSchema = Joi.object({
   configCode: Joi.string().trim().min(2).max(50).required(),
@@ -46,23 +53,28 @@ const createServiceConfigSchema = Joi.object({
   metaData: Joi.object({
     uiStyle: Joi.string().optional(),
     allowMultiple: Joi.boolean().optional(),
-    options: Joi.array().items(
-      Joi.object({
-        label: Joi.string().required(),
-        value: Joi.string().required(),
-        surcharge: Joi.number().min(0).default(0)
-      })
-    ).optional()
-  }).unknown(true).allow(null).optional()
+    options: Joi.array()
+      .items(
+        Joi.object({
+          label: Joi.string().required(),
+          value: Joi.string().required(),
+          surcharge: Joi.number().min(0).default(0),
+        }),
+      )
+      .optional(),
+  })
+    .unknown(true)
+    .allow(null)
+    .optional(),
 });
 
 export const createServiceItemSchema = Joi.object({
   itemCode: Joi.string().trim().min(3).max(50).required(),
   name: Joi.string().trim().min(5).max(255).required(),
-  
+
   basePrice: Joi.number().min(0).required().messages({
     "number.min": "Giá dịch vụ không được nhỏ hơn 0",
-    "any.required": "Giá cơ bản là bắt buộc"
+    "any.required": "Giá cơ bản là bắt buộc",
   }),
 
   categoryId: Joi.string().uuid().allow(null).optional(),
