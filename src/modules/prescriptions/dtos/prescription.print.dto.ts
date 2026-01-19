@@ -3,7 +3,8 @@ export interface PrescriptionPrintDto {
   prescriptionCode: string;
   barcode: Buffer;
   details: PrescriptionDetail[];
-  followUpDate: string; 
+  followUpDate: string;
+  printCount: number; 
 }
 
 export interface PrescriptionDetail {
