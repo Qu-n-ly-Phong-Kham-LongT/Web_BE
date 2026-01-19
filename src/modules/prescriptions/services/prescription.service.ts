@@ -1,9 +1,10 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, PrescriptionStatus } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
 import { MedicalRecordRepository } from "../../medical-record/repositories/medical-record.repository";
 import { MedicineRepository } from "../../medicine/repositories/medicine.repository";
 import { UpsertDianosisPrescriptionDto } from "../dtos/prescription.request.dto";
+import { PrescriptionStatusResponseDto } from "../dtos/prescription.response.dto";
 import { PrescriptionRepository } from "../repositories/prescription.repository";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
@@ -14,6 +15,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
+import { text } from "stream/consumers";
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -33,6 +35,20 @@ export class PrecriptionService {
     }
 
     return await prisma.$transaction(async (tx) => {
+      const existingPrescription = await tx.prescription.findUnique({
+        where: { recordId: payload.recordId },
+        select: { status: true },
+      });
+      if (
+        existingPrescription &&
+        existingPrescription.status !== PrescriptionStatus.Draft
+      ) {
+        throw new BaseError(
+          400,
+          "Toa thuốc đã in hoặc bị khóa, không thể cập nhật",
+        );
+      }
+
       const updateRecordData: Prisma.MedicalRecordUpdateInput = {};
 
       if (payload.evidenceBasedDiagnosis !== undefined) {
@@ -183,6 +199,10 @@ export class PrecriptionService {
     });
   }
 
+  public async getPrescriptionStatus(): Promise<PrescriptionStatusResponseDto> {
+    return { statuses: Object.values(PrescriptionStatus) };
+  }
+
   public async prepareForTemplate(prescriptionId: string, clinicId?: string) {
     const rawData =
       await this.prescriptionRepository.getPrintData(prescriptionId);
@@ -319,6 +339,19 @@ export class PrecriptionService {
     prescriptionId: string,
     clinicId?: string,
   ): Promise<{ buffer: Buffer; prescriptionCode: string }> {
+    const existing = await prisma.prescription.findUnique({
+      where: { prescriptionId },
+      select: { status: true, printCount: true },
+    });
+
+    if (!existing) {
+      throw new BaseError(404, "Không tìm thấy toa thuốc để in");
+    }
+
+    if (existing.status !== PrescriptionStatus.Draft) {
+      throw new BaseError(400, "Toa thuốc đã in, không được in lại");
+    }
+
     const templateData = await this.prepareForTemplate(
       prescriptionId,
       clinicId,
@@ -375,10 +408,48 @@ export class PrecriptionService {
       prescriptionCode,
       pdfBuffer,
     );
+    await prisma.prescription.update({
+      where: { prescriptionId },
+      data: {
+        status: PrescriptionStatus.Issued,
+        printedAt: new Date(),
+        printCount: (existing.printCount ?? 0) + 1,
+      },
+    });
     return {
       buffer: pdfBuffer,
       prescriptionCode,
     };
+  }
+
+  public async updateStatusToDraft(
+    prescriptionId: string,
+    clinicId?: string,
+  ) {
+    const prescription = await prisma.prescription.findUnique({
+      where: { prescriptionId },
+      select: {
+        status: true,
+        medicalRecord: { select: { clinicId: true } },
+      },
+    });
+
+    if (!prescription) {
+      throw new BaseError(404, "Không tìm thấy toa thuốc");
+    }
+
+    if (clinicId && prescription.medicalRecord?.clinicId !== clinicId) {
+      throw new BaseError(403, "Không có quyền truy cập toa thuốc");
+    }
+
+    if (prescription.status === PrescriptionStatus.Cancelled) {
+      throw new BaseError(400, "Toa thuốc đã hủy, không thể mở lại");
+    }
+
+    return await prisma.prescription.update({
+      where: { prescriptionId },
+      data: { status: PrescriptionStatus.Draft },
+    });
   }
 
   // public async printPresctiptionPdf(

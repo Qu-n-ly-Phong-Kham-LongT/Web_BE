@@ -10,5 +10,11 @@ export interface PrescriptionDetailResponseDto {
     status: PrescriptionStatus;
     createdAt: Date;
     updateAt: Date;
+    printedAt?: Date | null;
+    printCount?: number;
     details: PrescriptionItemDto[];
+}
+
+export interface PrescriptionStatusResponseDto {
+    statuses: PrescriptionStatus[];
 }

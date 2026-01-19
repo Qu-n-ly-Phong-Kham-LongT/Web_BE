@@ -37,8 +37,9 @@ enum PregnancyStatus {
 }
 
 enum PrescriptionStatus {
+  Draft
   Issued
-  Fulfilled
+  Cancelled
 }
 
 enum NodeType {
@@ -274,9 +275,11 @@ model Prescription {
   fileName         String?
   note             String?
   totalPrice       Decimal?             @db.Decimal(18, 0)
-  status           PrescriptionStatus?  @default(Issued)
+  status           PrescriptionStatus?  @default(Draft)
   createdAt        DateTime?            @default(now()) @db.Timestamptz
   updatedAt        DateTime?            @default(now()) @db.Timestamptz
+  printedAt        DateTime?            @db.Timestamptz
+  printCount       Int?                 @default(0)
   details          PrescriptionDetail[]
   file             File?                @relation()
 }

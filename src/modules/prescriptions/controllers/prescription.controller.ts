@@ -44,4 +44,34 @@ export class PrescriptionController {
 
     return res.send(result.buffer);
   };
+
+  public getPrescriptionStatus = async (
+    _req: AuthenticatedRequest,
+    res: Response,
+  ) => {
+    const result = await this.prescriptionService.getPrescriptionStatus();
+    return successResponse(
+      res,
+      200,
+      result,
+      "Lấy danh sách trạng thái enum của toa thuốc thành công",
+    );
+  };
+  public updateStatusToDraft = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const { id } = req.params;
+    const result = await this.prescriptionService.updateStatusToDraft(
+      id,
+      clinicId,
+    );
+    return successResponse(
+      res,
+      200,
+      result,
+      "Cập nhật trạng thái toa thuốc về nháp thành công",
+    );
+  };
 }

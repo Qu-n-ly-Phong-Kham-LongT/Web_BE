@@ -7,7 +7,7 @@ const DEFAULT_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "123456";
 const DEFAULT_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@example.com";
 
 const DEFAULT_CLINIC_EMAIL = process.env.SEED_CLINIC_EMAIL || "default.clinic@example.com";
-const DEFAULT_CLINIC_CODE = process.env.SEED_CLINIC_CODE || "PKH";
+const DEFAULT_CLINIC_CODE = process.env.SEED_CLINIC_CODE || "PVT";
 
 export const seedAdmin = async () => {
   const clinic = await prisma.clinic.upsert({
@@ -19,9 +19,9 @@ export const seedAdmin = async () => {
       phone: null,
     },
     create: {
-      clinicName: "Default Clinic",
+      clinicName: "Phòng Khám Chuyên Khoa PGS.TS.BS Nguyễn Thị Cẩm Hường",
       email: DEFAULT_CLINIC_EMAIL,
-      address: "N/A",
+      address: "323 Phan Văn Trị, P.2, Q.5",
       phone: null,
       clinicCode: DEFAULT_CLINIC_CODE,
     },
