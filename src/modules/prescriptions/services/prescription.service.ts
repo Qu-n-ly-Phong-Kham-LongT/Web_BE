@@ -302,7 +302,11 @@ export class PrecriptionService {
         usageParts.push(`${detail.timing}`);
       }
 
-      const prepNote = toStringValue(", " + detail.prepNote);
+      let prepNote = "";
+      if (detail.prepNote && detail.prepNote.length > 0) {
+        prepNote = toStringValue(", " + detail.prepNote);
+      }
+
       return {
         index: index + 1,
         medicineId: detail.medicineId,
