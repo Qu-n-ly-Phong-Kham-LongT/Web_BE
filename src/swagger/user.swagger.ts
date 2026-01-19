@@ -7,6 +7,7 @@ import {
 import {
   UserResponseSchema,
   UserRoleEnumResponseSchema,
+  UserStatusResponseSchema,
 } from "../modules/users/dtos/user.response.dto";
 
 const paginationSchema = {
@@ -222,6 +223,26 @@ const UserSwagger = {
           content: {
             "application/json": {
               schema: joiToSwagger(UserRoleEnumResponseSchema),
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        403: { description: "Forbidden" },
+      },
+    },
+  },
+
+  "/api/users/status": {
+    get: {
+      summary: "Danh sách status",
+      tags: ["Users"],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Lấy danh sách status thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(UserStatusResponseSchema),
             },
           },
         },
