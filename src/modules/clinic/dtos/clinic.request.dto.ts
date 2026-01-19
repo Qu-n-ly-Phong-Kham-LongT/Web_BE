@@ -40,7 +40,7 @@ const ClinicSessionItemSchema = Joi.object({
     return value;
   })
   .messages({
-    "any.invalid": "Giờ bắt đầu phải sau giờ kết thúc",
+    "any.invalid": "Giờ kết thúc phải sau giờ bắt đầu",
   });
 
 export const ClinicRequestSchema = Joi.object({
