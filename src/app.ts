@@ -51,10 +51,11 @@ app.use(
     challenge: true,
   }),
   swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument)
+  swaggerUi.setup(swaggerDocument),
 );
 
-app.use("/api", apiLimiter, rootRouter);
+// app.use("/api", apiLimiter, rootRouter);
+app.use("/api", rootRouter);
 
 app.use(errorHandler);
 
