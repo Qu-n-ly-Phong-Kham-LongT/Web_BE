@@ -8,6 +8,7 @@ import {
 import {
   UserResponseDto,
   UserRoleEnumResponseDto,
+  UserStatusResponseDto,
 } from "../dtos/user.response.dto";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicService } from "../../clinic/services/clinic.service";
@@ -176,6 +177,10 @@ export class UserService {
 
   public async getUserRoleEnum(): Promise<UserRoleEnumResponseDto> {
     return { roles: Object.values(UserRoleEnum) };
+  }
+
+  public async getUserStatus(): Promise<UserStatusResponseDto> {
+    return { statuses: Object.values(UserStatus) };
   }
 
   public async getUsers(

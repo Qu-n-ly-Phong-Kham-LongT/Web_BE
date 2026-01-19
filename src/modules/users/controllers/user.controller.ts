@@ -92,6 +92,16 @@ export class UserController {
     );
   };
 
+  public getUserStatus = async (req: AuthenticatedRequest, res: Response) => {
+    const result = await this.userService.getUserStatus();
+    return successResponse(
+      res,
+      200,
+      result,
+      "Lấy danh sách trạng thái thành công"
+    );
+  };
+
   public getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;

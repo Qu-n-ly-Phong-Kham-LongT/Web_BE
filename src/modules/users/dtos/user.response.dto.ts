@@ -1,4 +1,4 @@
-import { UserRoleEnum } from "@prisma/client";
+import { UserRoleEnum, UserStatus } from "@prisma/client";
 import joi from "joi";
 
 export interface UserResponseDto {
@@ -27,6 +27,18 @@ export interface UserRoleEnumResponseDto {
     roles: string[];
 }
 
+export interface UserStatusResponseDto {
+    statuses: string[];
+}
+
 export const UserRoleEnumResponseSchema = joi.object<UserRoleEnumResponseDto>({
     roles: joi.array().items(joi.string()).required().description("Danh sách role")
+}).required()
+
+export const UserStatusResponseSchema = joi.object<UserStatusResponseDto>({
+    statuses: joi
+        .array()
+        .items(joi.string().valid(...Object.values(UserStatus)))
+        .required()
+        .description("Danh sách status"),
 }).required()
