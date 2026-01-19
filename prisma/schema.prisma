@@ -52,6 +52,7 @@ enum InputType {
   Select
   Boolean
   LongText
+  Checkbox
 }
 
 enum Session {
