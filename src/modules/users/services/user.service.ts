@@ -113,7 +113,7 @@ export class UserService {
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      throw new BaseError(400, "Role không hợp lệ");
+      throw new BaseError(400, "Mật khẩu hiện tại không đúng");
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
