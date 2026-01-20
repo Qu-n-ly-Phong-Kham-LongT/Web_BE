@@ -7,6 +7,17 @@ import { MedicineListResponseDto } from "../dtos/medicine-list.response.dto";
 import { MedicineRepository } from "../repositories/medicine.repository";
 import { createPagination } from "../../../utils/pagination.util";
 
+type MedicineListOptions = {
+  supplier?: string;
+  isActive?: boolean;
+  isInsuranceCovered?: boolean;
+  sellPrice?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  sortBy?: "medicineName" | "sellPrice" | "createdAt" | "medicineCode";
+  sort?: "asc" | "desc";
+};
+
 export class MedicineService {
   private medicineRepository = new MedicineRepository();
 
@@ -33,9 +44,16 @@ export class MedicineService {
     page: number = 1,
     size: number = 10,
     search: string | undefined,
-    clinicId?: string
+    clinicId?: string,
+    options: MedicineListOptions = {}
   ): Promise<MedicineListResponseDto> {
-    let { medicines, totalItems } = await this.medicineRepository.findMedicines(page, size, search, clinicId);
+    let { medicines, totalItems } = await this.medicineRepository.findMedicines(
+      page,
+      size,
+      search,
+      clinicId,
+      options
+    );
 
     let pagination = createPagination(page, size, totalItems);
 
