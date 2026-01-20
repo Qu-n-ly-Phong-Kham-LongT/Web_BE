@@ -1,5 +1,9 @@
 import Joi from "joi";
-import { PregnancyStatus, ClinicalExamination, PatientAllergy } from "@prisma/client";
+import {
+  PregnancyStatus,
+  ClinicalExamination,
+  PatientAllergy,
+} from "@prisma/client";
 import { AllergyItemDto } from "./clinical-examination.request.dto";
 
 export interface ClinicalExaminationResponseDto {
@@ -23,6 +27,7 @@ export interface ClinicalExaminationResponseDto {
   isBreastfeeding: boolean | null;
   clinicalNotes: string | null;
   examinedAt: Date | null;
+  updatedAt: Date | null;
   examinedBy: string | null;
   allergies: AllergyItemDto[];
 }
@@ -49,22 +54,22 @@ export const ClinicalExaminationResponseSchema =
     hasHealthInsurance: Joi.boolean().allow(null),
     clinicalNotes: Joi.string().allow(null),
     examinedAt: Joi.date().allow(null),
+    updatedAt: Joi.date().allow(null),
     examinedBy: Joi.string().allow(null),
     allergies: Joi.array().items(
       Joi.object({
         drug: Joi.string(),
         reaction: Joi.string().allow(null),
-      })
+      }),
     ),
   }).required();
 
 export const mapToClinicalExaminationResponse = (
   exam: ClinicalExamination,
-  allergyRecord: PatientAllergy | null
+  allergyRecord: PatientAllergy | null,
 ): ClinicalExaminationResponseDto => {
-  
   let allergyList: AllergyItemDto[] = [];
-  
+
   if (allergyRecord && Array.isArray(allergyRecord.data)) {
     allergyList = (allergyRecord.data as any[]).map((item) => ({
       drug: item.drug,
@@ -92,8 +97,9 @@ export const mapToClinicalExaminationResponse = (
     hasHealthInsurance: exam.hasHealthInsurance ?? null,
     clinicalNotes: exam.clinicalNotes,
     examinedAt: exam.examinedAt,
+    updatedAt: exam.updatedAt,
     examinedBy: exam.examinedBy,
-    
+
     allergies: allergyList,
   };
 };
