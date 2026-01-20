@@ -252,35 +252,34 @@ const ServiceRequestSwagger = {
         },
       },
     },
-
-    "/api/service-requests/{requestId}/print": {
-      get: {
-        tags: ["Core Businesses"],
-        summary: "In phiếu chỉ định",
-        parameters: [
-          {
-            name: "requestId",
-            in: "path",
-            required: true,
-            schema: {
-              type: "string",
-            },
+  },
+  "/api/service-requests/{requestId}/print": {
+    get: {
+      tags: ["Core Businesses"],
+      summary: "In phiếu chỉ định",
+      parameters: [
+        {
+          name: "requestId",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
           },
-        ],
-        security: [{ bearerAuth: [] }],
-        responses: {
-          200: {
-            description: "PDF Phiếu chỉ định",
-            content: {
-              "application/pdf": {
-                schema: { type: "string", format: "binary" },
-              },
-            },
-          },
-          401: { description: "Chưa đăng nhập" },
-          403: { description: "Forbidden" },
-          404: { description: "Not found" },
         },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "PDF Phiếu chỉ định",
+          content: {
+            "application/pdf": {
+              schema: { type: "string", format: "binary" },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Forbidden" },
+        404: { description: "Not found" },
       },
     },
   },
