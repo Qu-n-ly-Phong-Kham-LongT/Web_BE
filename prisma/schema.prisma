@@ -259,6 +259,7 @@ model ClinicalExamination {
   hasWeightLoss       Boolean          @default(false)
   clinicalNotes       String?
   examinedAt          DateTime?        @default(now()) @db.Timestamptz
+  updatedAt           DateTime?        @default(now()) @updatedAt
   examinedBy          String?          @db.Uuid
   examiner            User?            @relation("ExaminedByUser", fields: [examinedBy], references: [userId])
   userId              String?          @db.Uuid

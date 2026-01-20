@@ -111,6 +111,7 @@ export class ClinicalExaminationService {
       hasHealthInsurance: exam.hasHealthInsurance ?? null,
       clinicalNotes: exam.clinicalNotes ?? null,
       examinedAt: exam.examinedAt ?? null,
+      updatedAt: exam.updatedAt ?? null,
       examinedBy: exam.examinedBy ?? null,
       allergies: allergyItems,
     };

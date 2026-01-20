@@ -118,6 +118,11 @@ export class SharedService {
       push(dto.patient.updatedAt);
     }
 
+    if (dto.clinicalExamination) {
+      push(dto.clinicalExamination.examinedAt);
+      push(dto.clinicalExamination.updatedAt)
+    }
+
     if (dto.prescription) {
       push(dto.prescription.createdAt);
       push(dto.prescription.updateAt);
