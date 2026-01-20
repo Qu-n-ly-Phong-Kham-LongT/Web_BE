@@ -45,7 +45,20 @@ export class PatientController {
     const search = req.query.search as string | undefined;
     const clinicId = req.payload?.clinicId ?? undefined;
 
-    let result: PatientListResponseDto = await this.patientService.getPatients(page, size, search, clinicId);
+    const sortByParam = (req.query.sortBy as string | undefined) ?? "createdAt";
+    const sortBy = ["gender", "identityCard", "phone", "email", "createdAt"].includes(sortByParam)
+      ? (sortByParam as "gender" | "identityCard" | "phone" | "email" | "createdAt")
+      : "createdAt";
+    const sort = (req.query.sort as string)?.toLowerCase() === "asc" ? "asc" : "desc";
+
+    let result: PatientListResponseDto = await this.patientService.getPatients(
+      page,
+      size,
+      search,
+      clinicId,
+      sortBy,
+      sort
+    );
     return successResponse(res, 200, result.patients, "Lấy danh sách bệnh nhân thành công", result.pagination);
   };
   public getDailyQueue = async (
