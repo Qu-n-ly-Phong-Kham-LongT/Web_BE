@@ -102,6 +102,13 @@ const PatientSwagger = {
           schema: { type: "string", enum: ["asc", "desc"], default: "desc" },
           description: "Asc hay Desc",
         },
+        {
+          name: "gender",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["Male", "Female", "Other"] },
+          description: "Lọc theo giới tính",
+        },
       ],
       security: [{ bearerAuth: [] }],
       responses: {
