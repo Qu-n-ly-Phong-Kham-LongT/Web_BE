@@ -202,16 +202,19 @@ export class PrescriptionTemplateService {
       description: template.description,
       createdBy: template.createdBy,
       creatorName: template.creator?.fullName ?? null,
-      details: template.details.map((detail) => ({
-        templateDetailId: detail.templateDetailId,
-        medicineId: detail.medicineId,
-        medicineName: detail.medicine?.medicineName ?? null,
-        baseUnit: detail.medicine?.baseUnit ?? null,
-        defaultFrequency: detail.defaultFrequency,
-        defaultQuantityPerTime: detail.defaultQuantityPerTime ? Number(detail.defaultQuantityPerTime) : null,
-        daysToTake: detail.daysToTake ?? null,
-        defaultRoute: detail.defaultRoute,
-        defaultTiming: detail.defaultTiming,
+        details: template.details.map((detail) => ({
+          templateDetailId: detail.templateDetailId,
+          medicineId: detail.medicineId,
+          medicineName: detail.medicine?.medicineName ?? null,
+          baseUnit: detail.medicine?.baseUnit ?? null,
+          sellPrice: detail.medicine?.sellPrice
+            ? Number(detail.medicine.sellPrice)
+            : null,
+          defaultFrequency: detail.defaultFrequency,
+          defaultQuantityPerTime: detail.defaultQuantityPerTime ? Number(detail.defaultQuantityPerTime) : null,
+          daysToTake: detail.daysToTake ?? null,
+          defaultRoute: detail.defaultRoute,
+          defaultTiming: detail.defaultTiming,
       })),
     };
   }
