@@ -560,6 +560,12 @@ export class PrecriptionService {
       details: (pres.details ?? []).map((d) => ({
         medicineId: d.medicineId ?? "",
         medicineName: d.medicine?.medicineName ?? "",
+        sellPrice:
+          d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
+            ? Number(d.appliedExportPrice)
+            : d.medicine?.sellPrice !== null && d.medicine?.sellPrice !== undefined
+              ? Number(d.medicine.sellPrice)
+              : null,
         frequencyPerDay: d.frequencyPerDay ?? 0,
         quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
         quantity: d.quantity ? Number(d.quantity) : 0,

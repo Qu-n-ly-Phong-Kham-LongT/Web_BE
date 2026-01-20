@@ -380,10 +380,10 @@ export class SharedRepository {
                 ? Number(result.valueNumber)
                 : null,
             unit: result.unit ?? null,
-            images: result.images ?? null,
             executedAt: result.executedAt
               ? result.executedAt.toISOString()
               : null,
+            updatedAt: result.updatedAt ? result.updatedAt.toISOString() : null,
           };
 
           if (result.detailId) {
@@ -480,8 +480,6 @@ export class SharedRepository {
     const prescription = record.prescription
       ? {
           prescriptionId: record.prescription.prescriptionId,
-          pdfPath: record.prescription.pdfPath ?? "",
-          fileName: record.prescription.fileName ?? "",
           note: record.prescription.note ?? "",
           totalPrice: record.prescription.totalPrice
             ? Number(record.prescription.totalPrice)
@@ -494,6 +492,14 @@ export class SharedRepository {
           details: record.prescription.details.map((detail) => ({
             medicineId: detail.medicineId ?? "",
             medicineName: detail.medicine?.medicineName ?? "",
+            sellPrice:
+              detail.appliedExportPrice !== null &&
+              detail.appliedExportPrice !== undefined
+                ? Number(detail.appliedExportPrice)
+                : detail.medicine?.sellPrice !== null &&
+                    detail.medicine?.sellPrice !== undefined
+                  ? Number(detail.medicine.sellPrice)
+                  : null,
             frequencyPerDay: detail.frequencyPerDay ?? 0,
             quantityPerTime: detail.quantityPerTime
               ? Number(detail.quantityPerTime)
@@ -655,7 +661,6 @@ export class SharedRepository {
           valueString: toStringValue(result.valueString),
           valueNumber: toStringValue(result.valueNumber),
           unit: toStringValue(result.unit),
-          images: result.images ?? "",
           executedAt: toStringValue(result.executedAt),
         })),
       })),
@@ -760,8 +765,6 @@ export class SharedRepository {
         reaction: toStringValue(item.reaction),
       })),
       prescriptionId: toStringValue(prescription?.prescriptionId),
-      pdfPath: toStringValue(prescription?.pdfPath),
-      fileName: toStringValue(prescription?.fileName),
       prescriptionNote: toStringValue(prescription?.note),
       totalPrice: toStringValue(prescription?.totalPrice),
       status: toStringValue(prescription?.status),

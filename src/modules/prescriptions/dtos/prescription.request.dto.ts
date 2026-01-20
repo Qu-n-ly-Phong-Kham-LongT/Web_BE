@@ -9,6 +9,7 @@ import Joi from "joi";
 export interface PrescriptionItemDto {
   medicineId: string;
   medicineName?: string | null;
+  sellPrice?: number | null;
   frequencyPerDay: number;
   quantityPerTime: number;
   quantity: number;

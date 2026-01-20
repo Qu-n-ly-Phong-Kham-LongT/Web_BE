@@ -10,7 +10,6 @@ export interface ServiceResultResponseDto {
   valueString: string | null;
   valueNumber: number | null;
   unit: string | null;
-  images: any;
   executedAt: string | null;
 }
 
