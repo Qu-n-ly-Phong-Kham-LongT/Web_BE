@@ -4,6 +4,7 @@ import { BaseError } from "../../../utils/base-error.util";
 import { ClinicRequestDto } from "../dtos/clinic.request.dto";
 import { ClinicListResponseDto, ClinicResponseDto } from "../dtos/clinic.response.dto";
 import { createPagination } from "../../../utils/pagination.util";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export class ClinicService {
   private clinicRepository = new ClinicRepository();
@@ -55,6 +56,7 @@ export class ClinicService {
     address: string | null;
     phone: string | null;
     email: string | null;
+    consultationFee: Decimal | null;
     clinicCode: string | null;
     clinicWorkingSessions?: {
       sessionType: Session;
@@ -68,6 +70,7 @@ export class ClinicService {
       address: clinic.address,
       phone: clinic.phone,
       email: clinic.email,
+      consultationFee: clinic.consultationFee,
       clinicCode: clinic.clinicCode,
       sessions: (clinic.clinicWorkingSessions ?? []).map((session) => ({
         sessionType: session.sessionType,
