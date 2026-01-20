@@ -26,6 +26,7 @@ const ClinicSwagger = {
                   pattern: "^0[0-9]{9,10}$",
                 },
                 email: { type: "string", format: "email", maxLength: 150 },
+                consultationFee: { type: "numbe" },
                 sessions: {
                   type: "array",
                   description: "Cấu hình khung giờ làm việc theo từng ca",
@@ -135,7 +136,8 @@ const ClinicSwagger = {
     put: {
       tags: ["Clinics"],
       summary: "Cập nhật thông tin phòng khám",
-      description: "Cập nhật từng phần (Partial Update). Chỉ gửi các trường cần sửa.",
+      description:
+        "Cập nhật từng phần (Partial Update). Chỉ gửi các trường cần sửa.",
       security: [{ bearerAuth: [] }],
       parameters: [
         {

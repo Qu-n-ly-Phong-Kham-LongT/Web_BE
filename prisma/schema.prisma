@@ -85,11 +85,13 @@ model Role {
 }
 
 model Clinic {
-  clinicId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  clinicName String? @db.VarChar(255)
-  address    String? @db.VarChar(255)
-  phone      String? @db.VarChar(255)
-  email      String? @db.VarChar(150)
+  clinicId        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicName      String?  @db.VarChar(255)
+  address         String?  @db.VarChar(255)
+  phone           String?  @db.VarChar(255)
+  email           String?  @db.VarChar(150)
+  consultationFee Decimal? @db.Decimal(10, 2)
+
   clinicCode String? @unique @default(dbgenerated("generate_clinic_code()")) @db.VarChar(100)
 
   users User[]
