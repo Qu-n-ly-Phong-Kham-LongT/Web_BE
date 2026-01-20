@@ -3,8 +3,6 @@ import { PrescriptionStatus } from "@prisma/client"
 
 export interface PrescriptionDetailResponseDto {
     prescriptionId: string;
-    pdfPath: string;
-    fileName: string;
     note: string;
     totalPrice: number;
     status: PrescriptionStatus;

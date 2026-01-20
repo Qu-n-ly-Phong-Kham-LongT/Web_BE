@@ -82,8 +82,8 @@ export class ServiceRequestService {
             ? Number(result.valueNumber)
             : null,
         unit: result.unit ?? null,
-        images: result.images ?? null,
         executedAt: result.executedAt ? result.executedAt.toISOString() : null,
+        updatedAt: result.updatedAt ? result.updatedAt.toISOString() : null,
       };
 
       if (result.detailId) {
