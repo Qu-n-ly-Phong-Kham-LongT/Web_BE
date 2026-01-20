@@ -4,7 +4,6 @@ export interface CreatePrescriptionTemplateDetailDto {
   medicineId: string;
   defaultFrequency?: number;
   defaultQuantityPerTime?: number;
-  daysToTake?: number;
   defaultRoute?: string;
   defaultTiming?: string;
 }
@@ -12,6 +11,7 @@ export interface CreatePrescriptionTemplateDetailDto {
 export interface CreatePrescriptionTemplateRequestDto {
   templateName: string;
   description?: string;
+  daysToTake?: number;
   details: CreatePrescriptionTemplateDetailDto[];
 }
 
@@ -27,10 +27,6 @@ export const CreatePrescriptionTemplateDetailSchema = Joi.object<CreatePrescript
   defaultQuantityPerTime: Joi.number().min(0).optional().messages({
     "number.min": "Liều lượng mỗi lần dùng phải lớn hơn hoặc bằng 0",
   }),
-  daysToTake: Joi.number().integer().min(1).optional().messages({
-    "number.min": "Số ngày dùng thuốc phải lớn hơn 0",
-    "number.integer": "Số ngày dùng thuốc phải là số nguyên",
-  }),
   defaultRoute: Joi.string().optional(),
   defaultTiming: Joi.string().optional(),
 }).required();
@@ -41,9 +37,17 @@ export const CreatePrescriptionTemplateRequestSchema = Joi.object<CreatePrescrip
     "any.required": "Tên mẫu đơn thuốc là bắt buộc",
   }),
   description: Joi.string().optional(),
+  daysToTake: Joi.number().integer().min(1).optional().messages({
+    "number.min": "Days to take must be greater than 0",
+    "number.integer": "Days to take must be an integer",
+  }),
   details: Joi.array().items(CreatePrescriptionTemplateDetailSchema).min(1).required().messages({
     "array.min": "Phải có ít nhất một thuốc trong mẫu đơn",
     "any.required": "Chi tiết mẫu đơn là bắt buộc",
   }),
 }).required();
+
+
+
+
 

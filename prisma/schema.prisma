@@ -492,6 +492,7 @@ model PrescriptionTemplate {
   templateId   String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   templateName String
   description  String?
+  daysToTake   Int?
   createdBy    String?                      @db.Uuid
   createdAt    DateTime?                    @default(now()) @db.Timestamptz
   updatedAt    DateTime?                    @updatedAt @db.Timestamptz
@@ -507,7 +508,6 @@ model PrescriptionTemplateDetail {
   medicine               Medicine              @relation(fields: [medicineId], references: [medicineId])
   defaultFrequency       Int?
   defaultQuantityPerTime Float?
-  daysToTake             Int?
   defaultRoute           String?
   defaultTiming          String?
 }

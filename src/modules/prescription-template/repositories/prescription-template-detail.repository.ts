@@ -13,7 +13,6 @@ export class PrescriptionTemplateDetailRepository {
       medicineId: string;
       defaultFrequency?: number | null;
       defaultQuantityPerTime?: number | null;
-      daysToTake?: number | null;
       defaultRoute?: string | null;
       defaultTiming?: string | null;
     },
@@ -26,7 +25,6 @@ export class PrescriptionTemplateDetailRepository {
         medicineId: data.medicineId,
         defaultFrequency: data.defaultFrequency ?? null,
         defaultQuantityPerTime: data.defaultQuantityPerTime ?? null,
-        daysToTake: data.daysToTake ?? null,
         defaultRoute: data.defaultRoute ?? null,
         defaultTiming: data.defaultTiming ?? null,
       },
@@ -39,7 +37,6 @@ export class PrescriptionTemplateDetailRepository {
       medicineId: string;
       defaultFrequency?: number | null;
       defaultQuantityPerTime?: number | null;
-      daysToTake?: number | null;
       defaultRoute?: string | null;
       defaultTiming?: string | null;
     }>,
@@ -52,7 +49,6 @@ export class PrescriptionTemplateDetailRepository {
         medicineId: detail.medicineId,
         defaultFrequency: detail.defaultFrequency ?? null,
         defaultQuantityPerTime: detail.defaultQuantityPerTime ?? null,
-        daysToTake: detail.daysToTake ?? null,
         defaultRoute: detail.defaultRoute ?? null,
         defaultTiming: detail.defaultTiming ?? null,
       })),
@@ -85,7 +81,6 @@ export class PrescriptionTemplateDetailRepository {
       medicineId?: string;
       defaultFrequency?: number | null;
       defaultQuantityPerTime?: number | null;
-      daysToTake?: number | null;
       defaultRoute?: string | null;
       defaultTiming?: string | null;
     },
@@ -102,9 +97,6 @@ export class PrescriptionTemplateDetailRepository {
     }
     if (data.defaultQuantityPerTime !== undefined) {
       updateData.defaultQuantityPerTime = data.defaultQuantityPerTime;
-    }
-    if (data.daysToTake !== undefined) {
-      updateData.daysToTake = data.daysToTake;
     }
     if (data.defaultRoute !== undefined) {
       updateData.defaultRoute = data.defaultRoute;
