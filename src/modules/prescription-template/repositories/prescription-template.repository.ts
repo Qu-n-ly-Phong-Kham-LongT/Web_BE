@@ -30,6 +30,7 @@ const templateInclude = {
           medicineName: true,
           medicineCode: true,
           baseUnit: true,
+          sellPrice: true,
         },
       },
     },
