@@ -166,6 +166,10 @@ export class FileService {
     return this.mapFileResponse(file);
   }
 
+  public async findByRecordId(recordId: string) {
+    return await this.findByMedicalRecordId(recordId);
+  }
+
   public async saveServiceRequestPdf(
     requestId: string,
     requestCode: string | null | undefined,

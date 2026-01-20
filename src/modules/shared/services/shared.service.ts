@@ -93,8 +93,67 @@ export class SharedService {
     };
   }
 
-  public async getMedicalRecordFile(
-    recordId: string,
-    clinicId: string,
-  ) {}
+  private parseDate(value?: string | Date | null): Date | null {
+    if (!value) {
+      return null;
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private getLatestRecordChange(dto: FullMedicalRecordDto): Date {
+    const times: Date[] = [];
+    const push = (value?: string | Date | null) => {
+      const date = this.parseDate(value);
+      if (date) {
+        times.push(date);
+      }
+    };
+
+    push(dto.medicalRecord.createdAt);
+    push(dto.medicalRecord.updatedAt);
+
+    if (dto.patient) {
+      push(dto.patient.createdAt);
+      push(dto.patient.updatedAt);
+    }
+
+    if (dto.prescription) {
+      push(dto.prescription.createdAt);
+      push(dto.prescription.updateAt);
+      push(dto.prescription.printedAt ?? null);
+    }
+
+    for (const request of dto.serviceRequest ?? []) {
+      push(request.createdAt);
+      for (const detail of request.details ?? []) {
+        for (const result of detail.results ?? []) {
+          push(result.executedAt ?? null);
+          push((result as any).updatedAt ?? null);
+        }
+      }
+    }
+
+    if (times.length === 0) {
+      return new Date(0);
+    }
+    return new Date(Math.max(...times.map((t) => t.getTime())));
+  }
+
+  public async getMedicalRecordFile(recordId: string, clinicId: string) {
+    const existing = await this.fileService.findByRecordId(recordId);
+
+    if (existing?.createdAt) {
+      const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
+      const latestChange = this.getLatestRecordChange(fullRecord);
+
+      if (latestChange <= existing.createdAt) {
+        return existing;
+      }
+    }
+
+    await this.printMedicalRecordDocx(recordId, clinicId);
+
+    return await this.fileService.findByMedicalRecordId(recordId);
+  }
 }
