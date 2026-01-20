@@ -182,6 +182,14 @@ const ServiceItemSwagger = {
           schema: { type: "string", format: "uuid" },
           description: "Filter by category",
         },
+        {
+          name: "isActive",
+          in: "query",
+          required: false,
+          schema: { type: "boolean" },
+          description:
+            "Filter by status (true=active, false=inactive). If omitted, returns all; sorted by status.",
+        },
       ],
       responses: {
         200: {

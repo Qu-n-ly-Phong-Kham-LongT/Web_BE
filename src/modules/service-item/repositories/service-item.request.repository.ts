@@ -27,8 +27,9 @@ export class ServiceItemRepository {
     search?: string;
     typeId?: string;
     categoryId?: string;
+    isActive?: boolean;
   }) {
-    const { skip, take, search, typeId, categoryId } = params;
+    const { skip, take, search, typeId, categoryId, isActive } = params;
 
     const where: Prisma.ServiceItemWhereInput = {
       AND: [
@@ -42,7 +43,7 @@ export class ServiceItemRepository {
           : {},
         typeId ? { typeId } : {},
         categoryId ? { categoryId } : {},
-        { isActive: true },
+        isActive === undefined ? {} : { isActive },
       ],
     };
 
@@ -56,7 +57,7 @@ export class ServiceItemRepository {
           category: true,
           configs: true,
         },
-        orderBy: [{ typeId: "asc" }, { name: "asc" }],
+        orderBy: [{ isActive: "desc" }, { typeId: "asc" }, { name: "asc" }],
       }),
       prisma.serviceItem.count({ where }),
     ]);
