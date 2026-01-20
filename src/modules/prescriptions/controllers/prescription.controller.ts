@@ -3,6 +3,8 @@ import { successResponse } from "../../../utils/response.util";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 import { UpsertDianosisPrescriptionDto } from "../dtos/prescription.request.dto";
 import { PrecriptionService } from "../services/prescription.service";
+import { PrescriptionStatus } from "@prisma/client";
+import { BaseError } from "../../../utils/base-error.util";
 
 export class PrescriptionController {
   private prescriptionService = new PrecriptionService();
@@ -73,5 +75,28 @@ export class PrescriptionController {
       result,
       "Cập nhật trạng thái toa thuốc về nháp thành công",
     );
+  };
+
+  public getPrescriptionsByPatientId = async (
+    req: AuthenticatedRequest<
+      { patientId: string },
+      {},
+      {},
+      { dateString?: string; status?: PrescriptionStatus }
+    >,
+    res: Response,
+  ) => {
+    const { patientId } = req.params;
+    const clinicId = req.payload?.clinicId ?? "";
+    const { dateString, status } = req.query;
+
+    const result = await this.prescriptionService.getPrescriptionsByPatientId(
+      patientId,
+      clinicId,
+      dateString,
+      status,
+    );
+
+    return successResponse(res, 200, result, "Lấy danh sách toa cũ thành công");
   };
 }

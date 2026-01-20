@@ -24,6 +24,56 @@ const PrescriptionSwagger = {
     },
   },
 
+  "/api/prescriptions/patient/{patientId}": {
+    get: {
+      tags: ["Prescriptions"],
+      summary: "Lấy toa thuốc cũ của bệnh nhân",
+      parameters: [
+        {
+          name: "patientId",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID bệnh nhân",
+        },
+        {
+          name: "search",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description:
+            "Chuỗi ngày (YYYY-MM-DD). Parse được thì lọc theo ngày đó",
+        },
+        {
+          name: "status",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: Object.values(PrescriptionStatus) },
+          description: "Trạng thái toa thuốc",
+        },
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", minimum: 1, default: 1 },
+        },
+        {
+          name: "size",
+          in: "query",
+          required: false,
+          schema: { type: "integer", minimum: 1, default: 10 },
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "Danh sách toa thuốc cũ" },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không có quyền truy cập" },
+        404: { description: "Không tìm thấy bệnh nhân" },
+      },
+    },
+  },
+
   "/api/prescriptions/{prescriptionId}/print": {
     get: {
       tags: ["Core Businesses"],
@@ -34,9 +84,10 @@ const PrescriptionSwagger = {
           in: "path",
           required: true,
           schema: {
-            type: "string", format: "uuid",
+            type: "string",
+            format: "uuid",
           },
-          description: "ID Toa"
+          description: "ID Toa",
         },
       ],
       security: [{ bearerAuth: [] }],
@@ -44,10 +95,9 @@ const PrescriptionSwagger = {
         200: {
           description: "PDF Toa thuốc",
           content: {
-            "application/pdf":
-              {
-                schema: { type: "string", format: "binary" },
-              },
+            "application/pdf": {
+              schema: { type: "string", format: "binary" },
+            },
           },
         },
       },
@@ -122,7 +172,6 @@ const PrescriptionSwagger = {
       401: { description: "Chưa đăng nhập" },
     },
   },
-
 };
 
 export default PrescriptionSwagger;

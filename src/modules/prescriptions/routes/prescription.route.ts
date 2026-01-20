@@ -12,25 +12,32 @@ prescriptionRouter.put(
   "/",
   authenticate,
   validateBody(upsertDiagnosisPrescriptionSchema),
-  prescriptionController.upsertPrescriptionDiagnosis
+  prescriptionController.upsertPrescriptionDiagnosis,
 );
 
 prescriptionRouter.get(
   "/statuses",
   authenticate,
-  prescriptionController.getPrescriptionStatus
+  prescriptionController.getPrescriptionStatus,
 );
 
-prescriptionRouter.get("/:id/print",
+prescriptionRouter.get(
+  "/patient/:patientId",
   authenticate,
-  prescriptionController.printPrescriptionPdf
-)
+  prescriptionController.getPrescriptionsByPatientId,
+);
+
+prescriptionRouter.get(
+  "/:id/print",
+  authenticate,
+  prescriptionController.printPrescriptionPdf,
+);
 
 prescriptionRouter.put(
   "/:id/status/draft",
   authenticate,
   authorize([UserRoleEnum.Doctor]),
-  prescriptionController.updateStatusToDraft
-)
+  prescriptionController.updateStatusToDraft,
+);
 
 export default prescriptionRouter;
