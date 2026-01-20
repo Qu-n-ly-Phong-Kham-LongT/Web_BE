@@ -26,7 +26,7 @@ const ClinicSwagger = {
                   pattern: "^0[0-9]{9,10}$",
                 },
                 email: { type: "string", format: "email", maxLength: 150 },
-                consultationFee: { type: "numbe" },
+                consultationFee: { type: "number", nullable: true },
                 sessions: {
                   type: "array",
                   description: "Cấu hình khung giờ làm việc theo từng ca",
@@ -174,6 +174,7 @@ const ClinicSwagger = {
                   format: "email",
                   maxLength: 150,
                 },
+                consultationFee: { type: "number", nullable: true },
                 sessions: {
                   type: "array",
                   description: "Cấu hình khung giờ làm việc theo từng ca",
