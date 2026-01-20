@@ -47,8 +47,9 @@ export class PrescriptionRepository {
     fromDate?: Date;
     toDate?: Date;
     status?: PrescriptionStatus;
+    sort?: "asc" | "desc";
   }) {
-    const { patientId, clinicId, fromDate, toDate, status } = params;
+    const { patientId, clinicId, fromDate, toDate, status, sort } = params;
 
     const recordDateFilter: Prisma.DateTimeNullableFilter = {};
     if (fromDate) recordDateFilter.gte = fromDate;
@@ -69,10 +70,10 @@ export class PrescriptionRepository {
 
     return await prisma.prescription.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: sort ?? "desc" },
       include: {
         medicalRecord: {
-          select: { recordId: true, recordCode: true, createdAt: true },
+          select: { recordId: true, recordCode: true, createdAt: true, diagnoses: true },
         },
         details: {
           include: { medicine: true },
