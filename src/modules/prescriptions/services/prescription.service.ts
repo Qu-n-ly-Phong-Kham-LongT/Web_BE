@@ -15,11 +15,14 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
+import { PatientRepository } from "../../patient/repositories/patient.repository";
+import { parseDate } from "../../../utils/parseDate.util";
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
   private prescriptionRepository = new PrescriptionRepository();
   private medicineRepository = new MedicineRepository();
+  private patientRepository = new PatientRepository();
   private fileService = new FileService();
 
   public async upsertPrecriptionDiagnosis(
@@ -453,6 +456,73 @@ export class PrecriptionService {
       data: { status: PrescriptionStatus.Draft },
     });
   }
+
+  public async getPrescriptionsByPatientId(
+  patientId: string,
+  clinicId?: string,
+  dateString?: string,
+  status?: PrescriptionStatus,
+) {
+  const patient = await this.patientRepository.findPatientById(
+    patientId,
+    clinicId,
+  );
+
+  if (!patient) {
+    throw new BaseError(
+      404,
+      "Không tìm thấy bệnh nhân",
+    );
+  }
+
+  const parseSafeDate = (value?: string) => {
+    if (!value) return undefined;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  };
+
+  const parsed = parseSafeDate(dateString);
+
+  const from = parsed
+    ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0)
+    : undefined;
+  const to = parsed
+    ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999)
+    : undefined;
+
+  const data = await this.prescriptionRepository.findByPatientId({
+    patientId,
+    clinicId,
+    fromDate: from,
+    toDate: to,
+    status,
+  });
+
+  return data.map((pres) => ({
+    recordId: pres.medicalRecord?.recordId ?? "",
+    recordCode: pres.medicalRecord?.recordCode ?? "",
+    recordCreatedAt: pres.medicalRecord?.createdAt ?? null,
+    prescriptionId: pres.prescriptionId,
+    prescriptionCode: pres.prescriptionCode,
+    status: pres.status,
+    createdAt: pres.createdAt ?? null,
+    printedAt: pres.printedAt ?? null,
+    details: (pres.details ?? []).map((d) => ({
+      medicineId: d.medicineId ?? "",
+      medicineName: d.medicine?.medicineName ?? "",
+      frequencyPerDay: d.frequencyPerDay ?? 0,
+      quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
+      quantity: d.quantity ? Number(d.quantity) : 0,
+      unit: d.unit ?? "",
+      timing: d.timing ?? "",
+      daysToTake: d.daysToTake ?? 0,
+      note: d.note ?? null,
+      isInsuranceCovered: d.isInsuranceCovered ?? false,
+    })),
+  }));
+}
+
+
 
   // public async printPresctiptionPdf(
   //   prescriptionId: string,
