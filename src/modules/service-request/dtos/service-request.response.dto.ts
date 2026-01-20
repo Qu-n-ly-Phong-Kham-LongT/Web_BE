@@ -22,8 +22,8 @@ export interface ServiceRequestResultResponseDto {
   valueString: string | null;
   valueNumber: number | null;
   unit: string | null;
-  images: any;
   executedAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface ServiceRequestSelectedConfigResponseDto {
@@ -80,7 +80,6 @@ export const ServiceRequestResultResponseSchema = Joi.object({
   valueString: Joi.string().allow(null),
   valueNumber: Joi.number().allow(null),
   unit: Joi.string().allow(null),
-  images: Joi.any(),
   executedAt: Joi.string().allow(null),
 });
 

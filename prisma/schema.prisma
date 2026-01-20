@@ -85,12 +85,14 @@ model Role {
 }
 
 model Clinic {
-  clinicId        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  clinicName      String?  @db.VarChar(255)
-  address         String?  @db.VarChar(255)
-  phone           String?  @db.VarChar(255)
-  email           String?  @db.VarChar(150)
-  consultationFee Decimal? @db.Decimal(10, 2)
+  clinicId        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicName      String?   @db.VarChar(255)
+  address         String?   @db.VarChar(255)
+  phone           String?   @db.VarChar(255)
+  email           String?   @db.VarChar(150)
+  consultationFee Decimal?  @db.Decimal(10, 2)
+  createdAt       DateTime? @default(now()) @db.Timestamptz
+  updatedAt       DateTime? @updatedAt @db.Timestamptz
 
   clinicCode String? @unique @default(dbgenerated("generate_clinic_code()")) @db.VarChar(100)
 
@@ -273,13 +275,11 @@ model Prescription {
   prescriptionCode String               @unique @default(dbgenerated("pres_gen_code()"))
   recordId         String?              @unique @db.Uuid
   medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId])
-  pdfPath          String?
-  fileName         String?
   note             String?
   totalPrice       Decimal?             @db.Decimal(18, 0)
   status           PrescriptionStatus?  @default(Draft)
   createdAt        DateTime?            @default(now()) @db.Timestamptz
-  updatedAt        DateTime?            @default(now()) @db.Timestamptz
+  updatedAt        DateTime?            @updatedAt @db.Timestamptz
   printedAt        DateTime?            @db.Timestamptz
   printCount       Int?                 @default(0)
   details          PrescriptionDetail[]
@@ -321,10 +321,12 @@ model ServiceNode {
   parent   ServiceNode?  @relation("NodeHierarchy", fields: [parentId], references: [nodeId])
   children ServiceNode[] @relation("NodeHierarchy")
 
-  code     String?  @unique
-  name     String?
-  note     String?
-  isActive Boolean? @default(true)
+  code      String?   @unique
+  name      String?
+  note      String?
+  isActive  Boolean?  @default(true)
+  createdAt DateTime? @default(now()) @db.Timestamptz
+  updatedAt DateTime? @updatedAt @db.Timestamptz
 
   itemsAsCategory ServiceItem[] @relation("CategoryNode")
   itemsAsType     ServiceItem[] @relation("TypeNode")
@@ -344,6 +346,8 @@ model ServiceItem {
   specimen   String?
   prepNote   String?
   isActive   Boolean?     @default(true)
+  createdAt  DateTime?    @default(now()) @db.Timestamptz
+  updatedAt  DateTime?    @updatedAt @db.Timestamptz
 
   configs         ServiceItemConfig[]
   requestDetails  ServiceRequestDetail[]
@@ -379,8 +383,7 @@ model ServiceRequest {
   isForFollowUp         Boolean   @default(false)
   note                  String?
   createdAt             DateTime? @default(now()) @db.Timestamptz
-  updatedAt             DateTime? @default(now()) @db.Timestamptz
-  finalReportPath       String?
+  updatedAt             DateTime? @updatedAt @db.Timestamptz
 
   details        ServiceRequestDetail[]
   serviceResults ServiceResult[]
@@ -420,8 +423,8 @@ model ServiceResult {
   valueNumber Decimal? @db.Decimal(10, 2)
 
   unit       String?
-  images     Json?
   executedAt DateTime? @default(now()) @db.Timestamptz
+  updatedAt  DateTime? @updatedAt @db.Timestamptz
   files      File[]
 }
 
@@ -431,6 +434,8 @@ model ServiceTemplate {
   description  String?
   isActive     Boolean?                @default(true)
   details      ServiceTemplateDetail[]
+  createdAt    DateTime?               @default(now()) @db.Timestamptz
+  updatedAt    DateTime?               @updatedAt @db.Timestamptz
 }
 
 model ServiceTemplateDetail {
@@ -460,6 +465,7 @@ model Medicine {
   sideEffects         String?
   isActive            Boolean?                     @default(true)
   createdAt           DateTime?                    @default(now()) @db.Timestamptz
+  updatedAt           DateTime?                    @updatedAt @db.Timestamptz
   prescriptionDetails PrescriptionDetail[]
   templateDetails     PrescriptionTemplateDetail[]
   inventoryLogs       InventoryLog[]
@@ -487,6 +493,8 @@ model PrescriptionTemplate {
   templateName String
   description  String?
   createdBy    String?                      @db.Uuid
+  createdAt    DateTime?                    @default(now()) @db.Timestamptz
+  updatedAt    DateTime?                    @updatedAt @db.Timestamptz
   creator      User?                        @relation(fields: [createdBy], references: [userId])
   details      PrescriptionTemplateDetail[]
 }

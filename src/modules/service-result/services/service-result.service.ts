@@ -103,7 +103,6 @@ export class ServiceResultService {
         valueString: result.valueString ?? null,
         valueNumber: result.valueNumber !== undefined ? result.valueNumber : null,
         unit: result.unit ?? config.unit ?? null,
-        images: result.images as Prisma.InputJsonValue,
         executedAt: executedAt ?? undefined,
       });
     }
@@ -158,7 +157,6 @@ export class ServiceResultService {
             valueString: result.valueString ?? null,
             valueNumber: result.valueNumber !== undefined ? result.valueNumber : null,
             unit: result.unit ?? config.unit ?? null,
-            images: result.images as Prisma.InputJsonValue,
             executedAt: executedAt ?? undefined,
           },
           tx
@@ -179,7 +177,6 @@ export class ServiceResultService {
             valueString: result.valueString ?? null,
             valueNumber: result.valueNumber !== undefined ? result.valueNumber : null,
             unit: result.unit ?? config.unit ?? null,
-            images: result.images as Prisma.InputJsonValue,
             executedAt: executedAt ?? undefined,
           },
         ],
@@ -255,7 +252,6 @@ export class ServiceResultService {
     valueString: string | null;
     valueNumber: Prisma.Decimal | number | null;
     unit: string | null;
-    images: Prisma.JsonValue | null;
     executedAt: Date | null;
   }): ServiceResultResponseDto {
     return {
@@ -271,7 +267,6 @@ export class ServiceResultService {
           ? Number(item.valueNumber)
           : null,
       unit: item.unit ?? null,
-      images: item.images ?? null,
       executedAt: item.executedAt ? item.executedAt.toISOString() : null,
     };
   }
