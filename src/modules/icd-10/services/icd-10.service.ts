@@ -50,12 +50,16 @@ export class Icd10Service {
   public async getAllIcd10(
     page: number = 1,
     size: number = 10,
-    search?: string
+    search?: string,
+    sortBy: "code" | "description" = "code",
+    sortDirection: "asc" | "desc" = "asc"
   ): Promise<Icd10ListResponseDto> {
     const { entries, totalItems } = await this.Icd10Repository.getAllIcd10(
       page,
       size,
-      search
+      search,
+      sortBy,
+      sortDirection
     );
 
     const pagination = createPagination(page, size, totalItems);

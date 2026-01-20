@@ -59,6 +59,24 @@ const Icd10Swagger = {
           required: false,
           description: "Tìm theo mã hoặc mô tả",
         },
+        {
+          name: "sortBy",
+          in: "query",
+          required: false,
+          schema: {
+            type: "string",
+            enum: ["code", "description"],
+            default: "code",
+          },
+          description: "Sắp xếp theo trường",
+        },
+        {
+          name: "sort",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+          description: "Hướng sắp xếp",
+        },
       ],
       responses: {
         200: {
