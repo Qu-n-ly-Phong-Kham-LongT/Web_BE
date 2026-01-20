@@ -306,7 +306,7 @@ export class PrecriptionService {
 
       let prepNote = "";
       if (detail.prepNote && detail.prepNote.length > 0) {
-        prepNote = toStringValue(", " + detail.prepNote);
+        prepNote = toStringValue(", Ghi chú: " + detail.prepNote);
       }
 
       return {
@@ -463,17 +463,14 @@ export class PrecriptionService {
     status?: PrescriptionStatus,
     sort?: string,
   ) {
-  const patient = await this.patientRepository.findPatientById(
-    patientId,
-    clinicId,
-  );
-
-  if (!patient) {
-    throw new BaseError(
-      404,
-      "Không tìm thấy bệnh nhân",
+    const patient = await this.patientRepository.findPatientById(
+      patientId,
+      clinicId,
     );
-  }
+
+    if (!patient) {
+      throw new BaseError(404, "Không tìm thấy bệnh nhân");
+    }
 
     const parseSafeDate = (value?: string) => {
       if (!value) return undefined;
@@ -504,10 +501,26 @@ export class PrecriptionService {
     const parsed = parseSafeDate(search);
 
     const from = parsed
-      ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0)
+      ? new Date(
+          parsed.getFullYear(),
+          parsed.getMonth(),
+          parsed.getDate(),
+          0,
+          0,
+          0,
+          0,
+        )
       : undefined;
     const to = parsed
-      ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999)
+      ? new Date(
+          parsed.getFullYear(),
+          parsed.getMonth(),
+          parsed.getDate(),
+          23,
+          59,
+          59,
+          999,
+        )
       : undefined;
 
     const sortOrder = sort?.toLowerCase() === "asc" ? "asc" : "desc";
@@ -539,27 +552,25 @@ export class PrecriptionService {
       recordId: pres.medicalRecord?.recordId ?? "",
       recordCode: pres.medicalRecord?.recordCode ?? "",
       recordCreatedAt: pres.medicalRecord?.createdAt ?? null,
-    prescriptionId: pres.prescriptionId,
-    prescriptionCode: pres.prescriptionCode,
-    status: pres.status,
-    createdAt: pres.createdAt ?? null,
-    printedAt: pres.printedAt ?? null,
-    details: (pres.details ?? []).map((d) => ({
-      medicineId: d.medicineId ?? "",
-      medicineName: d.medicine?.medicineName ?? "",
-      frequencyPerDay: d.frequencyPerDay ?? 0,
-      quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
-      quantity: d.quantity ? Number(d.quantity) : 0,
-      unit: d.unit ?? "",
-      timing: d.timing ?? "",
-      daysToTake: d.daysToTake ?? 0,
-      note: d.note ?? null,
-      isInsuranceCovered: d.isInsuranceCovered ?? false,
-    })),
-  }));
-}
-
-
+      prescriptionId: pres.prescriptionId,
+      prescriptionCode: pres.prescriptionCode,
+      status: pres.status,
+      createdAt: pres.createdAt ?? null,
+      printedAt: pres.printedAt ?? null,
+      details: (pres.details ?? []).map((d) => ({
+        medicineId: d.medicineId ?? "",
+        medicineName: d.medicine?.medicineName ?? "",
+        frequencyPerDay: d.frequencyPerDay ?? 0,
+        quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
+        quantity: d.quantity ? Number(d.quantity) : 0,
+        unit: d.unit ?? "",
+        timing: d.timing ?? "",
+        daysToTake: d.daysToTake ?? 0,
+        note: d.note ?? null,
+        isInsuranceCovered: d.isInsuranceCovered ?? false,
+      })),
+    }));
+  }
 
   // public async printPresctiptionPdf(
   //   prescriptionId: string,
