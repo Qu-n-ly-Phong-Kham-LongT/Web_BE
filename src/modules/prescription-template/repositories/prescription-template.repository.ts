@@ -50,11 +50,11 @@ export class PrescriptionTemplateRepository {
     data: {
       templateName: string;
       description?: string | null;
+      daysToTake?: number | null;
       details: Array<{
         medicineId: string;
         defaultFrequency?: number | null;
         defaultQuantityPerTime?: number | null;
-        daysToTake?: number | null;
         defaultRoute?: string | null;
         defaultTiming?: string | null;
       }>;
@@ -67,13 +67,13 @@ export class PrescriptionTemplateRepository {
       data: {
         templateName: data.templateName,
         description: data.description ?? null,
+        daysToTake: data.daysToTake ?? null,
         createdBy: createdBy,
         details: {
           create: data.details.map((detail) => ({
             medicineId: detail.medicineId,
             defaultFrequency: detail.defaultFrequency ?? null,
             defaultQuantityPerTime: detail.defaultQuantityPerTime ?? null,
-            daysToTake: detail.daysToTake ?? null,
             defaultRoute: detail.defaultRoute ?? null,
             defaultTiming: detail.defaultTiming ?? null,
           })),
