@@ -37,8 +37,51 @@ export class MedicineController {
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
     const clinicId = req.payload?.clinicId ?? undefined;
+    const supplier = req.query.supplier as string | undefined;
+    const isActiveParam = req.query.isActive as string | undefined;
+    const isActive =
+      isActiveParam === undefined ? undefined : isActiveParam === "true";
+    const isInsuranceCoveredParam = req.query.isInsuranceCovered as
+      | string
+      | undefined;
+    const isInsuranceCovered =
+      isInsuranceCoveredParam === undefined
+        ? undefined
+        : isInsuranceCoveredParam === "true";
+    const sellPriceRaw = req.query.sellPrice as string | undefined;
+    const minPriceRaw = req.query.minPrice as string | undefined;
+    const maxPriceRaw = req.query.maxPrice as string | undefined;
+    const sellPrice = sellPriceRaw ? Number(sellPriceRaw) : undefined;
+    const minPrice = minPriceRaw ? Number(minPriceRaw) : undefined;
+    const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : undefined;
+    const sortByParam = (req.query.sortBy as string | undefined) ?? "createdAt";
+    const sortBy = ["medicineName", "sellPrice", "createdAt", "medicineCode"].includes(
+      sortByParam
+    )
+      ? (sortByParam as
+          | "medicineName"
+          | "sellPrice"
+          | "createdAt"
+          | "medicineCode")
+      : "createdAt";
+    const sort = (req.query.sort as string)?.toLowerCase() === "asc" ? "asc" : "desc";
 
-    let result: MedicineListResponseDto = await this.medicineService.getMedicines(page, size, search, clinicId);
+    let result: MedicineListResponseDto = await this.medicineService.getMedicines(
+      page,
+      size,
+      search,
+      clinicId,
+      {
+        supplier,
+        isActive,
+        isInsuranceCovered,
+        sellPrice: Number.isFinite(sellPrice as number) ? sellPrice : undefined,
+        minPrice: Number.isFinite(minPrice as number) ? minPrice : undefined,
+        maxPrice: Number.isFinite(maxPrice as number) ? maxPrice : undefined,
+        sortBy,
+        sort,
+      }
+    );
     return successResponse(res, 200, result.medicines, "Lấy danh sách thuốc thành công", result.pagination);
   };
 
