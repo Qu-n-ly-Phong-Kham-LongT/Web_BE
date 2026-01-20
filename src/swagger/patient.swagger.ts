@@ -82,7 +82,25 @@ const PatientSwagger = {
           required: false,
           schema: { type: "string" },
           description:
-            "Tìm kiếm theo tên, mã, số điện thoại, email hoặc CMND/CCCD",
+            "Tìm kiếm theo tên, mã BN, sđt, email, CMND/CCCD hoặc giới tính (male/female/other)",
+        },
+        {
+          name: "sortBy",
+          in: "query",
+          required: false,
+          schema: {
+            type: "string",
+            enum: ["gender", "identityCard", "phone", "email", "createdAt"],
+            default: "createdAt",
+          },
+          description: "Sắp xếp theo thuộc tính",
+        },
+        {
+          name: "sort",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["asc", "desc"], default: "desc" },
+          description: "Asc hay Desc",
         },
       ],
       security: [{ bearerAuth: [] }],

@@ -4,6 +4,7 @@ import {
   PatientRelative,
   PatientAllergy,
   PrismaClient,
+  Gender,
 } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
@@ -66,13 +67,29 @@ export class PatientRepository {
     page: number = 1,
     size: number = 10,
     search?: string,
-    clinicId?: string
+    clinicId?: string,
+    sortBy: "gender" | "identityCard" | "phone" | "email" | "createdAt" = "createdAt",
+    sortDirection: "asc" | "desc" = "desc"
   ): Promise<{ patients: Patient[]; totalItems: number }> {
     const skip = (page - 1) * size;
 
     const baseWhere = {
       ...this.buildClinicIdFilter(clinicId),
     };
+
+    const normalizedSearch = search?.trim().toLowerCase();
+    const genderFilter =
+      normalizedSearch === "male"
+        ? Gender.Male
+        : normalizedSearch === "female"
+        ? Gender.Female
+        : normalizedSearch === "other"
+        ? Gender.Other
+        : normalizedSearch === "nam"
+        ? Gender.Male
+        : normalizedSearch === "nu"
+        ? Gender.Female
+        : undefined;
 
     const where = search
       ? {
@@ -85,16 +102,26 @@ export class PatientRepository {
             {
               identityCard: { contains: search, mode: "insensitive" as const },
             },
+            ...(genderFilter ? [{ gender: genderFilter }] : []),
           ],
         }
       : baseWhere;
+
+    const primaryOrderBy =
+      sortBy === "createdAt"
+        ? { createdAt: sortDirection }
+        : ({ [sortBy]: sortDirection } as Prisma.PatientOrderByWithRelationInput);
+    const orderBy =
+      sortBy === "createdAt"
+        ? primaryOrderBy
+        : [primaryOrderBy, { createdAt: "desc" }];
 
     const [patients, totalItems] = await Promise.all([
       prisma.patient.findMany({
         where,
         skip,
         take: size,
-        orderBy: { createdAt: "desc" },
+        orderBy,
       }),
       prisma.patient.count({ where }),
     ]);
