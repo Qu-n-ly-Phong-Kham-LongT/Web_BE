@@ -55,7 +55,17 @@ export class MedicineRepository {
     page: number = 1,
     size: number = 10,
     search?: string,
-    clinicId?: string
+    clinicId?: string,
+    options: {
+      supplier?: string;
+      isActive?: boolean;
+      isInsuranceCovered?: boolean;
+      sellPrice?: number;
+      minPrice?: number;
+      maxPrice?: number;
+      sortBy?: "medicineName" | "sellPrice" | "createdAt" | "medicineCode";
+      sort?: "asc" | "desc";
+    } = {}
   ): Promise<{ medicines: Medicine[]; totalItems: number }> {
     const skip = (page - 1) * size;
 
@@ -63,9 +73,37 @@ export class MedicineRepository {
       ...this.buildClinicFilter(clinicId),
     };
 
+    const supplierFilter = options.supplier?.trim();
+    const priceFilter: Prisma.MedicineWhereInput = {};
+    if (options.sellPrice !== undefined) {
+      priceFilter.sellPrice = new Prisma.Decimal(options.sellPrice);
+    } else if (options.minPrice !== undefined || options.maxPrice !== undefined) {
+      priceFilter.sellPrice = {
+        ...(options.minPrice !== undefined
+          ? { gte: new Prisma.Decimal(options.minPrice) }
+          : {}),
+        ...(options.maxPrice !== undefined
+          ? { lte: new Prisma.Decimal(options.maxPrice) }
+          : {}),
+      };
+    }
+
     const where = search
       ? {
           ...baseWhere,
+          ...(supplierFilter
+            ? {
+                supplier: {
+                  contains: supplierFilter,
+                  mode: "insensitive" as const,
+                },
+              }
+            : {}),
+          ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
+          ...(options.isInsuranceCovered === undefined
+            ? {}
+            : { isInsuranceCovered: options.isInsuranceCovered }),
+          ...priceFilter,
           OR: [
             {
               medicineName: { contains: search, mode: "insensitive" as const },
@@ -78,6 +116,9 @@ export class MedicineRepository {
                 contains: search,
                 mode: "insensitive" as const,
               },
+            },
+            {
+              supplier: { contains: search, mode: "insensitive" as const },
             },
             // {
             //   registrationNo: {
@@ -96,12 +137,42 @@ export class MedicineRepository {
         }
       : baseWhere;
 
+    if (!search) {
+      if (supplierFilter) {
+        (where as Prisma.MedicineWhereInput).supplier = {
+          contains: supplierFilter,
+          mode: "insensitive" as const,
+        };
+      }
+      if (options.isActive !== undefined) {
+        (where as Prisma.MedicineWhereInput).isActive = options.isActive;
+      }
+      if (options.isInsuranceCovered !== undefined) {
+        (where as Prisma.MedicineWhereInput).isInsuranceCovered =
+          options.isInsuranceCovered;
+      }
+      if (priceFilter.sellPrice) {
+        (where as Prisma.MedicineWhereInput).sellPrice = priceFilter.sellPrice;
+      }
+    }
+
+    const sortBy = options.sortBy ?? "createdAt";
+    const sortDirection = options.sort ?? "desc";
+    const primaryOrderBy: Prisma.MedicineOrderByWithRelationInput =
+      sortBy === "createdAt"
+        ? { createdAt: sortDirection }
+        : ({ [sortBy]: sortDirection } as Prisma.MedicineOrderByWithRelationInput);
+    const orderBy: Prisma.MedicineOrderByWithRelationInput | Prisma.MedicineOrderByWithRelationInput[] =
+      sortBy === "createdAt"
+        ? primaryOrderBy
+        : [primaryOrderBy, { createdAt: "desc" as Prisma.SortOrder }];
+
     const [medicines, totalItems] = await Promise.all([
       prisma.medicine.findMany({
         where,
         skip,
         take: size,
-        orderBy: { createdAt: "desc" },
+        orderBy,
       }),
       prisma.medicine.count({ where }),
     ]);
