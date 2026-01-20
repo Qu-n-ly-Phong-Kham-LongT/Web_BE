@@ -609,7 +609,10 @@ export class SharedRepository {
         usageParts.push(`${detail.timing}`);
       }
 
-      const prepNote = toStringValue(", " + detail.note);
+      let prepNote = "";
+      if (detail.note && detail.note.length > 0) {
+        prepNote = toStringValue(", Ghi chú: " + detail.note);
+      }
       return {
         index: index + 1,
         medicineId: detail.medicineId,
