@@ -1,5 +1,6 @@
 import { Prisma, PrescriptionTemplate, PrescriptionTemplateDetail } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export type PrescriptionTemplateWithDetails = PrescriptionTemplate & {
   details: (PrescriptionTemplateDetail & {
@@ -8,6 +9,7 @@ export type PrescriptionTemplateWithDetails = PrescriptionTemplate & {
       medicineName: string | null;
       medicineCode: string | null;
       baseUnit: string | null;
+      sellPrice: Decimal | null;
     } | null;
   })[];
   creator: {
