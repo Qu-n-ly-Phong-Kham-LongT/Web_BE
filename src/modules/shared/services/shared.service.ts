@@ -93,7 +93,8 @@ export class SharedService {
     };
   }
 
-  public async getMedicalRecordFile(recordId: string) {
-    
-  }
+  public async getMedicalRecordFile(
+    recordId: string,
+    clinicId: string,
+  ) {}
 }
