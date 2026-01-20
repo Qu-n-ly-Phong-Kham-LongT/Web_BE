@@ -82,19 +82,20 @@ export class PrescriptionController {
       { patientId: string },
       {},
       {},
-      { dateString?: string; status?: PrescriptionStatus }
+      { search?: string; status?: PrescriptionStatus; sort?: string }
     >,
     res: Response,
   ) => {
     const { patientId } = req.params;
     const clinicId = req.payload?.clinicId ?? "";
-    const { dateString, status } = req.query;
+    const { search, status, sort } = req.query;
 
     const result = await this.prescriptionService.getPrescriptionsByPatientId(
       patientId,
       clinicId,
-      dateString,
+      search,
       status,
+      sort,
     );
 
     return successResponse(res, 200, result, "Lấy danh sách toa cũ thành công");

@@ -16,7 +16,6 @@ import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
-import { parseDate } from "../../../utils/parseDate.util";
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -458,11 +457,12 @@ export class PrecriptionService {
   }
 
   public async getPrescriptionsByPatientId(
-  patientId: string,
-  clinicId?: string,
-  dateString?: string,
-  status?: PrescriptionStatus,
-) {
+    patientId: string,
+    clinicId?: string,
+    search?: string,
+    status?: PrescriptionStatus,
+    sort?: string,
+  ) {
   const patient = await this.patientRepository.findPatientById(
     patientId,
     clinicId,
@@ -475,33 +475,70 @@ export class PrecriptionService {
     );
   }
 
-  const parseSafeDate = (value?: string) => {
-    if (!value) return undefined;
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? undefined : d;
-  };
+    const parseSafeDate = (value?: string) => {
+      if (!value) return undefined;
+      const trimmed = value.trim();
+      const d = new Date(trimmed);
+      if (!Number.isNaN(d.getTime())) {
+        return d;
+      }
+      const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+      if (!match) {
+        return undefined;
+      }
+      const day = Number(match[1]);
+      const month = Number(match[2]);
+      const year = Number(match[3]);
+      const parsed = new Date(year, month - 1, day);
+      if (
+        parsed.getFullYear() !== year ||
+        parsed.getMonth() !== month - 1 ||
+        parsed.getDate() !== day
+      ) {
+        return undefined;
+      }
+      return parsed;
+    };
 
-  const parsed = parseSafeDate(dateString);
+    const normalizedSearch = search?.trim().toLowerCase();
+    const parsed = parseSafeDate(search);
 
-  const from = parsed
-    ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0)
-    : undefined;
-  const to = parsed
-    ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999)
-    : undefined;
+    const from = parsed
+      ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0, 0)
+      : undefined;
+    const to = parsed
+      ? new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 23, 59, 59, 999)
+      : undefined;
 
-  const data = await this.prescriptionRepository.findByPatientId({
-    patientId,
-    clinicId,
-    fromDate: from,
-    toDate: to,
-    status,
-  });
+    const sortOrder = sort?.toLowerCase() === "asc" ? "asc" : "desc";
+    const data = await this.prescriptionRepository.findByPatientId({
+      patientId,
+      clinicId,
+      fromDate: from,
+      toDate: to,
+      status,
+      sort: sortOrder,
+    });
 
-  return data.map((pres) => ({
-    recordId: pres.medicalRecord?.recordId ?? "",
-    recordCode: pres.medicalRecord?.recordCode ?? "",
-    recordCreatedAt: pres.medicalRecord?.createdAt ?? null,
+    const filteredData =
+      normalizedSearch && !parsed
+        ? data.filter((pres) => {
+            const diagnoses = pres.medicalRecord?.diagnoses as {
+              main?: { code?: string; description?: string };
+            } | null;
+            const code = diagnoses?.main?.code?.toLowerCase();
+            const description = diagnoses?.main?.description?.toLowerCase();
+            return (
+              (code && code.includes(normalizedSearch)) ||
+              (description && description.includes(normalizedSearch))
+            );
+          })
+        : data;
+
+    return filteredData.map((pres) => ({
+      recordId: pres.medicalRecord?.recordId ?? "",
+      recordCode: pres.medicalRecord?.recordCode ?? "",
+      recordCreatedAt: pres.medicalRecord?.createdAt ?? null,
     prescriptionId: pres.prescriptionId,
     prescriptionCode: pres.prescriptionCode,
     status: pres.status,
