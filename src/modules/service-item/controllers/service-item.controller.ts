@@ -44,12 +44,16 @@ export class ServiceItemController {
     const search = req.query.search as string;
     const typeId = req.query.typeId as string;
     const categoryId = req.query.categoryId as string;
+    const isActiveParam = req.query.isActive as string | undefined;
+    const isActive =
+      isActiveParam === undefined ? undefined : isActiveParam === "true";
     const result = await this.service.getAllItems(
       page,
       size,
       search,
       typeId,
       categoryId,
+      isActive,
     );
 
     return successResponse(
