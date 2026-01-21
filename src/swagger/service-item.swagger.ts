@@ -1,5 +1,8 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { createServiceItemSchema } from "../modules/service-item/dtos/service-item.request.dto";
+import {
+  createServiceItemSchema,
+  updateServiceItemSchema,
+} from "../modules/service-item/dtos/service-item.request.dto";
 import { InputType, NodeType } from "@prisma/client";
 
 const serviceNodeRefSchema = {
@@ -285,6 +288,53 @@ const ServiceItemSwagger = {
         },
         401: { description: "Chưa đăng nhập" },
         403: { description: "Không đủ quyền (chỉ Admin)" },
+        404: { description: "Không tìm thấy dịch vụ cận lâm sàng" },
+      },
+    },
+  },
+  "/api/service-items/{id}/status": {
+    put: {
+      tags: ["Service Items"],
+      summary: "Cập nhật trạng thái dịch vụ cận lâm sàng",
+      description: "Chỉ admin mới được cập nhật trạng thái",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID của dịch vụ cận lâm sàng",
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: joiToSwagger(updateServiceItemSchema),
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Cập nhật trạng thái thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: serviceItemResponseSchema,
+                  pagination: { type: "object", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Dữ liệu không hợp lệ" },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Forbbiden" },
         404: { description: "Không tìm thấy dịch vụ cận lâm sàng" },
       },
     },
