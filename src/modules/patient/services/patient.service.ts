@@ -146,7 +146,7 @@ export class PatientService {
     clinicId?: string,
     sortBy: "gender" | "identityCard" | "phone" | "email" | "createdAt" = "createdAt",
     sortDirection: "asc" | "desc" = "desc",
-    gender?: "Male" | "Female" | "Other"
+    gender?: Gender
   ): Promise<PatientListResponseDto> {
     let { patients, totalItems } = await this.patientRepository.findPatients(
       page,
