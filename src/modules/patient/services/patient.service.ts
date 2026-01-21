@@ -23,15 +23,12 @@ import {
 import { UpdatePatientAllergyRequestDto } from "../dtos/update-patient-allergy.request.dto";
 import { PatientRepository } from "../repositories/patient.repository";
 import { createPagination } from "../../../utils/pagination.util";
-import { generatePatientCode } from "../../../utils/patient-code.util";
 import { prisma } from "../../../config/database.config";
 import { PatientQueueItemDto, QueueStatus } from "../dtos/patient.response.dto";
-import { ClinicRepository } from "../../clinic/repositories/clinic.repository";
 import { calculateAge } from "../../../utils/date.util";
 
 export class PatientService {
   private patientRepository = new PatientRepository();
-  private clinicRepository = new ClinicRepository();
 
   // private async getClinicCode(clinicId?: string): Promise<string | undefined> {
   //   if (!clinicId) {
@@ -53,6 +50,10 @@ export class PatientService {
     data: CreatePatientRequestDto,
     clinicId: string
   ): Promise<PatientResponseDto> {
+    if (!clinicId) {
+      throw new BaseError(400, "ClinicId là bắt buộc");
+    }
+
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(
         data.phone,
@@ -85,14 +86,10 @@ export class PatientService {
       }
     }
 
-    let clinic = await this.clinicRepository.findClinicCodeByClinicId(clinicId);
-    let patientCode = await generatePatientCode(clinic?.clinicCode || "");
-
     const result = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const patient = await this.patientRepository.createPatient(
           data,
-          patientCode,
           clinicId,
           tx
         );
