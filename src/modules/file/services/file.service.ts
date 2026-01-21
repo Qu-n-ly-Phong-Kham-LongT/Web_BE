@@ -167,7 +167,7 @@ export class FileService {
   }
 
   public async findByRecordId(recordId: string) {
-    return await this.findByMedicalRecordId(recordId);
+    return await this.fileRepository.findByMedicalRecordId(recordId);
   }
 
   public async saveServiceRequestPdf(
