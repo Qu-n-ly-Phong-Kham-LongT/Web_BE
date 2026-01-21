@@ -1,4 +1,4 @@
-import { Response } from "express"
+import { Response } from "express";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 import { successResponse } from "../../../utils/response.util";
 import { SharedService } from "../services/shared.service";
@@ -8,33 +8,44 @@ export class SharedController {
 
   public getFullMedicalRecord = async (
     req: AuthenticatedRequest<{ id: string }>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
     const result = await this.sharedService.getFullMedicalRecord(
       req.params.id,
-      clinicId
+      clinicId,
     );
-    return successResponse(res, 200, result, "Lấy bệnh án bệnh nhân thành công");
+    return successResponse(
+      res,
+      200,
+      result,
+      "Lấy bệnh án bệnh nhân thành công",
+    );
   };
   public printMedicalRecordPdf = async (
     req: AuthenticatedRequest<{ id: string }>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
     const result = await this.sharedService.printMedicalRecordDocx(
       req.params.id,
-      clinicId
+      clinicId,
     );
 
-    res.setHeader(
-      "Content-Type",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    );
+    res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${result.recordCode}.docx"`
+      `attachment; filename="${result.recordCode}.pdf"`,
     );
     return res.send(result.buffer);
+  };
+
+  public getOrPrintMedicalRecordPdf = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const result = await this.sharedService.getMedicalRecordFile(req.params.id, clinicId)
+    return successResponse(res, 200, result, "Lấy file bệnh án thành công");
   };
 }

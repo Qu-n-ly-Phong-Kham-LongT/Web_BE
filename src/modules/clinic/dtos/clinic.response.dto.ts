@@ -1,5 +1,6 @@
 import Joi from "joi";
 import { Session } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export interface ClinicSessionResponseDto {
   sessionType: Session;
@@ -13,6 +14,7 @@ export interface ClinicResponseDto {
   address: string | null;
   phone: string | null;
   email: string | null;
+  consultationFee: Decimal | null;
   clinicCode: string | null;
   sessions: ClinicSessionResponseDto[];
 }
@@ -29,8 +31,9 @@ export const ClinicResponseSchema = Joi.object<ClinicResponseDto>({
       sessionType: Joi.string(),
       startTime: Joi.string(),
       endTime: Joi.string(),
-    })
+    }),
   ),
+  consultationFee: Joi.number().allow(null),
 }).required();
 
 export interface ClinicListResponseDto {
@@ -44,7 +47,9 @@ export interface ClinicListResponseDto {
 }
 
 export const ClinicListResponseSchema = Joi.object<ClinicListResponseDto>({
-  clinics: Joi.array().items(ClinicResponseSchema).description("Danh sách phòng khám"),
+  clinics: Joi.array()
+    .items(ClinicResponseSchema)
+    .description("Danh sách phòng khám"),
   pagination: Joi.object({
     currentPage: Joi.number().description("Trang hiện tại"),
     size: Joi.number().description("Số bản ghi mỗi trang"),

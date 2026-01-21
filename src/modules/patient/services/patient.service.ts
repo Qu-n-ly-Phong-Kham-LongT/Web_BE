@@ -143,13 +143,19 @@ export class PatientService {
     page: number = 1,
     size: number = 10,
     search: string | undefined,
-    clinicId?: string
+    clinicId?: string,
+    sortBy: "gender" | "identityCard" | "phone" | "email" | "createdAt" = "createdAt",
+    sortDirection: "asc" | "desc" = "desc",
+    gender?: Gender
   ): Promise<PatientListResponseDto> {
     let { patients, totalItems } = await this.patientRepository.findPatients(
       page,
       size,
       search,
-      clinicId
+      clinicId,
+      sortBy,
+      sortDirection,
+      gender
     );
 
     let pagination = createPagination(page, size, totalItems);

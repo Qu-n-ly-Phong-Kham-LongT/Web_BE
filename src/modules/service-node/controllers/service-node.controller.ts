@@ -31,8 +31,6 @@ export class ServiceNodeController {
     const page = Math.max(parseInt(req.query.page as string, 10) || 1, 1);
     const size = Math.max(parseInt(req.query.size as string, 10) || 10, 1);
     const search = req.query.search as string | undefined;
-    const sortBy = req.query.sortBy as string | undefined;
-    const sortDir = req.query.sortDir as string | undefined;
 
     let nodeType: NodeType | undefined;
     if (nodeTypeRaw) {
@@ -42,13 +40,11 @@ export class ServiceNodeController {
       nodeType = nodeTypeRaw as NodeType;
     }
     const { nodes, pagination } = await this.service.list(
-      nodeType,
-      isActive,
       page,
       size,
-      search,
-      sortBy,
-      sortDir
+      nodeType,
+      isActive,
+      search
     );
     return successResponse(
       res,

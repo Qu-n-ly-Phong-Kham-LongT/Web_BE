@@ -40,6 +40,7 @@ export class PrescriptionTemplateService {
       {
         templateName: data.templateName,
         description: data.description,
+        daysToTake: data.daysToTake ?? null,
         details: data.details,
       },
       createdBy
@@ -125,6 +126,9 @@ export class PrescriptionTemplateService {
         if (data.description !== undefined) {
           headerUpdateData.description = data.description;
         }
+        if (data.daysToTake !== undefined) {
+          headerUpdateData.daysToTake = data.daysToTake ?? null;
+        }
 
         // Chỉ update nếu có ít nhất 1 field
         if (Object.keys(headerUpdateData).length > 0) {
@@ -144,7 +148,6 @@ export class PrescriptionTemplateService {
               medicineId: d.medicineId,
               defaultFrequency: d.defaultFrequency ?? null,
               defaultQuantityPerTime: d.defaultQuantityPerTime ?? null,
-              daysToTake: d.daysToTake ?? null,
               defaultRoute: d.defaultRoute ?? null,
               defaultTiming: d.defaultTiming ?? null,
             })),
@@ -160,7 +163,6 @@ export class PrescriptionTemplateService {
               medicineId: detail.medicineId,
               defaultFrequency: detail.defaultFrequency ?? null,
               defaultQuantityPerTime: detail.defaultQuantityPerTime ?? null,
-              daysToTake: detail.daysToTake ?? null,
               defaultRoute: detail.defaultRoute ?? null,
               defaultTiming: detail.defaultTiming ?? null,
             },
@@ -178,6 +180,9 @@ export class PrescriptionTemplateService {
       }
       if (data.description !== undefined) {
         headerUpdateData.description = data.description;
+      }
+      if (data.daysToTake !== undefined) {
+        headerUpdateData.daysToTake = data.daysToTake ?? null;
       }
 
       // Chỉ update nếu có ít nhất 1 field
@@ -200,18 +205,21 @@ export class PrescriptionTemplateService {
       templateId: template.templateId,
       templateName: template.templateName,
       description: template.description,
+      daysToTake: template.daysToTake ?? null,
       createdBy: template.createdBy,
       creatorName: template.creator?.fullName ?? null,
-      details: template.details.map((detail) => ({
-        templateDetailId: detail.templateDetailId,
-        medicineId: detail.medicineId,
-        medicineName: detail.medicine?.medicineName ?? null,
-        baseUnit: detail.medicine?.baseUnit ?? null,
-        defaultFrequency: detail.defaultFrequency,
-        defaultQuantityPerTime: detail.defaultQuantityPerTime ? Number(detail.defaultQuantityPerTime) : null,
-        daysToTake: detail.daysToTake ?? null,
-        defaultRoute: detail.defaultRoute,
-        defaultTiming: detail.defaultTiming,
+        details: template.details.map((detail) => ({
+          templateDetailId: detail.templateDetailId,
+          medicineId: detail.medicineId,
+          medicineName: detail.medicine?.medicineName ?? null,
+          baseUnit: detail.medicine?.baseUnit ?? null,
+          sellPrice: detail.medicine?.sellPrice
+            ? Number(detail.medicine.sellPrice)
+            : null,
+          defaultFrequency: detail.defaultFrequency,
+          defaultQuantityPerTime: detail.defaultQuantityPerTime ? Number(detail.defaultQuantityPerTime) : null,
+          defaultRoute: detail.defaultRoute,
+          defaultTiming: detail.defaultTiming,
       })),
     };
   }

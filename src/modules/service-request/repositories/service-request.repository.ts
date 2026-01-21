@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
+import { ServiceRequest } from "@prisma/client";
 
 export interface CreateServiceRequestDetailPayload {
   itemId: string;
@@ -27,36 +28,37 @@ export type ServiceRequestWithDetails = Prisma.ServiceRequestGetPayload<{
   };
 }>;
 
-export type ServiceRequestWithDetailsAndResults = Prisma.ServiceRequestGetPayload<{
-  include: {
-    medicalRecord: {
-      select: {
-        recordCode: true;
-        patientId: true;
-        clinicId: true;
+export type ServiceRequestWithDetailsAndResults =
+  Prisma.ServiceRequestGetPayload<{
+    include: {
+      medicalRecord: {
+        select: {
+          recordCode: true;
+          patientId: true;
+          clinicId: true;
+        };
       };
-    };
-    details: {
-      include: {
-        serviceItem: {
-          include: {
-            configs: true;
+      details: {
+        include: {
+          serviceItem: {
+            include: {
+              configs: true;
+            };
           };
         };
       };
-    };
-    serviceResults: {
-      include: {
-        serviceItemConfig: true;
+      serviceResults: {
+        include: {
+          serviceItemConfig: true;
+        };
       };
     };
-  };
-}>;
+  }>;
 
 export class ServiceRequestRepository {
   public async create(
     createData: CreateServiceRequestPayload,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<ServiceRequestWithDetails> {
     if (tx) {
       const createdRequest = await tx.serviceRequest.create({
@@ -127,7 +129,7 @@ export class ServiceRequestRepository {
 
   public async findByIdWithDetailsAndResults(
     requestId: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<ServiceRequestWithDetailsAndResults | null> {
     const client = tx ?? prisma;
     return await client.serviceRequest.findUnique({
@@ -155,6 +157,82 @@ export class ServiceRequestRepository {
           },
         },
       },
+    });
+  }
+
+  public async getDataPrint(requestId: string) {
+    return await prisma.serviceRequest.findUnique({
+      where: { requestId },
+      include: {
+        medicalRecord: {
+          include: {
+            patient: true,
+          },
+        },
+        orderingDoctor: true,
+        details: {
+          include: {
+            serviceItem: {
+              include: {
+                type: true,
+                configs: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  public async createShell(recordId: string, doctorId: string) {
+    return await prisma.serviceRequest.create({
+      data: {
+        recordId,
+        orderingDoctorId: doctorId,
+        diagnoses: Prisma.JsonNull,
+      },
+    })
+  }
+  
+  public async upsert(
+    payload: CreateServiceRequestPayload & { requestId: string },
+  ): Promise<ServiceRequestWithDetails> {
+    return await prisma.$transaction(async (tx) => {
+      await tx.serviceRequest.update({
+        where: { requestId: payload.requestId },
+        data: {
+          orderingDoctorId: payload.orderingDoctorId,
+          diagnoses: payload.diagnoses ?? Prisma.JsonNull,
+          isPatientRequested: payload.isPatientRequested ?? false,
+          receiveResultAtClinic: payload.receiveResultAtClinic ?? false,
+          isForFollowUp: payload.isForFollowUp ?? false,
+          note: payload.note ?? null,
+          updatedAt: new Date(),
+        },
+      });
+
+      await tx.serviceRequestDetail.deleteMany({
+        where: { requestId: payload.requestId },
+      });
+
+      if (payload.details && payload.details.length > 0) {
+        await tx.serviceRequestDetail.createMany({
+          data: payload.details.map((detail) => ({
+            requestId: payload.requestId,
+            itemId: detail.itemId,
+            selectedOptions: detail.selectedOptions ?? Prisma.JsonNull,
+          })),
+        });
+      }
+
+      return await tx.serviceRequest.findUniqueOrThrow({
+        where: { requestId: payload.requestId },
+        include: {
+          details: {
+            include: { serviceItem: true },
+          },
+        },
+      });
     });
   }
 }

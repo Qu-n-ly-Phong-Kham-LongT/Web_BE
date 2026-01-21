@@ -72,7 +72,6 @@ export interface MedicalRecordPrintServiceRequestResultDto {
   valueString: string;
   valueNumber: string;
   unit: string;
-  images: any;
   executedAt: string;
 }
 
@@ -133,8 +132,6 @@ export interface MedicalRecordPrintDto {
   examinedBy: string;
   allergies: AllergyItemDto[];
   prescriptionId: string;
-  pdfPath: string;
-  fileName: string;
   prescriptionNote: string;
   totalPrice: string;
   status: string;

@@ -1,6 +1,7 @@
 import { Prisma, ServiceItem } from "@prisma/client";
 import { CreateServiceItemRequestDto } from "../dtos/service-item.request.dto";
 import { prisma } from "../../../config/database.config";
+import { includes } from "lodash";
 
 export class ServiceItemRepository {
   public async findByCode(code: string): Promise<ServiceItem | null> {
@@ -26,8 +27,9 @@ export class ServiceItemRepository {
     search?: string;
     typeId?: string;
     categoryId?: string;
+    isActive?: boolean;
   }) {
-    const { skip, take, search, typeId, categoryId } = params;
+    const { skip, take, search, typeId, categoryId, isActive } = params;
 
     const where: Prisma.ServiceItemWhereInput = {
       AND: [
@@ -41,7 +43,7 @@ export class ServiceItemRepository {
           : {},
         typeId ? { typeId } : {},
         categoryId ? { categoryId } : {},
-        { isActive: true },
+        isActive === undefined ? {} : { isActive },
       ],
     };
 
@@ -55,7 +57,7 @@ export class ServiceItemRepository {
           category: true,
           configs: true,
         },
-        orderBy: [{ typeId: "asc" }, { name: "asc" }],
+        orderBy: [{ isActive: "desc" }, { typeId: "asc" }, { name: "asc" }],
       }),
       prisma.serviceItem.count({ where }),
     ]);
@@ -64,7 +66,7 @@ export class ServiceItemRepository {
   }
 
   public async createServiceItemWithConfig(
-    createData: CreateServiceItemRequestDto
+    createData: CreateServiceItemRequestDto,
   ): Promise<ServiceItem> {
     return await prisma.$transaction(async (tx) => {
       const createdItem = await tx.serviceItem.create({
@@ -112,7 +114,9 @@ export class ServiceItemRepository {
     });
   }
 
-  public async findServiceItemsByIds(itemIds: string[]): Promise<Pick<ServiceItem, "itemId">[]> {
+  public async findServiceItemsByIds(
+    itemIds: string[],
+  ): Promise<Pick<ServiceItem, "itemId">[]> {
     return await prisma.serviceItem.findMany({
       where: {
         itemId: { in: itemIds },
@@ -125,7 +129,7 @@ export class ServiceItemRepository {
 
   public async findActiveItemsWithConfigsByIds(
     itemIds: string[],
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<Prisma.ServiceItemGetPayload<{ include: { configs: true } }>[]> {
     const client = tx ?? prisma;
     return await client.serviceItem.findMany({
@@ -136,6 +140,14 @@ export class ServiceItemRepository {
       include: {
         configs: true,
       },
+    });
+  }
+
+  public async updateStatus(itemId: string, isActive: boolean) {
+    return prisma.serviceItem.update({
+      where: { itemId },
+      data: { isActive },
+      include: { configs: true, category: true, type: true },
     });
   }
 }

@@ -45,6 +45,7 @@ export class ClinicRepository {
       address: updateData.address,
       phone: updateData.phone,
       email: updateData.email,
+      consultationFee: updateData.consultationFee,
       ...(updateData.sessions
         ? {
             clinicWorkingSessions: {

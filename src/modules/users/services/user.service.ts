@@ -8,6 +8,7 @@ import {
 import {
   UserResponseDto,
   UserRoleEnumResponseDto,
+  UserStatusResponseDto,
 } from "../dtos/user.response.dto";
 import { BaseError } from "../../../utils/base-error.util";
 import { ClinicService } from "../../clinic/services/clinic.service";
@@ -18,24 +19,24 @@ export class UserService {
   private clinicService = new ClinicService();
 
   public async createUser(
-    createData: CreateUserRequestDto
+    createData: CreateUserRequestDto,
   ): Promise<UserResponseDto> {
     const checkExisting = await this.userRepository.findUserByUsername(
-      createData.username
+      createData.username,
     );
     if (checkExisting) {
       throw new BaseError(409, "Tài khoản đăng nhập đã tồn tại.");
     }
 
     const duplicatedEmail = await this.userRepository.findUserByEmail(
-      createData.email
+      createData.email,
     );
     if (duplicatedEmail) {
       throw new BaseError(409, "Email này đã được sử dụng.");
     }
 
     if (!createData.clinicId) {
-      throw new BaseError(403, "Forbidden")
+      throw new BaseError(403, "Forbidden");
     }
     await this.clinicService.getClinicById(createData.clinicId);
 
@@ -43,7 +44,7 @@ export class UserService {
     const rolesAssigned = createData.roles || [UserRoleEnum.Doctor];
     if (
       rolesAssigned.some(
-        (role) => !Object.values(UserRoleEnum).includes(role as UserRoleEnum)
+        (role) => !Object.values(UserRoleEnum).includes(role as UserRoleEnum),
       )
     ) {
       throw new BaseError(400, "Role không hợp lệ");
@@ -58,7 +59,7 @@ export class UserService {
         clinicId: createData.clinicId,
         status: UserStatus.Active,
       },
-      rolesAssigned
+      rolesAssigned,
     );
 
     if (!newUser) {
@@ -80,7 +81,7 @@ export class UserService {
 
   public async getUserById(
     id: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<UserResponseDto> {
     const user = await this.userRepository.findUserById(id, clinicId);
     if (!user) {
@@ -103,7 +104,7 @@ export class UserService {
   public async changePassword(
     userId: string,
     oldPassword: string,
-    newPassword: string
+    newPassword: string,
   ): Promise<void> {
     const user = await this.userRepository.findUserById(userId);
     if (!user) {
@@ -112,7 +113,7 @@ export class UserService {
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      throw new BaseError(400, "Role không hợp lệ");
+      throw new BaseError(400, "Mật khẩu hiện tại không đúng");
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -124,7 +125,7 @@ export class UserService {
   public async updateUser(
     id: string,
     updateData: UpdateUserRequestDto,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<void> {
     const existingUser = await this.userRepository.findUserById(id, clinicId);
     if (!existingUser) {
@@ -132,13 +133,31 @@ export class UserService {
     }
 
     if (clinicId && existingUser.clinicId !== clinicId) {
-      throw new BaseError(403, "Không có quyền truy cập người dùng phòng khám khác");
+      throw new BaseError(
+        403,
+        "Không có quyền truy cập người dùng phòng khám khác",
+      );
+    }
+
+    if (updateData.email && existingUser.email) {
+      const checkEmail = await this.userRepository.findUserByEmail(
+        updateData.email,
+      );
+      if (checkEmail && checkEmail.userId !== id) {
+        throw new BaseError(
+          409,
+          "Email đã được sử dụng, vui lòng nhập email khác",
+        );
+      }
     }
 
     const statusToUpdate = updateData.status as UserStatus | undefined;
 
     if (updateData.clinicId && clinicId && updateData.clinicId !== clinicId) {
-      throw new BaseError(403, "Không có quyền thay đổi người dùng phòng khám khác");
+      throw new BaseError(
+        403,
+        "Không có quyền thay đổi người dùng phòng khám khác",
+      );
     }
 
     if (updateData.clinicId) {
@@ -156,7 +175,7 @@ export class UserService {
     if (
       updateData.roles &&
       updateData.roles.some(
-        (role) => !Object.values(UserRoleEnum).includes(role as UserRoleEnum)
+        (role) => !Object.values(UserRoleEnum).includes(role as UserRoleEnum),
       )
     ) {
       throw new BaseError(400, "Role không hợp lệ");
@@ -178,12 +197,16 @@ export class UserService {
     return { roles: Object.values(UserRoleEnum) };
   }
 
+  public async getUserStatus(): Promise<UserStatusResponseDto> {
+    return { statuses: Object.values(UserStatus) };
+  }
+
   public async getUsers(
     page = 1,
     size = 10,
     search?: string,
     role?: string,
-    clinicId?: string
+    clinicId?: string,
   ) {
     if (role && !Object.values(UserRoleEnum).includes(role as UserRoleEnum)) {
       throw new BaseError(400, "Role không hợp lệ");
@@ -196,7 +219,7 @@ export class UserService {
       size,
       search,
       normalizedRole,
-      clinicId
+      clinicId,
     );
     return {
       users: users.map((u) => ({

@@ -10,6 +10,7 @@ import { BaseError } from "./utils/base-error.util";
 import { runSeeds } from "./seed";
 import { corsMiddleware } from "./middlewares/cors.middleware";
 import { apiLimiter } from "./middlewares/rate-limit.middleware";
+import { parseDate } from "./utils/parseDate.util";
 
 const app = express();
 
@@ -51,10 +52,11 @@ app.use(
     challenge: true,
   }),
   swaggerUi.serve,
-  swaggerUi.setup(swaggerDocument)
+  swaggerUi.setup(swaggerDocument),
 );
 
-app.use("/api", apiLimiter, rootRouter);
+// app.use("/api", apiLimiter, rootRouter);
+app.use("/api", rootRouter);
 
 app.use(errorHandler);
 

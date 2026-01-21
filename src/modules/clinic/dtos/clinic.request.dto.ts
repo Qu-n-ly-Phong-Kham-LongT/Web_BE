@@ -1,5 +1,6 @@
 import Joi from "joi";
 import { Session } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/client";
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -8,6 +9,7 @@ export interface ClinicRequestDto {
   address: string;
   phone: string;
   email: string;
+  consultationFee?: Decimal;
   sessions?: ClinicSessionItemDto[];
 }
 
@@ -24,7 +26,9 @@ export interface ClinicWorkingSessionDto {
 }
 
 const ClinicSessionItemSchema = Joi.object({
-  sessionType: Joi.string().valid("Morning", "Afternoon", "Evening", "Noon").required(),
+  sessionType: Joi.string()
+    .valid("Morning", "Afternoon", "Evening", "Noon")
+    .required(),
   startTime: Joi.string().pattern(timeRegex).required(),
   endTime: Joi.string().pattern(timeRegex).required(),
   isActive: Joi.boolean().default(true),
@@ -40,7 +44,7 @@ const ClinicSessionItemSchema = Joi.object({
     return value;
   })
   .messages({
-    "any.invalid": "Giờ bắt đầu phải sau giờ kết thúc",
+    "any.invalid": "Giờ kết thúc phải sau giờ bắt đầu",
   });
 
 export const ClinicRequestSchema = Joi.object({
@@ -98,5 +102,9 @@ export const ClinicRequestSchema = Joi.object({
     "string.empty": "Email không được để trống",
     "string.email": "Email không đúng định dạng",
     "string.max": "Email không được vượt quá 150 ký tự",
+  }),
+  consultationFee: Joi.number().greater(0).allow(null).messages({
+    "number.base": "Phí khám phải là số",
+    "number.greater": "Phí khám phải lớn hơn 0",
   }),
 });

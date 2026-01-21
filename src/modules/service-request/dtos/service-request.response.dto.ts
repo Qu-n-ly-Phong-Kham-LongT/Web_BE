@@ -22,14 +22,15 @@ export interface ServiceRequestResultResponseDto {
   valueString: string | null;
   valueNumber: number | null;
   unit: string | null;
-  images: any;
   executedAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface ServiceRequestSelectedConfigResponseDto {
   configId: string;
   configCode: string | null;
   displayName: string | null;
+  unit: string | null;
   selectedValues: string[];
   totalSurcharge: number | null;
 }
@@ -79,7 +80,6 @@ export const ServiceRequestResultResponseSchema = Joi.object({
   valueString: Joi.string().allow(null),
   valueNumber: Joi.number().allow(null),
   unit: Joi.string().allow(null),
-  images: Joi.any(),
   executedAt: Joi.string().allow(null),
 });
 
@@ -91,6 +91,7 @@ export const ServiceRequestDetailFullResponseSchema =
           configId: Joi.string().required(),
           configCode: Joi.string().allow(null),
           displayName: Joi.string().allow(null),
+          unit: Joi.string().allow(null),
           selectedValues: Joi.array().items(Joi.string()).required(),
           totalSurcharge: Joi.number().allow(null),
         })

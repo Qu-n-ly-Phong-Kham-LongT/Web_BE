@@ -59,6 +59,24 @@ const Icd10Swagger = {
           required: false,
           description: "Tìm theo mã hoặc mô tả",
         },
+        {
+          name: "sortBy",
+          in: "query",
+          required: false,
+          schema: {
+            type: "string",
+            enum: ["code", "description"],
+            default: "code",
+          },
+          description: "Sắp xếp theo trường",
+        },
+        {
+          name: "sort",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+          description: "Hướng sắp xếp",
+        },
       ],
       responses: {
         200: {
@@ -108,6 +126,41 @@ const Icd10Swagger = {
         401: { description: "Unauthorized" },
         404: { description: "Không tìm thấy ICD-10" },
         409: { description: "Mã ICD-10 đã tồn tại" },
+      },
+    },
+
+    delete: {
+      tags: ["ICD-10"],
+      summary: "Xoá mã ICD-10",
+      description: "Chỉ dành cho Admin",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "code",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+          description: "Mã ICD-10 cần xoá",
+        },
+      ],
+      responses: {
+        200: {
+          description: "Xoá ICD-10 thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: { type: "string", example: "Xoá ICD-10 thành công" },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không có quyền" },
+        404: { description: "Không tìm thấy mã ICD-10 để xoá" },
       },
     },
   },

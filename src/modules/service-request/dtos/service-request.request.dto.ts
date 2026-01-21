@@ -2,6 +2,11 @@ import Joi from "joi";
 import { ICD10_REGEX } from "../../icd-10/dtos/icd-10.dto";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 
+export interface BasicServiceRequestDto {
+  recordId: string;
+  orderingDoctorId: string;
+}
+
 export interface SelectedConfigsDto {
   configId: string;
   selectedValues?: string[];
@@ -64,9 +69,6 @@ export const createServiceRequestSchema = Joi.object({
   note: Joi.string().allow("", null),
   details: Joi.array()
     .items(createServiceRequestDetailSchema)
-    .min(1)
-    .required()
-    .messages({
-      "array.min": "Phải có ít nhất 1 dịch vụ cho phiếu chỉ định",
-    }),
+    .default([])
+    .optional(),
 });

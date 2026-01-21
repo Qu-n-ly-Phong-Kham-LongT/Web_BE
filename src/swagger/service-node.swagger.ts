@@ -49,7 +49,7 @@ const ServiceNodeSwagger = {
       },
     },
     get: {
-      tags: ["Service-Node (Danh muc/Dich vu CLS)"],
+      tags: ["Service-Node (Danh mục/Dịch vụ CLS)"],
       summary: "Lấy ds service node",
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -87,20 +87,6 @@ const ServiceNodeSwagger = {
           required: false,
           schema: { type: "string" },
           description: "Tìm theo code hoặc name",
-        },
-        {
-          name: "sortBy",
-          in: "query",
-          required: false,
-          schema: { type: "string", enum: ["code", "name", "createdAt", "updatedAt"] },
-          description: "Trường sắp xếp",
-        },
-        {
-          name: "sortDir",
-          in: "query",
-          required: false,
-          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
-          description: "Thứ tự sắp xếp",
         },
       ],
       responses: {

@@ -42,6 +42,12 @@ UserRouter.get(
   userController.getUserEnum
 );
 
+UserRouter.get(
+  "/status",
+  authenticate,
+  userController.getUserStatus
+);
+
 UserRouter.put(
   "/:id",
   authenticate,

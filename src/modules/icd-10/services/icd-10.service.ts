@@ -21,6 +21,15 @@ export class Icd10Service {
     });
   }
 
+  public async deleteIcd10(code: string) {
+    const icd = await this.Icd10Repository.findByCode(code);
+    if (!icd) {
+      throw new BaseError(404, "ICD-10 này không tồn tại")
+    }
+
+    return await this.Icd10Repository.deleteByCode(code);
+  }
+
   public async updateIcd10(
     code: string,
     updateData: Icd10RequestDto
@@ -41,12 +50,16 @@ export class Icd10Service {
   public async getAllIcd10(
     page: number = 1,
     size: number = 10,
-    search?: string
+    search?: string,
+    sortBy: "code" | "description" = "code",
+    sortDirection: "asc" | "desc" = "asc"
   ): Promise<Icd10ListResponseDto> {
     const { entries, totalItems } = await this.Icd10Repository.getAllIcd10(
       page,
       size,
-      search
+      search,
+      sortBy,
+      sortDirection
     );
 
     const pagination = createPagination(page, size, totalItems);

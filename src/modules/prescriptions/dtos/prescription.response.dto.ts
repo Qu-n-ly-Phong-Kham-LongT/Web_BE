@@ -3,12 +3,16 @@ import { PrescriptionStatus } from "@prisma/client"
 
 export interface PrescriptionDetailResponseDto {
     prescriptionId: string;
-    pdfPath: string;
-    fileName: string;
     note: string;
     totalPrice: number;
     status: PrescriptionStatus;
     createdAt: Date;
     updateAt: Date;
+    printedAt?: Date | null;
+    printCount?: number;
     details: PrescriptionItemDto[];
+}
+
+export interface PrescriptionStatusResponseDto {
+    statuses: PrescriptionStatus[];
 }

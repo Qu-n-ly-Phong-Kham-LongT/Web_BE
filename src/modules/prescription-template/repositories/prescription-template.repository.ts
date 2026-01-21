@@ -1,5 +1,6 @@
 import { Prisma, PrescriptionTemplate, PrescriptionTemplateDetail } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export type PrescriptionTemplateWithDetails = PrescriptionTemplate & {
   details: (PrescriptionTemplateDetail & {
@@ -8,6 +9,7 @@ export type PrescriptionTemplateWithDetails = PrescriptionTemplate & {
       medicineName: string | null;
       medicineCode: string | null;
       baseUnit: string | null;
+      sellPrice: Decimal | null;
     } | null;
   })[];
   creator: {
@@ -30,6 +32,7 @@ const templateInclude = {
           medicineName: true,
           medicineCode: true,
           baseUnit: true,
+          sellPrice: true,
         },
       },
     },
@@ -47,11 +50,11 @@ export class PrescriptionTemplateRepository {
     data: {
       templateName: string;
       description?: string | null;
+      daysToTake?: number | null;
       details: Array<{
         medicineId: string;
         defaultFrequency?: number | null;
         defaultQuantityPerTime?: number | null;
-        daysToTake?: number | null;
         defaultRoute?: string | null;
         defaultTiming?: string | null;
       }>;
@@ -64,13 +67,13 @@ export class PrescriptionTemplateRepository {
       data: {
         templateName: data.templateName,
         description: data.description ?? null,
+        daysToTake: data.daysToTake ?? null,
         createdBy: createdBy,
         details: {
           create: data.details.map((detail) => ({
             medicineId: detail.medicineId,
             defaultFrequency: detail.defaultFrequency ?? null,
             defaultQuantityPerTime: detail.defaultQuantityPerTime ?? null,
-            daysToTake: detail.daysToTake ?? null,
             defaultRoute: detail.defaultRoute ?? null,
             defaultTiming: detail.defaultTiming ?? null,
           })),

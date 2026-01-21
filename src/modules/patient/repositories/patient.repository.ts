@@ -4,6 +4,7 @@ import {
   PatientRelative,
   PatientAllergy,
   PrismaClient,
+  Gender,
 } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
@@ -29,7 +30,7 @@ export class PatientRepository {
     data: CreatePatientRequestDto,
     patientCode: string,
     clinicId?: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<Patient> {
     const client = tx || prisma;
     return await client.patient.create({
@@ -52,7 +53,7 @@ export class PatientRepository {
 
   public async findPatientById(
     id: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
@@ -66,13 +67,36 @@ export class PatientRepository {
     page: number = 1,
     size: number = 10,
     search?: string,
-    clinicId?: string
+    clinicId?: string,
+    sortBy:
+      | "gender"
+      | "identityCard"
+      | "phone"
+      | "email"
+      | "createdAt" = "createdAt",
+    sortDirection: "asc" | "desc" = "desc",
+    gender?: Gender,
   ): Promise<{ patients: Patient[]; totalItems: number }> {
     const skip = (page - 1) * size;
 
     const baseWhere = {
       ...this.buildClinicIdFilter(clinicId),
+      ...(gender ? { gender } : {}),
     };
+
+    const normalizedSearch = search?.trim().toLowerCase();
+    const genderFilter =
+      normalizedSearch === "male"
+        ? Gender.Male
+        : normalizedSearch === "female"
+          ? Gender.Female
+          : normalizedSearch === "other"
+            ? Gender.Other
+            : normalizedSearch === "nam"
+              ? Gender.Male
+              : normalizedSearch === "nu"
+                ? Gender.Female
+                : undefined;
 
     const where = search
       ? {
@@ -89,12 +113,25 @@ export class PatientRepository {
         }
       : baseWhere;
 
+    const primaryOrderBy: Prisma.PatientOrderByWithRelationInput =
+      sortBy === "createdAt"
+        ? { createdAt: sortDirection }
+        : ({
+            [sortBy]: sortDirection,
+          } as Prisma.PatientOrderByWithRelationInput);
+    const orderBy:
+      | Prisma.PatientOrderByWithRelationInput
+      | Prisma.PatientOrderByWithRelationInput[] =
+      sortBy === "createdAt"
+        ? primaryOrderBy
+        : [primaryOrderBy, { createdAt: "desc" as Prisma.SortOrder }];
+
     const [patients, totalItems] = await Promise.all([
       prisma.patient.findMany({
         where,
         skip,
         take: size,
-        orderBy: { createdAt: "desc" },
+        orderBy,
       }),
       prisma.patient.count({ where }),
     ]);
@@ -105,7 +142,7 @@ export class PatientRepository {
   public async updatePatient(
     id: string,
     data: Prisma.PatientUpdateInput,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Patient | null> {
     // First check if patient exists with clinic id filter
     const existing = await prisma.patient.findFirst({
@@ -134,7 +171,7 @@ export class PatientRepository {
 
   public async findPatientByPhone(
     phone: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
@@ -146,7 +183,7 @@ export class PatientRepository {
 
   public async findPatientByIdentityCard(
     identityCard: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
@@ -158,7 +195,7 @@ export class PatientRepository {
 
   public async findPatientByInsuranceNumber(
     insuranceNumber: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Patient | null> {
     return await prisma.patient.findFirst({
       where: {
@@ -172,7 +209,7 @@ export class PatientRepository {
   public async createRelatives(
     patientId: string,
     relatives: CreatePatientRelativeRequestDto[],
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<{ count: number }> {
     const client = tx || prisma;
     return await client.patientRelative.createMany({
@@ -189,7 +226,7 @@ export class PatientRepository {
 
   public async findRelativeById(
     relativeId: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<PatientRelative | null> {
     return await prisma.patientRelative.findFirst({
       where: {
@@ -206,7 +243,7 @@ export class PatientRepository {
   }
 
   public async findRelativesByPatientId(
-    patientId: string
+    patientId: string,
   ): Promise<PatientRelative[]> {
     return await prisma.patientRelative.findMany({
       where: { patientId: patientId },
@@ -215,7 +252,7 @@ export class PatientRepository {
 
   public async updateRelative(
     relativeId: string,
-    data: Prisma.PatientRelativeUpdateInput
+    data: Prisma.PatientRelativeUpdateInput,
   ): Promise<PatientRelative> {
     return await prisma.patientRelative.update({
       where: { relativeId: relativeId },
@@ -226,7 +263,7 @@ export class PatientRepository {
   public async upsertAllergies(
     patientId: string,
     allergies: CreatePatientAllergyItemDto[],
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<PatientAllergy> {
     const client = tx || prisma;
     const allergyJsonData = allergies.map((allergy) => ({
@@ -244,7 +281,7 @@ export class PatientRepository {
   public async findAllergyById(
     allergyId: string,
     clinicId?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<PatientAllergy | null> {
     const client = tx || prisma;
     return await client.patientAllergy.findFirst({
@@ -263,7 +300,7 @@ export class PatientRepository {
 
   public async findAllergiesByPatientId(
     patientId: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<PatientAllergy[]> {
     const client = tx || prisma;
     return await client.patientAllergy.findMany({
@@ -274,7 +311,7 @@ export class PatientRepository {
   public async updateAllergy(
     allergyId: string,
     data: Prisma.PatientAllergyUpdateInput,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<PatientAllergy> {
     const client = tx || prisma;
     return await client.patientAllergy.update({
@@ -294,7 +331,7 @@ export class PatientRepository {
     start: Date,
     end: Date,
     search?: string,
-    status?: string
+    status?: string,
   ) {
     const normalizedSearch = search?.trim().toLocaleLowerCase();
     let medicalRecordFilter: any = {

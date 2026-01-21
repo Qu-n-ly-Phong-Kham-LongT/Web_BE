@@ -2,9 +2,7 @@ import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.re
 import { prisma } from "../../../config/database.config";
 import { FullMedicalRecordDto } from "../dtos/medical-record-detail.dto";
 import { MedicalRecordPrintDto } from "../dtos/medical-record.print";
-import {
-  mapToClinicalExaminationResponse,
-} from "../../clinical-examination/dtos/clinical-examination.response.dto";
+import { mapToClinicalExaminationResponse } from "../../clinical-examination/dtos/clinical-examination.response.dto";
 import {
   ServiceRequestDetailFullResponseDto,
   ServiceRequestFullResponseDto,
@@ -76,7 +74,7 @@ type MedicalRecordWithFullRelations = Prisma.MedicalRecordGetPayload<{
 
 export class SharedRepository {
   public async getFullMedicalRecord(
-    id: string
+    id: string,
   ): Promise<FullMedicalRecordDto | null> {
     const record = await prisma.medicalRecord.findUnique({
       where: { recordId: id },
@@ -102,6 +100,7 @@ export class SharedRepository {
             },
             serviceResults: true,
           },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -117,7 +116,7 @@ export class SharedRepository {
     patientId: string,
     clinicId?: string,
     fromDate?: Date,
-    toDate?: Date
+    toDate?: Date,
   ): Promise<FullMedicalRecordDto[]> {
     const where: Prisma.MedicalRecordWhereInput = {
       patientId,
@@ -140,7 +139,7 @@ export class SharedRepository {
 
     const records = await prisma.medicalRecord.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
@@ -176,7 +175,7 @@ export class SharedRepository {
     doctorId: string,
     clinicId?: string,
     fromDate?: Date,
-    toDate?: Date
+    toDate?: Date,
   ): Promise<FullMedicalRecordDto[]> {
     const where: Prisma.MedicalRecordWhereInput = {
       doctorId,
@@ -199,7 +198,7 @@ export class SharedRepository {
 
     const records = await prisma.medicalRecord.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
@@ -235,7 +234,7 @@ export class SharedRepository {
     patientId: string,
     clinicId?: string,
     fromDate?: Date,
-    toDate?: Date
+    toDate?: Date,
   ): Promise<FullMedicalRecordDto[]> {
     const where: Prisma.MedicalRecordWhereInput = {
       patientId,
@@ -258,7 +257,7 @@ export class SharedRepository {
 
     const records = await prisma.medicalRecord.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
@@ -291,7 +290,7 @@ export class SharedRepository {
   }
 
   private mapRecordToFullDto(
-    record: MedicalRecordWithFullRelations
+    record: MedicalRecordWithFullRelations,
   ): FullMedicalRecordDto {
     const patient = record.patient
       ? {
@@ -308,8 +307,12 @@ export class SharedRepository {
           insuranceNumber: record.patient.insuranceNumber,
           occupation: record.patient.occupation,
           address: record.patient.address,
-          createdAt: record.patient.createdAt ? record.patient.createdAt.toISOString() : "",
-          updatedAt: record.patient.updatedAt ? record.patient.updatedAt.toISOString() : "",
+          createdAt: record.patient.createdAt
+            ? record.patient.createdAt.toISOString()
+            : "",
+          updatedAt: record.patient.updatedAt
+            ? record.patient.updatedAt.toISOString()
+            : "",
           patientAllergies: (record.patient.allergies ?? []).flatMap((a) => {
             const data =
               (a.data as
@@ -329,7 +332,7 @@ export class SharedRepository {
       record.clinicalExamination && record.patient
         ? mapToClinicalExaminationResponse(
             record.clinicalExamination,
-            record.patient.allergies?.[0] ?? null
+            record.patient.allergies?.[0] ?? null,
           )
         : null;
 
@@ -340,18 +343,28 @@ export class SharedRepository {
       doctorId: record.doctorId ?? "",
       clinicId: record.clinicId ?? "",
       evidenceBasedDiagnosis: record.evidenceBasedDiagnosis ?? undefined,
-      diagnoses: record.diagnoses ? (record.diagnoses as unknown as MedicalDiagnosisDto) : undefined,
+      diagnoses: record.diagnoses
+        ? (record.diagnoses as unknown as MedicalDiagnosisDto)
+        : undefined,
       doctorAdvice: record.doctorAdvice ?? undefined,
       treatmentNote: record.treatmentNote ?? undefined,
-      consultationFee: record.consultationFee ? Number(record.consultationFee) : 0,
+      consultationFee: record.consultationFee
+        ? Number(record.consultationFee)
+        : 0,
       createdAt: record.createdAt ?? new Date(0),
       updatedAt: record.updatedAt ?? new Date(0),
     };
 
     const serviceRequest: ServiceRequestFullResponseDto[] =
       record.serviceRequests.map((request: ServiceRequestWithRelations) => {
-        const resultsByDetailId = new Map<string, ServiceRequestResultResponseDto[]>();
-        const resultsByItemId = new Map<string, ServiceRequestResultResponseDto[]>();
+        const resultsByDetailId = new Map<
+          string,
+          ServiceRequestResultResponseDto[]
+        >();
+        const resultsByItemId = new Map<
+          string,
+          ServiceRequestResultResponseDto[]
+        >();
 
         for (const result of request.serviceResults) {
           const resultDto: ServiceRequestResultResponseDto = {
@@ -367,8 +380,10 @@ export class SharedRepository {
                 ? Number(result.valueNumber)
                 : null,
             unit: result.unit ?? null,
-            images: result.images ?? null,
-            executedAt: result.executedAt ? result.executedAt.toISOString() : null,
+            executedAt: result.executedAt
+              ? result.executedAt.toISOString()
+              : null,
+            updatedAt: result.updatedAt ? result.updatedAt.toISOString() : null,
           };
 
           if (result.detailId) {
@@ -388,7 +403,7 @@ export class SharedRepository {
           request.details.map((detail: ServiceRequestDetailWithRelations) => {
             const serviceItem = detail.serviceItem;
             const configMetaMap = new Map(
-              (serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+              (serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg]),
             );
             interface SelectedConfig {
               configId: string;
@@ -401,18 +416,23 @@ export class SharedRepository {
               selectedConfigs?: SelectedConfig[];
             }
 
-            const selectedOptions = detail.selectedOptions as SelectedOptions | null | undefined;
+            const selectedOptions = detail.selectedOptions as
+              | SelectedOptions
+              | null
+              | undefined;
 
             const selectedConfigs: ServiceRequestSelectedConfigResponseDto[] =
               selectedOptions?.selectedConfigs?.map((cfg: SelectedConfig) => {
                 const meta = configMetaMap.get(cfg.configId);
                 return {
                   configId: cfg.configId,
-                  configCode: cfg.configCode ?? (meta?.configCode ?? null),
+                  configCode: cfg.configCode ?? meta?.configCode ?? null,
                   displayName: meta?.displayName ?? null,
+                  unit: meta?.unit ?? null,
                   selectedValues: cfg.selectedValues ?? [],
                   totalSurcharge:
-                    cfg.totalSurcharge !== undefined && cfg.totalSurcharge !== null
+                    cfg.totalSurcharge !== undefined &&
+                    cfg.totalSurcharge !== null
                       ? Number(cfg.totalSurcharge)
                       : null,
                 };
@@ -422,7 +442,9 @@ export class SharedRepository {
               (detail.requestDetailId
                 ? resultsByDetailId.get(detail.requestDetailId)
                 : undefined) ??
-              (detail.itemId ? resultsByItemId.get(detail.itemId) : undefined) ??
+              (detail.itemId
+                ? resultsByItemId.get(detail.itemId)
+                : undefined) ??
               [];
 
             return {
@@ -458,8 +480,6 @@ export class SharedRepository {
     const prescription = record.prescription
       ? {
           prescriptionId: record.prescription.prescriptionId,
-          pdfPath: record.prescription.pdfPath ?? "",
-          fileName: record.prescription.fileName ?? "",
           note: record.prescription.note ?? "",
           totalPrice: record.prescription.totalPrice
             ? Number(record.prescription.totalPrice)
@@ -467,11 +487,23 @@ export class SharedRepository {
           status: record.prescription.status ?? "Issued",
           createdAt: record.prescription.createdAt ?? new Date(0),
           updateAt: record.prescription.updatedAt ?? new Date(0),
+          printedAt: record.prescription.printedAt ?? null,
+          printCount: record.prescription.printCount ?? 0,
           details: record.prescription.details.map((detail) => ({
             medicineId: detail.medicineId ?? "",
             medicineName: detail.medicine?.medicineName ?? "",
+            sellPrice:
+              detail.appliedExportPrice !== null &&
+              detail.appliedExportPrice !== undefined
+                ? Number(detail.appliedExportPrice)
+                : detail.medicine?.sellPrice !== null &&
+                    detail.medicine?.sellPrice !== undefined
+                  ? Number(detail.medicine.sellPrice)
+                  : null,
             frequencyPerDay: detail.frequencyPerDay ?? 0,
-            quantityPerTime: detail.quantityPerTime ? Number(detail.quantityPerTime) : 0,
+            quantityPerTime: detail.quantityPerTime
+              ? Number(detail.quantityPerTime)
+              : 0,
             quantity: detail.quantity ? Number(detail.quantity) : 0,
             unit: detail.unit ?? "",
             administrationRoute: detail.administrationRoute ?? undefined,
@@ -502,7 +534,7 @@ export class SharedRepository {
   }
 
   public buildMedicalRecordTemplateData(
-    dto: FullMedicalRecordDto
+    dto: FullMedicalRecordDto,
   ): MedicalRecordPrintDto {
     const formatDate = (value?: string | Date | null) => {
       if (!value) {
@@ -546,14 +578,14 @@ export class SharedRepository {
     const diagnosisLines: string[] = [];
     if (diagnoses?.main) {
       diagnosisLines.push(
-        `${diagnoses.main.code} - ${diagnoses.main.description}`
+        `${diagnoses.main.code} - ${diagnoses.main.description}`,
       );
     }
     if (diagnoses?.secondary?.length) {
       diagnosisLines.push(
         diagnoses.secondary
           .map((item) => `${item.code} - ${item.description}`)
-          .join("; ")
+          .join("; "),
       );
     }
 
@@ -571,7 +603,7 @@ export class SharedRepository {
       isInsuranceCovered: toBoolString(detail.isInsuranceCovered),
     }));
 
-    const medicines = prescriptionDetails.map((detail) => {
+    const medicines = prescriptionDetails.map((detail, index) => {
       const usageParts: string[] = [];
       if (detail.frequencyPerDay) {
         usageParts.push(`Ngày uống: ${detail.frequencyPerDay} lần`);
@@ -583,12 +615,18 @@ export class SharedRepository {
         usageParts.push(`${detail.timing}`);
       }
 
+      let prepNote = "";
+      if (detail.note && detail.note.length > 0) {
+        prepNote = toStringValue(", Ghi chú: " + detail.note);
+      }
       return {
+        index: index + 1,
         medicineId: detail.medicineId,
         medicineName: detail.medicineName,
         quantity: detail.quantity,
         unit: detail.unit,
         usage: usageParts.join(", "),
+        prepNote,
       };
     });
 
@@ -623,25 +661,26 @@ export class SharedRepository {
           valueString: toStringValue(result.valueString),
           valueNumber: toStringValue(result.valueNumber),
           unit: toStringValue(result.unit),
-          images: result.images ?? "",
           executedAt: toStringValue(result.executedAt),
         })),
       })),
     }));
 
-    const serviceRequestSelectedConfigs = dto.serviceRequest.flatMap((request) =>
-      request.details.flatMap((detail) =>
-        detail.selectedConfigs.map((config) => ({
-          requestId: toStringValue(request.requestId),
-          requestDetailId: toStringValue(detail.requestDetailId),
-          itemId: toStringValue(detail.itemId),
-          configId: toStringValue(config.configId),
-          configCode: toStringValue(config.configCode),
-          displayName: toStringValue(config.displayName),
-          selectedValues: config.selectedValues ?? [],
-          totalSurcharge: toStringValue(config.totalSurcharge),
-        }))
-      )
+    const serviceRequestSelectedConfigs = dto.serviceRequest.flatMap(
+      (request) =>
+        request.details.flatMap((detail) =>
+          detail.selectedConfigs.map((config) => ({
+            requestId: toStringValue(request.requestId),
+            requestDetailId: toStringValue(detail.requestDetailId),
+            itemId: toStringValue(detail.itemId),
+            configId: toStringValue(config.configId),
+            configCode: toStringValue(config.configCode),
+            displayName: toStringValue(config.displayName),
+            unit: toStringValue(config.unit),
+            selectedValues: config.selectedValues ?? [],
+            totalSurcharge: toStringValue(config.totalSurcharge),
+          })),
+        ),
     );
 
     const hasPregnancyStatus =
@@ -658,7 +697,9 @@ export class SharedRepository {
       patientId: toStringValue(medicalRecord.patientId),
       doctorId: toStringValue(medicalRecord.doctorId),
       clinicId: toStringValue(medicalRecord.clinicId),
-      evidenceBasedDiagnosis: toBoolString(medicalRecord.evidenceBasedDiagnosis),
+      evidenceBasedDiagnosis: toBoolString(
+        medicalRecord.evidenceBasedDiagnosis,
+      ),
       diagnosisMainCode: toStringValue(diagnoses?.main?.code),
       diagnosisMainDescription: toStringValue(diagnoses?.main?.description),
       diagnosisMainNote: toStringValue(diagnoses?.main?.note),
@@ -698,8 +739,12 @@ export class SharedRepository {
       examRecordId: toStringValue(clinicalExamination?.recordId),
       reasonForVisit: toStringValue(clinicalExamination?.reasonForVisit),
       medicalHistory: toStringValue(clinicalExamination?.medicalHistory),
-      pastMedicalHistory: toStringValue(clinicalExamination?.pastMedicalHistory),
-      clinicalExamination: toStringValue(clinicalExamination?.clinicalExamination),
+      pastMedicalHistory: toStringValue(
+        clinicalExamination?.pastMedicalHistory,
+      ),
+      clinicalExamination: toStringValue(
+        clinicalExamination?.clinicalExamination,
+      ),
       heartRate: toStringValue(clinicalExamination?.heartRate),
       pressure: toStringValue(clinicalExamination?.bloodPressure),
       temperature: toStringValue(clinicalExamination?.temperature),
@@ -720,8 +765,6 @@ export class SharedRepository {
         reaction: toStringValue(item.reaction),
       })),
       prescriptionId: toStringValue(prescription?.prescriptionId),
-      pdfPath: toStringValue(prescription?.pdfPath),
-      fileName: toStringValue(prescription?.fileName),
       prescriptionNote: toStringValue(prescription?.note),
       totalPrice: toStringValue(prescription?.totalPrice),
       status: toStringValue(prescription?.status),
