@@ -90,7 +90,13 @@ const PatientSwagger = {
           required: false,
           schema: {
             type: "string",
-            enum: ["fullName", "gender", "patientCategory", "identityCard"],
+            enum: [
+              "fullName",
+              "gender",
+              "patientCategory",
+              "identityCard",
+              "createdAt",
+            ],
             default: "fullName",
           },
           description: "Sắp xếp theo thuộc tính",
