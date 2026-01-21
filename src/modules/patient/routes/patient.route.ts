@@ -13,97 +13,78 @@ const patientRouter = Router();
 const patientController = new PatientController();
 
 patientRouter.post(
-    "/",
-    authenticate,
-    validateBody(CreatePatientRequestSchema),
-    patientController.createPatient
+  "/",
+  authenticate,
+  validateBody(CreatePatientRequestSchema),
+  patientController.createPatient,
 );
 
-patientRouter.get(
-    "/",
-    authenticate,
-    patientController.getPatients
-);
+patientRouter.get("/", authenticate, patientController.getPatients);
 
-patientRouter.get(
-    "/enums",
-    authenticate,
-    patientController.getPatientEnums
-);
+patientRouter.get("/enums", authenticate, patientController.getPatientEnums);
 
-patientRouter.get(
-    "/queue",
-    authenticate,
-    patientController.getDailyQueue
-);
+patientRouter.get("/queue", authenticate, patientController.getDailyQueue);
 
-patientRouter.get(
-    "/:id",
-    authenticate,
-    patientController.getPatientById
-);
+patientRouter.get("/:id", authenticate, patientController.getPatientById);
 
 patientRouter.put(
-    "/:id",
-    authenticate,
-    validateBody(UpdatePatientRequestSchema),
-    patientController.updatePatient
+  "/:id",
+  authenticate,
+  validateBody(UpdatePatientRequestSchema),
+  patientController.updatePatient,
 );
-
 
 // Patient Relative routes
 patientRouter.get(
-    "/:patientId/relatives",
-    authenticate,
-    patientController.getRelativesByPatientId
+  "/:patientId/relatives",
+  authenticate,
+  patientController.getRelativesByPatientId,
 );
 
 patientRouter.get(
-    "/relatives/:relativeId",
-    authenticate,
-    patientController.getRelativeById
+  "/relatives/:relativeId",
+  authenticate,
+  patientController.getRelativeById,
 );
 
 patientRouter.put(
-    "/relatives/:relativeId",
-    authenticate,
-    validateBody(UpdatePatientRelativeRequestSchema),
-    patientController.updateRelative
+  "/relatives/:relativeId",
+  authenticate,
+  validateBody(UpdatePatientRelativeRequestSchema),
+  patientController.updateRelative,
 );
-
 
 // Patient Allergy routes
 patientRouter.post(
-    "/:patientId/allergies",
-    authenticate,
-    validateBody(CreatePatientAllergyRequestSchema),
-    patientController.createAllergies
+  "/:patientId/allergies",
+  authenticate,
+  validateBody(CreatePatientAllergyRequestSchema),
+  patientController.createAllergies,
 );
 
 patientRouter.get(
-    "/:patientId/allergies",
-    authenticate,
-    patientController.getAllergiesByPatientId
+  "/:patientId/allergies",
+  authenticate,
+  patientController.getAllergiesByPatientId,
 );
 
 patientRouter.get(
-    "/allergies/:allergyId",
-    authenticate,
-    patientController.getAllergyById
+  "/allergies/:allergyId",
+  authenticate,
+  patientController.getAllergyById,
 );
 
 patientRouter.put(
-    "/allergies/:allergyId",
-    authenticate,
-    validateBody(UpdatePatientAllergyRequestSchema),
-    patientController.updateAllergy
+  "/allergies/:allergyId",
+  authenticate,
+  validateBody(UpdatePatientAllergyRequestSchema),
+  patientController.updateAllergy,
 );
 
 patientRouter.delete(
-    "/allergies/:allergyId",
-    authenticate,
-    patientController.deleteAllergy
+  "/allergies/:allergyId",
+  authenticate,
+  patientController.deleteAllergy,
 );
 
 export default patientRouter;
-
