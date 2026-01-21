@@ -13,7 +13,7 @@ import { CreatePatientAllergyRequestDto } from "../dtos/create-patient-allergy.r
 import { UpdatePatientAllergyRequestDto } from "../dtos/update-patient-allergy.request.dto";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 import { QueueStatus } from "../dtos/patient.response.dto";
-import { Gender } from "@prisma/client";
+import { Gender, PatientCategory } from "@prisma/client";
 
 export class PatientController {
   private patientService = new PatientService();
@@ -53,25 +53,42 @@ export class PatientController {
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
     const gender = req.query.gender as Gender | undefined;
+    const patientCategory = req.query.patientCategory as
+      | PatientCategory
+      | undefined;
     const clinicId = req.payload?.clinicId ?? undefined;
 
-    const sortByParam = (req.query.sortBy as string | undefined) ?? "createdAt";
+    const sortByParam = (req.query.sortBy as string | undefined) ?? "fullName";
     const sortBy = [
+      "fullName",
       "gender",
+      "patientCategory",
       "identityCard",
-      "phone",
-      "email",
-      "createdAt",
     ].includes(sortByParam)
       ? (sortByParam as
+          | "fullName"
           | "gender"
+          | "patientCategory"
           | "identityCard"
-          | "phone"
-          | "email"
-          | "createdAt")
-      : "createdAt";
+          )
+      : "fullName";
     const sort =
       (req.query.sort as string)?.toLowerCase() === "asc" ? "asc" : "desc";
+
+    let createdAtFrom: Date | undefined;
+    let createdAtTo: Date | undefined;
+    if (req.query.createdAt) {
+      const createdAt = new Date(req.query.createdAt as string);
+      if (isNaN(createdAt.getTime())) {
+        return res
+          .status(400)
+          .json({ message: "Ngày không hợp lệ" });
+      }
+      createdAtFrom = new Date(createdAt);
+      createdAtFrom.setHours(0, 0, 0, 0);
+      createdAtTo = new Date(createdAt);
+      createdAtTo.setHours(23, 59, 59, 999);
+    }
 
     let result: PatientListResponseDto = await this.patientService.getPatients(
       page,
@@ -81,6 +98,9 @@ export class PatientController {
       sortBy,
       sort,
       gender,
+      patientCategory,
+      createdAtFrom,
+      createdAtTo,
     );
     return successResponse(
       res,
