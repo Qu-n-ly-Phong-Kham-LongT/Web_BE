@@ -82,7 +82,7 @@ const PatientSwagger = {
           required: false,
           schema: { type: "string" },
           description:
-            "Tìm kiếm theo tên, mã BN, sđt, email, CMND/CCCD hoặc giới tính (male/female/other)",
+            "Tìm kiếm theo tên, mã BN, sđt, email, CMND/CCCD",
         },
         {
           name: "sortBy",
