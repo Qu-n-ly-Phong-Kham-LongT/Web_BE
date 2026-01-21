@@ -73,7 +73,8 @@ export class PatientRepository {
       | "fullName"
       | "gender"
       | "patientCategory"
-      | "identityCard" = "fullName",
+      | "identityCard"
+      | "createdAt" = "fullName",
     sortDirection: "asc" | "desc" = "desc",
     gender?: Gender,
     patientCategory?: PatientCategory,

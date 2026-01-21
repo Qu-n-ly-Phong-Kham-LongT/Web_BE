@@ -372,7 +372,7 @@ export class ServiceRequestService {
             : null,
           isPatientRequested: data.isPatientRequested ?? false,
           receiveResultAtClinic: data.receiveResultAtClinic ?? false,
-          isForFollowUp: data.isFollowUp,
+          isForFollowUp: data.isForFollowUp,
           note: data.note ?? null,
           details: detailsToCreate,
         },
@@ -667,7 +667,7 @@ export class ServiceRequestService {
       diagnoses: dto.diagnoses as any,
       isPatientRequested: dto.isPatientRequested,
       receiveResultAtClinic: dto.receiveResultAtClinic,
-      isForFollowUp: dto.isFollowUp,
+      isForFollowUp: dto.isForFollowUp,
       note: dto.note, 
       details: dto.details.map((d) => ({
         itemId: d.itemId,

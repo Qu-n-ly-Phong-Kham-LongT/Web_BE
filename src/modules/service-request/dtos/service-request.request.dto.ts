@@ -24,7 +24,7 @@ export interface CreateServiceRequestDto {
   diagnoses?: MedicalDiagnosisDto;
   isPatientRequested?: boolean;
   receiveResultAtClinic?: boolean;
-  isFollowUp: boolean;
+  isForFollowUp: boolean;
   note?: string | null;
   details: CreateServiceRequestDetailDto[];
 }

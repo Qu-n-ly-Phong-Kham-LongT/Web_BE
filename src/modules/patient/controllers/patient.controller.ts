@@ -64,12 +64,14 @@ export class PatientController {
       "gender",
       "patientCategory",
       "identityCard",
+      "createdAt",
     ].includes(sortByParam)
       ? (sortByParam as
           | "fullName"
           | "gender"
           | "patientCategory"
           | "identityCard"
+          | "createdAt"
           )
       : "fullName";
     const sort =
