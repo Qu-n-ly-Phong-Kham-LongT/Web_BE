@@ -51,7 +51,7 @@ export class PatientService {
     clinicId: string
   ): Promise<PatientResponseDto> {
     if (!clinicId) {
-      throw new BaseError(400, "Clinic ID is required");
+      throw new BaseError(400, "ClinicId là bắt buộc");
     }
 
     if (data.phone) {
