@@ -9,10 +9,12 @@ import { SharedRepository } from "../repositories/shared.repository";
 import { FileService } from "../../file/services/file.service";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
+import { FileRepository } from "../../file/repositories/file.repository";
 
 export class SharedService {
   private sharedReposoitory = new SharedRepository();
   private fileService = new FileService();
+  private fileRepository = new FileRepository();
 
   public async getFullMedicalRecord(
     recordId: string,
@@ -120,7 +122,7 @@ export class SharedService {
 
     if (dto.clinicalExamination) {
       push(dto.clinicalExamination.examinedAt);
-      push(dto.clinicalExamination.updatedAt)
+      push(dto.clinicalExamination.updatedAt);
     }
 
     if (dto.prescription) {
@@ -145,8 +147,25 @@ export class SharedService {
     return new Date(Math.max(...times.map((t) => t.getTime())));
   }
 
+  private async getMedicalRecordFileSafe(recordId: string) {
+    try {
+      return await this.fileService.findByMedicalRecordId(recordId);
+    } catch (error) {
+      if (error instanceof BaseError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   public async getMedicalRecordFile(recordId: string, clinicId: string) {
-    const existing = await this.fileService.findByRecordId(recordId);
+    let existing;
+    existing = await this.fileRepository.findByMedicalRecordId(recordId);
+
+    if (!existing) {
+      await this.printMedicalRecordDocx(recordId, clinicId);
+      return await this.getMedicalRecordFileSafe(recordId);
+    }
 
     if (existing?.createdAt) {
       const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
@@ -159,6 +178,6 @@ export class SharedService {
 
     await this.printMedicalRecordDocx(recordId, clinicId);
 
-    return await this.fileService.findByMedicalRecordId(recordId);
+    return await this.getMedicalRecordFileSafe(recordId);
   }
 }
