@@ -211,6 +211,15 @@ export class ServiceRequestRepository {
         },
       });
 
+      if (payload.diagnoses !== undefined) {
+        await tx.medicalRecord.update({
+          where: { recordId: payload.recordId },
+          data: {
+            diagnoses: payload.diagnoses ?? Prisma.JsonNull,
+          },
+        });
+      }
+
       await tx.serviceRequestDetail.deleteMany({
         where: { requestId: payload.requestId },
       });
