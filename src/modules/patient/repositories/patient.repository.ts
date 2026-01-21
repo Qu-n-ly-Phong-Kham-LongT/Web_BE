@@ -5,6 +5,7 @@ import {
   PatientAllergy,
   PrismaClient,
   Gender,
+  PatientCategory,
 } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { CreatePatientRequestDto } from "../dtos/create-patient.request.dto";
@@ -69,19 +70,33 @@ export class PatientRepository {
     search?: string,
     clinicId?: string,
     sortBy:
+      | "fullName"
       | "gender"
-      | "identityCard"
-      | "phone"
-      | "email"
-      | "createdAt" = "createdAt",
+      | "patientCategory"
+      | "identityCard" = "fullName",
     sortDirection: "asc" | "desc" = "desc",
     gender?: Gender,
+    patientCategory?: PatientCategory,
+    createdAtFrom?: Date,
+    createdAtTo?: Date,
   ): Promise<{ patients: Patient[]; totalItems: number }> {
     const skip = (page - 1) * size;
+
+    const createdAtFilter =
+      createdAtFrom || createdAtTo
+        ? {
+            createdAt: {
+              ...(createdAtFrom ? { gte: createdAtFrom } : {}),
+              ...(createdAtTo ? { lte: createdAtTo } : {}),
+            },
+          }
+        : {};
 
     const baseWhere = {
       ...this.buildClinicIdFilter(clinicId),
       ...(gender ? { gender } : {}),
+      ...(patientCategory ? { patientCategory } : {}),
+      ...createdAtFilter,
     };
 
     const normalizedSearch = search?.trim().toLowerCase();
@@ -113,18 +128,13 @@ export class PatientRepository {
         }
       : baseWhere;
 
-    const primaryOrderBy: Prisma.PatientOrderByWithRelationInput =
-      sortBy === "createdAt"
-        ? { createdAt: sortDirection }
-        : ({
-            [sortBy]: sortDirection,
-          } as Prisma.PatientOrderByWithRelationInput);
-    const orderBy:
-      | Prisma.PatientOrderByWithRelationInput
-      | Prisma.PatientOrderByWithRelationInput[] =
-      sortBy === "createdAt"
-        ? primaryOrderBy
-        : [primaryOrderBy, { createdAt: "desc" as Prisma.SortOrder }];
+    const primaryOrderBy: Prisma.PatientOrderByWithRelationInput = {
+      [sortBy]: sortDirection,
+    } as Prisma.PatientOrderByWithRelationInput;
+    const orderBy: Prisma.PatientOrderByWithRelationInput[] = [
+      primaryOrderBy,
+      { createdAt: "desc" as Prisma.SortOrder },
+    ];
 
     const [patients, totalItems] = await Promise.all([
       prisma.patient.findMany({
