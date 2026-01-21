@@ -50,6 +50,10 @@ export class PatientService {
     data: CreatePatientRequestDto,
     clinicId: string
   ): Promise<PatientResponseDto> {
+    if (!clinicId) {
+      throw new BaseError(400, "Clinic ID is required");
+    }
+
     if (data.phone) {
       let existingByPhone = await this.patientRepository.findPatientByPhone(
         data.phone,

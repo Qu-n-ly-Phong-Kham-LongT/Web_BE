@@ -102,6 +102,7 @@ model Clinic {
   medicines             Medicine[]
   medicalRecords        MedicalRecord[]
   clinicWorkingSessions ClinicWorkingSession[]
+  patientSequences      PatientSequence[]
 }
 
 model ClinicWorkingSession {
@@ -187,6 +188,16 @@ model Patient {
   allergies       PatientAllergy[]
   clinic          Clinic?           @relation(fields: [clinicId], references: [clinicId])
   clinicId        String?           @db.Uuid
+}
+
+model PatientSequence {
+  clinicId   String @db.Uuid
+  monthKey   String @db.VarChar(4)
+  currentVal Int    @default(0)
+
+  clinic Clinic @relation(fields: [clinicId], references: [clinicId], onDelete: Cascade)
+
+  @@id([clinicId, monthKey])
 }
 
 model PatientRelative {
