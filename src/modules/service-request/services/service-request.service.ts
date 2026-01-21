@@ -41,11 +41,11 @@ export class ServiceRequestService {
 
   public async getRequestById(
     requestId: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<ServiceRequestFullResponseDto> {
     const request =
       await this.serviceRequestRepository.findByIdWithDetailsAndResults(
-        requestId
+        requestId,
       );
     if (!request) {
       throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
@@ -103,7 +103,7 @@ export class ServiceRequestService {
       (detail) => {
         const serviceItem = detail.serviceItem;
         const configMetaMap = new Map(
-          (serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+          (serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg]),
         );
         const selectedOptions = detail.selectedOptions as
           | {
@@ -148,7 +148,7 @@ export class ServiceRequestService {
           selectedConfigs,
           results: detailResults,
         };
-      }
+      },
     );
 
     return {
@@ -172,19 +172,19 @@ export class ServiceRequestService {
 
   public async createServiceRequest(
     data: CreateServiceRequestDto,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<ServiceRequestResponseDto> {
     const created = await prisma.$transaction(async (tx) => {
       if (!data.details || data.details.length === 0) {
         throw new BaseError(
           400,
-          "Phiếu chỉ định phải có ít nhất 1 dịch vụ cận lâm sàng"
+          "Phiếu chỉ định phải có ít nhất 1 dịch vụ cận lâm sàng",
         );
       }
 
       const record = await this.medicalRecordRepository.findById(
         data.recordId,
-        tx
+        tx,
       );
       if (!record) {
         throw new BaseError(404, "Không tìm thấy bệnh án");
@@ -198,7 +198,7 @@ export class ServiceRequestService {
       const orderingDoctor = await this.userRepository.findUserById(
         orderingDoctorId,
         undefined,
-        tx
+        tx,
       );
       if (!orderingDoctor) {
         throw new BaseError(404, "Không tìm thấy bác sĩ chỉ định");
@@ -225,20 +225,20 @@ export class ServiceRequestService {
       if (uniqueItemIds.length !== itemIds.length) {
         throw new BaseError(
           400,
-          "Không được chọn trùng lặp dịch vụ trong cùng một phiếu"
+          "Không được chọn trùng lặp dịch vụ trong cùng một phiếu",
         );
       }
 
       const items =
         await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
           uniqueItemIds,
-          tx
+          tx,
         );
 
       if (items.length !== uniqueItemIds.length) {
         throw new BaseError(
           400,
-          "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động"
+          "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động",
         );
       }
 
@@ -260,7 +260,7 @@ export class ServiceRequestService {
         for (const config of item.configs) {
           const optionsMap = new Map<string, number>();
           const metaOptions = Array.isArray(
-            (config.metaData as { options?: unknown })?.options
+            (config.metaData as { options?: unknown })?.options,
           )
             ? ((
                 config.metaData as {
@@ -307,7 +307,7 @@ export class ServiceRequestService {
         if (uniqueConfigIds.length !== configIds.length) {
           throw new BaseError(
             400,
-            "Không được chọn trùng lặp cấu hình cận lâm sàng"
+            "Không được chọn trùng lặp cấu hình cận lâm sàng",
           );
         }
 
@@ -330,7 +330,7 @@ export class ServiceRequestService {
             if (!config.selectedValues || config.selectedValues.length === 0) {
               throw new BaseError(
                 400,
-                "Giá trị chọn của cấu hình không hợp lệ"
+                "Giá trị chọn của cấu hình không hợp lệ",
               );
             }
             for (const selectedValue of config.selectedValues) {
@@ -376,7 +376,7 @@ export class ServiceRequestService {
           note: data.note ?? null,
           details: detailsToCreate,
         },
-        tx
+        tx,
       );
     });
 
@@ -384,7 +384,7 @@ export class ServiceRequestService {
   }
 
   private mapToResponseDto(
-    request: ServiceRequestWithDetails
+    request: ServiceRequestWithDetails,
   ): ServiceRequestResponseDto {
     return {
       requestId: request.requestId,
@@ -406,15 +406,15 @@ export class ServiceRequestService {
           itemCode: detail.serviceItem?.itemCode ?? null,
           itemName: detail.serviceItem?.name ?? null,
           selectedOptions: detail.selectedOptions ?? null,
-        })
+        }),
       ),
     };
   }
 
   public async prepareForTemplate(
     requestId: string,
-    clinicId?: string
-  ): Promise<ServiceRequestPrintData> {  
+    clinicId?: string,
+  ): Promise<ServiceRequestPrintData> {
     const toStringValue = (value: unknown) =>
       value === null || value === undefined ? "" : String(value);
     const formatDate = (value?: string | Date | null) => {
@@ -456,10 +456,10 @@ export class ServiceRequestService {
     const barcode = await generateBarcodeBuffer(requestCode);
 
     const buildSelectedText = (
-      detail: (typeof rawData.details)[number]
+      detail: (typeof rawData.details)[number],
     ): string => {
       const configMetaMap = new Map(
-        (detail.serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+        (detail.serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg]),
       );
       const selectedOptions = detail.selectedOptions as
         | {
@@ -487,9 +487,7 @@ export class ServiceRequestService {
           : [];
         const labels = (cfg.selectedValues ?? [])
           .map((value) => {
-            const found = options.find(
-              (opt: any) => opt?.value === value
-            );
+            const found = options.find((opt: any) => opt?.value === value);
             return typeof found?.label === "string" ? found.label : value;
           })
           .filter(Boolean);
@@ -510,7 +508,7 @@ export class ServiceRequestService {
       const typeName = detail.serviceItem?.type?.name || "DỊCH VỤ KHÁC";
       const selectedText = buildSelectedText(detail);
       const itemDisplayName = `${toStringValue(
-        detail.serviceItem?.name
+        detail.serviceItem?.name,
       )} ${selectedText}`.trim();
 
       if (!groupMap.has(typeName)) {
@@ -528,7 +526,7 @@ export class ServiceRequestService {
       ([name, items]) => ({
         typeName: name.toUpperCase(),
         items: items.map((item) => ({ ...item, index: globalIndex++ })),
-      })
+      }),
     );
 
     const diagnoses = rawData.medicalRecord
@@ -536,7 +534,7 @@ export class ServiceRequestService {
 
     const serviceRequestSelectedConfigs = rawData.details.flatMap((detail) => {
       const configMetaMap = new Map(
-        (detail.serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg])
+        (detail.serviceItem?.configs ?? []).map((cfg) => [cfg.configId, cfg]),
       );
       const selectedOptions = detail.selectedOptions as
         | {
@@ -561,7 +559,7 @@ export class ServiceRequestService {
           itemId: toStringValue(detail.itemId),
           configId: toStringValue(config.configId),
           configCode: toStringValue(
-            config.configCode ?? meta?.configCode ?? null
+            config.configCode ?? meta?.configCode ?? null,
           ),
           displayName: toStringValue(meta?.displayName ?? null),
           unit: toStringValue(meta?.unit ?? null),
@@ -570,7 +568,12 @@ export class ServiceRequestService {
         };
       });
     });
-
+    const note = toStringValue(rawData.note);
+    const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
+    const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
+    const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
+    const clinicPhonesText = clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
+    const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
     return {
       requestCode,
       barcode,
@@ -592,12 +595,18 @@ export class ServiceRequestService {
       requestSelectedConfigs: serviceRequestSelectedConfigs,
       groups,
       date: formatDateLong(rawData.createdAt ?? null),
+      note,
+      clinicName,
+      clinicAddress,
+      clinicPhones,
+      clinicPhonesText,
+      doctorName,
     };
   }
 
   public async printServiceRequestPdf(
     requestId: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<{ buffer: Buffer; requestCode: string }> {
     const templateData = await this.prepareForTemplate(requestId, clinicId);
     const requestCode = templateData.requestCode || requestId;
@@ -606,7 +615,7 @@ export class ServiceRequestService {
       process.cwd(),
       "src",
       "templates",
-      "service_request_template.docx"
+      "service_request_template.docx",
     );
     const content = fs.readFileSync(templatePath);
     const zip = new PizZip(content);
@@ -643,7 +652,7 @@ export class ServiceRequestService {
     }
 
     const docxBuffer = doc.getZip().generate({ type: "nodebuffer" });
-    const pdfBuffer = await convertDocxToPdf(docxBuffer, `${requestCode}.docx`)
+    const pdfBuffer = await convertDocxToPdf(docxBuffer, `${requestCode}.docx`);
     await this.fileService.saveServiceRequestPdf(
       requestId,
       requestCode,
@@ -659,7 +668,10 @@ export class ServiceRequestService {
     return await this.serviceRequestRepository.createShell(recordId, doctorId);
   }
 
-  public async saveServiceRequest(requestId: string, dto: CreateServiceRequestDto) {
+  public async saveServiceRequest(
+    requestId: string,
+    dto: CreateServiceRequestDto,
+  ) {
     const payload: CreateServiceRequestPayload & { requestId: string } = {
       requestId: requestId,
       recordId: dto.recordId,
@@ -668,10 +680,10 @@ export class ServiceRequestService {
       isPatientRequested: dto.isPatientRequested,
       receiveResultAtClinic: dto.receiveResultAtClinic,
       isForFollowUp: dto.isForFollowUp,
-      note: dto.note, 
+      note: dto.note,
       details: dto.details.map((d) => ({
         itemId: d.itemId,
-        selectedOptions: d.selectedConfigs as any, 
+        selectedOptions: d.selectedConfigs as any,
       })),
     };
 

@@ -4,7 +4,13 @@ export interface PrescriptionPrintDto {
   barcode: Buffer;
   details: PrescriptionDetail[];
   followUpDate: string;
-  printCount: number; 
+  reason: string;
+  printCount: number;
+  clinicName: string;
+  clinicAddress: string;
+  clinicPhones: string[];
+  clinicPhonesText: string;
+  doctorName: string;
 }
 
 export interface PrescriptionDetail {

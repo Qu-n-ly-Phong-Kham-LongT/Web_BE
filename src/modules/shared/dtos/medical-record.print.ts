@@ -25,6 +25,7 @@ export interface MedicalRecordPrintPrescriptionDetailDto {
 }
 
 export interface MedicalRecordPrintServiceRequestHeaderDto {
+  requestIndex: string;
   requestId: string;
   requestCode: string;
   recordId: string;
@@ -37,6 +38,7 @@ export interface MedicalRecordPrintServiceRequestHeaderDto {
   note: string;
   createdAt: string;
   patientId: string;
+  resultDivider: string;
   details: MedicalRecordPrintServiceRequestDetailDto[];
 }
 
