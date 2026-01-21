@@ -12,4 +12,14 @@ export interface FullMedicalRecordDto {
     serviceRequest: ServiceRequestFullResponseDto[];
     prescription: PrescriptionDetailResponseDto | null;
     followUp: FollowUpResponseDto | null;
+    clinic: {
+        clinicId: string;
+        clinicName: string | null;
+        address: string | null;
+        phones: string[];
+    } | null;
+    doctor: {
+        doctorId: string;
+        fullName: string | null;
+    } | null;
 }

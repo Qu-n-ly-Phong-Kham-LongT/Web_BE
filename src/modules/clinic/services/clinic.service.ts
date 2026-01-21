@@ -54,7 +54,7 @@ export class ClinicService {
     clinicId: string;
     clinicName: string | null;
     address: string | null;
-    phone: string | null;
+    phones: string[];
     email: string | null;
     consultationFee: Decimal | null;
     clinicCode: string | null;
@@ -68,7 +68,7 @@ export class ClinicService {
       clinicId: clinic.clinicId,
       clinicName: clinic.clinicName,
       address: clinic.address,
-      phone: clinic.phone,
+      phones: clinic.phones ?? [],
       email: clinic.email,
       consultationFee: clinic.consultationFee,
       clinicCode: clinic.clinicCode,

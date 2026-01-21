@@ -167,6 +167,8 @@ export class ServiceRequestRepository {
         medicalRecord: {
           include: {
             patient: true,
+            clinic: true,
+            doctor: true,
           },
         },
         orderingDoctor: true,
@@ -191,9 +193,9 @@ export class ServiceRequestRepository {
         orderingDoctorId: doctorId,
         diagnoses: Prisma.JsonNull,
       },
-    })
+    });
   }
-  
+
   public async upsert(
     payload: CreateServiceRequestPayload & { requestId: string },
   ): Promise<ServiceRequestWithDetails> {

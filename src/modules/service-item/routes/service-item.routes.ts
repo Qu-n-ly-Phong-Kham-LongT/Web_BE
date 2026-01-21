@@ -33,4 +33,5 @@ serviceItemRouter.put(
   validateBody(updateServiceItemSchema),
   controller.udpateStatus,
 );
+
 export default serviceItemRouter;

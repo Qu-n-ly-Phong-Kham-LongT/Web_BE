@@ -278,6 +278,12 @@ export class PrecriptionService {
     const createDate = formatDateLong(rawData.createdAt);
     const note = toStringValue(rawData.note);
     const printCount = rawData.printCount;
+    const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
+    const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
+    const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
+    const clinicPhonesText =
+      clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
+    const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
     const prescriptionDetails = (rawData.details ?? []).map((detail) => ({
       medicineId: toStringValue(detail.medicineId),
       medicineName: toStringValue(detail.medicine?.medicineName),
@@ -323,6 +329,7 @@ export class PrecriptionService {
     const followUpDate = formatDate(
       rawData.medicalRecord?.followUp?.appointmentDate,
     );
+    const reason = toStringValue(rawData.medicalRecord?.followUp?.reason);
     return {
       prescriptionCode,
       barcode,
@@ -338,7 +345,13 @@ export class PrecriptionService {
       createDate,
       followUpDate,
       note,
+      reason,
       printCount,
+      clinicName,
+      clinicAddress,
+      clinicPhones,
+      clinicPhonesText,
+      doctorName,
     };
   }
 
@@ -563,7 +576,8 @@ export class PrecriptionService {
         sellPrice:
           d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
             ? Number(d.appliedExportPrice)
-            : d.medicine?.sellPrice !== null && d.medicine?.sellPrice !== undefined
+            : d.medicine?.sellPrice !== null &&
+                d.medicine?.sellPrice !== undefined
               ? Number(d.medicine.sellPrice)
               : null,
         frequencyPerDay: d.frequencyPerDay ?? 0,

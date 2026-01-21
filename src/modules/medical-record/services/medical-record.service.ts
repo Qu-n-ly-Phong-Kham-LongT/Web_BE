@@ -40,11 +40,18 @@ export class MedicalRecordService {
     const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
     const endOfDay = new Date(startOfDay);
     endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const OFFSET = 7 * 60 * 60 * 1000;
+
+    const startOfDayVN = new Date(startOfDay.getTime() + OFFSET);
+    const endOfDayVN = new Date(endOfDay.getTime() + OFFSET);
+
+
     const existingRecord = await this.medicalRecordRepository.findExistingRecord(
       createData.patientId || "",
       createData.clinicId ?? "",
-      startOfDay,
-      endOfDay
+      startOfDayVN,
+      endOfDayVN
     );
     if (existingRecord) {
       throw new BaseError(
