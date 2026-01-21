@@ -44,4 +44,10 @@ export interface ServiceRequestPrintData {
   requestSelectedConfigs: PrintServiceRequestSelectedConfigDto[],
   groups: PrintTypeGroup[];
   date: string;
+  note: string;
+  clinicName: string;
+  clinicAddress: string;
+  clinicPhones: string[];
+  clinicPhonesText: string;
+  doctorName: string;
 }

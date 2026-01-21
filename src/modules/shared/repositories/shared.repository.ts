@@ -654,7 +654,13 @@ export class SharedRepository {
       };
     });
 
-    const serviceRequests = dto.serviceRequest.map((request) => ({
+    const sortedServiceRequests = [...dto.serviceRequest].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeA - timeB;
+    });
+    const serviceRequests = sortedServiceRequests.map((request, index) => ({
+      requestIndex: toStringValue(index + 1),
       requestId: toStringValue(request.requestId),
       requestCode: toStringValue(request.requestCode),
       recordId: toStringValue(request.recordId),
@@ -667,6 +673,7 @@ export class SharedRepository {
       note: toStringValue(request.note),
       createdAt: toStringValue(request.createdAt),
       patientId: toStringValue(request.patientId),
+      resultDivider: "............................................................",
       details: request.details.map((detail) => ({
         requestId: toStringValue(request.requestId),
         requestDetailId: toStringValue(detail.requestDetailId),

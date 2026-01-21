@@ -30,6 +30,8 @@ export class PrescriptionRepository {
           include: {
             patient: true,
             followUp: true,
+            clinic: true,
+            doctor: true,
           },
         },
         details: {
