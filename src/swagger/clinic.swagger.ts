@@ -20,10 +20,13 @@ const ClinicSwagger = {
               properties: {
                 clinicName: { type: "string", maxLength: 255 },
                 address: { type: "string", nullable: true, maxLength: 255 },
-                phone: {
-                  type: "string",
+                phones: {
+                  type: "array",
                   nullable: true,
-                  pattern: "^0[0-9]{9,10}$",
+                  items: {
+                    type: "string",
+                    pattern: "^0[0-9]{9,10}$",
+                  },
                 },
                 email: { type: "string", format: "email", maxLength: 150 },
                 consultationFee: { type: "number", nullable: true },
@@ -165,9 +168,12 @@ const ClinicSwagger = {
                   maxLength: 255,
                   minLength: 5,
                 },
-                phone: {
-                  type: "string",
-                  pattern: "^0[0-9]{9,10}$",
+                phones: {
+                  type: "array",
+                  items: {
+                    type: "string",
+                    pattern: "^0[0-9]{9,10}$",
+                  },
                 },
                 email: {
                   type: "string",

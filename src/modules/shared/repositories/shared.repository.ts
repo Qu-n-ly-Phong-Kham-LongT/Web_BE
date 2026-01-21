@@ -45,6 +45,8 @@ type MedicalRecordWithFullRelations = Prisma.MedicalRecordGetPayload<{
       };
     };
     clinicalExamination: true;
+    doctor: true;
+    clinic: true;
     prescription: {
       include: {
         details: {
@@ -90,6 +92,8 @@ export class SharedRepository {
             },
           },
         },
+        doctor: true,
+        clinic: true,
         followUp: true,
         serviceRequests: {
           include: {
@@ -143,6 +147,8 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
+        doctor: true,
+        clinic: true,
         prescription: {
           include: {
             details: {
@@ -202,6 +208,8 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
+        doctor: true,
+        clinic: true,
         prescription: {
           include: {
             details: {
@@ -261,6 +269,8 @@ export class SharedRepository {
       include: {
         patient: { include: { allergies: true } },
         clinicalExamination: true,
+        doctor: true,
+        clinic: true,
         prescription: {
           include: {
             details: {
@@ -530,6 +540,20 @@ export class SharedRepository {
       serviceRequest,
       prescription,
       followUp,
+      clinic: record.clinic
+        ? {
+            clinicId: record.clinic.clinicId,
+            clinicName: record.clinic.clinicName ?? null,
+            address: record.clinic.address ?? null,
+            phones: record.clinic.phones ?? [],
+          }
+        : null,
+      doctor: record.doctor
+        ? {
+            doctorId: record.doctor.userId,
+            fullName: record.doctor.fullName ?? null,
+          }
+        : null,
     };
   }
 
@@ -690,6 +714,11 @@ export class SharedRepository {
       ? toStringValue(clinicalExamination?.pregnancyWeeks)
       : "";
 
+    const clinicPhones =
+      dto.clinic?.phones && dto.clinic.phones.length > 0
+        ? dto.clinic.phones.join(" - ")
+        : "";
+    const doctorName = toStringValue(dto.doctor?.fullName);
     return {
       recordId: toStringValue(medicalRecord.recordId),
       recordCode: toStringValue(medicalRecord.recordCode),
@@ -697,6 +726,10 @@ export class SharedRepository {
       patientId: toStringValue(medicalRecord.patientId),
       doctorId: toStringValue(medicalRecord.doctorId),
       clinicId: toStringValue(medicalRecord.clinicId),
+      clinicName: toStringValue(dto.clinic?.clinicName),
+      clinicAddress: toStringValue(dto.clinic?.address),
+      clinicPhones,
+      doctorName,
       evidenceBasedDiagnosis: toBoolString(
         medicalRecord.evidenceBasedDiagnosis,
       ),
