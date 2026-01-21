@@ -83,6 +83,10 @@ export interface MedicalRecordPrintDto {
   patientId: string;
   doctorId: string;
   clinicId: string;
+  clinicName: string;
+  clinicAddress: string;
+  clinicPhones: string;
+  doctorName: string;
   evidenceBasedDiagnosis: string;
   diagnosisMainCode: string;
   diagnosisMainDescription: string;

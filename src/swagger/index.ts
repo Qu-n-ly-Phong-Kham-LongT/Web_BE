@@ -96,6 +96,24 @@ const FullMedicalRecordSchema = {
         reason: { type: "string", nullable: true },
       },
     },
+    clinic: {
+      type: "object",
+      nullable: true,
+      properties: {
+        clinicId: { type: "string", format: "uuid" },
+        clinicName: { type: "string", nullable: true },
+        address: { type: "string", nullable: true },
+        phones: { type: "array", items: { type: "string" } },
+      },
+    },
+    doctor: {
+      type: "object",
+      nullable: true,
+      properties: {
+        doctorId: { type: "string", format: "uuid" },
+        fullName: { type: "string", nullable: true },
+      },
+    },
   },
 };
 
