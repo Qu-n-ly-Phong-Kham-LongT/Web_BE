@@ -25,7 +25,10 @@ import { PatientRepository } from "../repositories/patient.repository";
 import { createPagination } from "../../../utils/pagination.util";
 import { prisma } from "../../../config/database.config";
 import { PatientQueueItemDto, QueueStatus } from "../dtos/patient.response.dto";
-import { calculateAge } from "../../../utils/date.util";
+import {
+  calculateAge,
+  getUtcDayRangeForTimeZone,
+} from "../../../utils/date.util";
 
 export class PatientService {
   private patientRepository = new PatientRepository();
@@ -534,29 +537,36 @@ export class PatientService {
     queue: PatientQueueItemDto[];
     pagination: ReturnType<typeof createPagination>;
   }> {
-    let baseDate = new Date();
+    const timeZone = "Asia/Ho_Chi_Minh";
+    let baseDate:
+      | Date
+      | {
+          year: number;
+          month: number;
+          day: number;
+        } = new Date();
     if (date) {
       const trimmed = date.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
         const [year, month, day] = trimmed.split("-").map(Number);
-        baseDate = new Date(year, month - 1, day);
+        baseDate = { year, month, day };
       } else {
         baseDate = new Date(trimmed);
       }
-      if (Number.isNaN(baseDate.getTime())) {
+      if (baseDate instanceof Date && Number.isNaN(baseDate.getTime())) {
         throw new BaseError(400, "Ngày không hợp lệ");
       }
     }
 
-    const start = new Date(baseDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    const { startUtc, endUtc } = getUtcDayRangeForTimeZone(
+      baseDate,
+      timeZone
+    );
 
     const patients = await this.patientRepository.getDailyQueue(
       clinicId,
-      start,
-      end,
+      startUtc,
+      endUtc,
       search
     );
 
@@ -566,8 +576,8 @@ export class PatientService {
       const lastRecord = p.medicalRecords?.[0] || null;
       const isRecordToday =
         !!lastRecord?.createdAt &&
-        new Date(lastRecord.createdAt) >= start &&
-        new Date(lastRecord.createdAt) <= end;
+        new Date(lastRecord.createdAt) >= startUtc &&
+        new Date(lastRecord.createdAt) <= endUtc;
       let status = QueueStatus.WAITING;
       let recordId = null;
       let arrivedAt = p.createdAt ? new Date(p.createdAt) : new Date();
