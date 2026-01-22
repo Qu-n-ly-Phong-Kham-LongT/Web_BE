@@ -122,13 +122,19 @@ export class PatientController {
     const sort =
       (req.query.sort as string)?.toLowerCase() === "asc" ? "asc" : "desc";
     const clinicId = req.payload?.clinicId ?? undefined;
+    const normalizedDate = date?.trim();
+    if (normalizedDate && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+      return res.status(400).json({
+        message: "Ngày phải theo định dạng YYYY-MM-DD (theo giờ VN)",
+      });
+    }
 
     const { queue, pagination } = await this.patientService.getDailyQueue(
       clinicId,
       page,
       size,
       search,
-      date,
+      normalizedDate,
       status,
       sort,
     );

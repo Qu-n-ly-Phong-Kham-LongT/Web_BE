@@ -4,11 +4,11 @@ import { BaseError } from "./base-error.util";
 
 export async function convertDocxToPdf(
   docxBuffer: Buffer,
-  filename: string
+  filename: string,
 ): Promise<Buffer> {
   const endpoint = process.env.CONVERT_FILE;
   if (!endpoint) {
-    throw new BaseError(500, "CONVERT_FILE is not configured");
+    throw new BaseError(500, "CONVERT_FILE chưa được cấu hình");
   }
   const url = new URL(endpoint);
   const boundary = `----FormBoundary${Date.now()}`;
@@ -22,8 +22,11 @@ export async function convertDocxToPdf(
     docxBuffer,
     Buffer.from(footer, "utf-8"),
   ]);
-  const apiKey =
-    (process.env.CONVERT_API_KEY ?? process.env.X_API_KEY ?? "").trim();
+  const apiKey = (
+    process.env.CONVERT_API_KEY ??
+    process.env.X_API_KEY ??
+    ""
+  ).trim();
 
   const isHttps = url.protocol === "https:";
   const requestFn = isHttps ? https.request : http.request;
@@ -66,21 +69,23 @@ export async function convertDocxToPdf(
               }
             } catch (error) {
               reject(new BaseError(500, "Invalid convert response"));
+              console.error("Lỗi convert file pdf: ", error);
               return;
             }
           }
           resolve(buffer);
         });
-      }
+      },
     );
 
     req.on("error", (error) => {
       reject(
         new BaseError(
           500,
-          error instanceof Error ? error.message : "Convert failed"
-        )
+          error instanceof Error ? error.message : "Convert failed",
+        ),
       );
+      console.error("Lỗi convert file pdf: ", error);
     });
     req.write(body);
     req.end();
