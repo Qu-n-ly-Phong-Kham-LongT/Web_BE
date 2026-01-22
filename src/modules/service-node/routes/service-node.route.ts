@@ -36,4 +36,10 @@ serviceNodeRouter.get(
   controller.getNodeTypes
 );
 
+serviceNodeRouter.get(
+  "/categories/:categoryId/types",
+  authenticate,
+  controller.listTypesByCategory
+);
+
 export default serviceNodeRouter;

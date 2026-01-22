@@ -63,12 +63,13 @@ export class ServiceNodeRepository {
   public async findByParentId(parentId: string): Promise<ServiceNode[]> {
     return prisma.serviceNode.findMany({
       where: { parentId, isActive: true },
+      orderBy: { name: "asc" },
     });
   }
 
   public async update(
     nodeId: string,
-    data: UpdateServiceNodeRequestDto
+    data: UpdateServiceNodeRequestDto,
   ): Promise<ServiceNode> {
     const parentId =
       data.parentId === undefined ? undefined : data.parentId || null;
@@ -99,7 +100,7 @@ export class ServiceNodeRepository {
 
   public async existsByCode(
     code: string,
-    excludeNodeId?: string
+    excludeNodeId?: string,
   ): Promise<boolean> {
     const count = await prisma.serviceNode.count({
       where: {

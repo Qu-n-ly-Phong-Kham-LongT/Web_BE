@@ -1,5 +1,8 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { createServiceNodeSchema, updateServiceNodeSchema } from "../modules/service-node/dtos/service-node.request.dto";
+import {
+  createServiceNodeSchema,
+  updateServiceNodeSchema,
+} from "../modules/service-node/dtos/service-node.request.dto";
 import { NodeType } from "@prisma/client";
 
 const serviceNodeItemSchema = {
@@ -137,7 +140,9 @@ const ServiceNodeSwagger = {
       },
       responses: {
         200: { description: "Cập nhật thành công" },
-        400: { description: "Dữ liệu không hợp lệ / parent sai loại / code trùng" },
+        400: {
+          description: "Dữ liệu không hợp lệ / parent sai loại / code trùng",
+        },
         401: { description: "Chưa đăng nhập" },
         403: { description: "Không đủ quyền" },
         404: { description: "Không tìm thấy service node" },
@@ -152,6 +157,45 @@ const ServiceNodeSwagger = {
       responses: {
         200: { description: "Lấy danh sách nodeType thành công" },
         401: { description: "Chưa đăng nhập" },
+      },
+    },
+  },
+
+  "/api/service-nodes/categories/{categoryId}/types": {
+    get: {
+      tags: ["Service-Node (Danh mục/Dịch vụ CLS)"],
+      summary: "Lấy danh sách loại kết luận theo danh mục",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "categoryId",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID danh mục",
+        },
+      ],
+      responses: {
+        200: {
+          description: "Lấy danh sách thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "array",
+                    items: serviceNodeItemSchema,
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        404: { description: "Danh mục không tồn tại" },
       },
     },
   },
