@@ -23,7 +23,11 @@ type ServiceRequestWithRelations = Prisma.ServiceRequestGetPayload<{
         };
       };
     };
-    serviceResults: true;
+    serviceResults: {
+      include: {
+        serviceItemConfig: true;
+      };
+    };
   };
 }>;
 
@@ -68,7 +72,11 @@ type MedicalRecordWithFullRelations = Prisma.MedicalRecordGetPayload<{
             };
           };
         };
-        serviceResults: true;
+        serviceResults: {
+          include: {
+            serviceItemConfig: true;
+          };
+        };
       };
     };
   };
@@ -102,7 +110,7 @@ export class SharedRepository {
                 serviceItem: { include: { configs: true } },
               },
             },
-            serviceResults: true,
+            serviceResults: { include: { serviceItemConfig: true } },
           },
           orderBy: { createdAt: "desc" },
         },
@@ -166,7 +174,7 @@ export class SharedRepository {
                 serviceItem: { include: { configs: true } },
               },
             },
-            serviceResults: true,
+            serviceResults: { include: { serviceItemConfig: true } },
           },
         },
       },
@@ -227,7 +235,7 @@ export class SharedRepository {
                 serviceItem: { include: { configs: true } },
               },
             },
-            serviceResults: true,
+            serviceResults: { include: { serviceItemConfig: true } },
           },
         },
       },
@@ -288,7 +296,7 @@ export class SharedRepository {
                 serviceItem: { include: { configs: true } },
               },
             },
-            serviceResults: true,
+            serviceResults: { include: { serviceItemConfig: true } },
           },
         },
       },
@@ -390,6 +398,7 @@ export class SharedRepository {
                 ? Number(result.valueNumber)
                 : null,
             unit: result.unit ?? null,
+            refRange: result.serviceItemConfig?.refRange ?? null,
             executedAt: result.executedAt
               ? result.executedAt.toISOString()
               : null,
@@ -439,6 +448,7 @@ export class SharedRepository {
                   configCode: cfg.configCode ?? meta?.configCode ?? null,
                   displayName: meta?.displayName ?? null,
                   unit: meta?.unit ?? null,
+                  refRange: meta?.refRange ?? null,
                   selectedValues: cfg.selectedValues ?? [],
                   totalSurcharge:
                     cfg.totalSurcharge !== undefined &&
@@ -461,9 +471,14 @@ export class SharedRepository {
               const meta = result.configId
                 ? configMetaMap.get(result.configId)
                 : undefined;
+              const normalizedUnit =
+                typeof result.unit === "string" && result.unit.trim().length > 0
+                  ? result.unit
+                  : null;
               return {
                 ...result,
-                unit: result.unit ?? meta?.unit ?? null,
+                unit: normalizedUnit ?? meta?.unit ?? null,
+                refRange: result.refRange ?? meta?.refRange ?? null,
               };
             });
 
@@ -703,6 +718,7 @@ export class SharedRepository {
           valueString: toStringValue(result.valueString),
           valueNumber: toStringValue(result.valueNumber),
           unit: toStringValue(result.unit),
+          refRange: toStringValue(result.refRange),
           executedAt: toStringValue(result.executedAt),
         })),
       })),
@@ -719,6 +735,7 @@ export class SharedRepository {
             configCode: toStringValue(config.configCode),
             displayName: toStringValue(config.displayName),
             unit: toStringValue(config.unit),
+            refRange: toStringValue(config.refRange),
             selectedValues: config.selectedValues ?? [],
             totalSurcharge: toStringValue(config.totalSurcharge),
           })),
