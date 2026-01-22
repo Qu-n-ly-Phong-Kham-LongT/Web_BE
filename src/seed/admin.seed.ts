@@ -5,24 +5,32 @@ import { UserRoleEnum, UserStatus } from "@prisma/client";
 const DEFAULT_ADMIN_USERNAME = process.env.SEED_ADMIN_USERNAME || "admin";
 const DEFAULT_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || "123456";
 const DEFAULT_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || "admin@example.com";
-
-const DEFAULT_CLINIC_EMAIL = process.env.SEED_CLINIC_EMAIL || "default.clinic@example.com";
+const DEFAULT_CLINIC_NAME =
+  process.env.SEED_CLINIC_NAME ||
+  "Phòng Khám Chuyên Khoa PGS.TS.BS Nguyễn Thị Cẩm Hường";
+const DEFAULT_CLINIC_EMAIL = process.env.SEED_CLINIC_EMAIL || "pvt@gmail.com";
 const DEFAULT_CLINIC_CODE = process.env.SEED_CLINIC_CODE || "PVT";
+const DEFAULT_CLINIC_ADDRESS =
+  process.env.SEED_CLINIC_ADDRESS || "323 Phan Văn Trị, P.2, Q.5";
+const DEFAULT_CLINIC_PHONES = process.env.SEED_CLINIC_PHONES?.split(",") || [
+  "0375314688",
+  "0983773915",
+];
 
 export const seedAdmin = async () => {
   const clinic = await prisma.clinic.upsert({
     where: { clinicCode: DEFAULT_CLINIC_CODE },
     update: {
-      clinicName: "Default Clinic",
+      clinicName: DEFAULT_CLINIC_NAME,
       email: DEFAULT_CLINIC_EMAIL,
-      address: "N/A",
-      phones: [],
+      address: DEFAULT_CLINIC_ADDRESS,
+      phones: DEFAULT_CLINIC_PHONES,
     },
     create: {
-      clinicName: "Phòng Khám Chuyên Khoa PGS.TS.BS Nguyễn Thị Cẩm Hường",
+      clinicName: DEFAULT_CLINIC_NAME,
       email: DEFAULT_CLINIC_EMAIL,
-      address: "323 Phan Văn Trị, P.2, Q.5",
-      phones: ["0375314688", "0983773915"],
+      address: DEFAULT_CLINIC_ADDRESS,
+      phones: DEFAULT_CLINIC_PHONES,
       clinicCode: DEFAULT_CLINIC_CODE,
     },
   });
