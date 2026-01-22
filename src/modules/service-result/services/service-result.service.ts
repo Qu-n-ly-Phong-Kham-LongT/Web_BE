@@ -93,6 +93,7 @@ export class ServiceResultService {
         throw new BaseError(400, "Thời gian thực hiện không hợp lệ");
       }
 
+      const normalizedUnit = this.normalizeUnit(result.unit);
       resultsToCreate.push({
         detailId: detail.detail.requestDetailId,
         requestId: detail.detail.requestId ?? null,
@@ -102,7 +103,7 @@ export class ServiceResultService {
           result.indicatorName ?? config.displayName ?? config.configCode ?? null,
         valueString: result.valueString ?? null,
         valueNumber: result.valueNumber !== undefined ? result.valueNumber : null,
-        unit: result.unit ?? config.unit ?? null,
+        unit: normalizedUnit ?? config.unit ?? null,
         executedAt: executedAt ?? undefined,
       });
     }
@@ -148,6 +149,7 @@ export class ServiceResultService {
       }
 
       const existingResult = existingMap.get(result.configId ?? "");
+      const normalizedUnit = this.normalizeUnit(result.unit);
       if (existingResult) {
         const updated = await this.serviceResultRepository.updateById(
           existingResult.resultId,
@@ -156,7 +158,7 @@ export class ServiceResultService {
               result.indicatorName ?? config.displayName ?? config.configCode ?? null,
             valueString: result.valueString ?? null,
             valueNumber: result.valueNumber !== undefined ? result.valueNumber : null,
-            unit: result.unit ?? config.unit ?? null,
+            unit: normalizedUnit ?? config.unit ?? null,
             executedAt: executedAt ?? undefined,
           },
           tx
@@ -176,7 +178,7 @@ export class ServiceResultService {
               result.indicatorName ?? config.displayName ?? config.configCode ?? null,
             valueString: result.valueString ?? null,
             valueNumber: result.valueNumber !== undefined ? result.valueNumber : null,
-            unit: result.unit ?? config.unit ?? null,
+            unit: normalizedUnit ?? config.unit ?? null,
             executedAt: executedAt ?? undefined,
           },
         ],
@@ -269,5 +271,13 @@ export class ServiceResultService {
       unit: item.unit ?? null,
       executedAt: item.executedAt ? item.executedAt.toISOString() : null,
     };
+  }
+
+  private normalizeUnit(unit: string | null | undefined): string | null {
+    if (typeof unit !== "string") {
+      return null;
+    }
+    const trimmed = unit.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
 }

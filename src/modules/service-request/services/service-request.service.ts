@@ -82,6 +82,7 @@ export class ServiceRequestService {
             ? Number(result.valueNumber)
             : null,
         unit: result.unit ?? null,
+        refRange: result.serviceItemConfig?.refRange ?? null,
         executedAt: result.executedAt ? result.executedAt.toISOString() : null,
         updatedAt: result.updatedAt ? result.updatedAt.toISOString() : null,
       };
@@ -124,6 +125,7 @@ export class ServiceRequestService {
               configCode: cfg.configCode ?? meta?.configCode ?? null,
               displayName: meta?.displayName ?? null,
               unit: meta?.unit ?? null,
+              refRange: meta?.refRange ?? null,
               selectedValues: cfg.selectedValues ?? [],
               totalSurcharge:
                 cfg.totalSurcharge !== undefined && cfg.totalSurcharge !== null

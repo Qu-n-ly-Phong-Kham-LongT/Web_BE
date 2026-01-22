@@ -59,6 +59,7 @@ export interface MedicalRecordPrintServiceRequestSelectedConfigDto {
   configId: string;
   configCode: string;
   displayName: string;
+  refRange: string;
   selectedValues: string[];
   totalSurcharge: string;
 }
@@ -74,6 +75,7 @@ export interface MedicalRecordPrintServiceRequestResultDto {
   valueString: string;
   valueNumber: string;
   unit: string;
+  refRange: string;
   executedAt: string;
 }
 
