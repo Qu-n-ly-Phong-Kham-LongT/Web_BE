@@ -27,8 +27,11 @@ export class ServiceNodeService {
 
     const nextNodeType = dto.nodeType ?? existing.nodeType ?? null;
     const normalizedParentId =
-      dto.parentId === undefined ? undefined : this.normalizeParentId(dto.parentId);
-    const nextParentId = normalizedParentId === undefined ? existing.parentId : normalizedParentId;
+      dto.parentId === undefined
+        ? undefined
+        : this.normalizeParentId(dto.parentId);
+    const nextParentId =
+      normalizedParentId === undefined ? existing.parentId : normalizedParentId;
 
     await this.validateParent(nextNodeType, nextParentId, nodeId);
 
@@ -40,8 +43,11 @@ export class ServiceNodeService {
     size: number = 10,
     nodeType?: NodeType,
     isActive?: boolean,
-    search?: string
-  ): Promise<{ nodes: ServiceNode[]; pagination: ReturnType<typeof createPagination> }> {
+    search?: string,
+  ): Promise<{
+    nodes: ServiceNode[];
+    pagination: ReturnType<typeof createPagination>;
+  }> {
     const safePage = Math.max(page, 1);
     const safeSize = Math.max(size, 1);
     const normalizedIsActive = isActive;
@@ -53,7 +59,7 @@ export class ServiceNodeService {
       safeSize,
       nodeType,
       normalizedIsActive,
-      normalizedSearch
+      normalizedSearch,
     );
 
     return {
@@ -71,13 +77,19 @@ export class ServiceNodeService {
     if (exists) throw new BaseError(400, "Mã code này đã tồn tại");
   }
 
-  private normalizeParentId(parentId?: string | null): string | null | undefined {
+  private normalizeParentId(
+    parentId?: string | null,
+  ): string | null | undefined {
     if (parentId === undefined) return undefined;
     if (parentId === null || parentId === "") return null;
     return parentId;
   }
 
-  private async validateParent(nodeType: NodeType | null, parentId?: string | null, selfId?: string) {
+  private async validateParent(
+    nodeType: NodeType | null,
+    parentId?: string | null,
+    selfId?: string,
+  ) {
     if (!nodeType) return;
 
     const normalizedParentId = this.normalizeParentId(parentId);
@@ -94,7 +106,10 @@ export class ServiceNodeService {
     }
 
     if (selfId && normalizedParentId === selfId) {
-      throw new BaseError(400, "Dịch vụ không thể là danh mục cha của chính nó");
+      throw new BaseError(
+        400,
+        "Dịch vụ không thể là danh mục cha của chính nó",
+      );
     }
 
     const parent = await this.repo.findById(normalizedParentId);
@@ -103,4 +118,13 @@ export class ServiceNodeService {
       throw new BaseError(400, "Dịch vụ phải gắn vào Danh mục");
     }
   }
+
+  public async listTypesByCategory(categoryId: string): Promise<ServiceNode[]> {
+    const category = await this.repo.findById(categoryId);
+    if (!category || category.nodeType !== NodeType.CATEGORY) {
+      throw new BaseError(404, "Danh mục không tồn tại");
+    }
+    return this.repo.findByParentId(categoryId);
+  }
 }
+
