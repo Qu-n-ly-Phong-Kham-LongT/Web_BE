@@ -9,6 +9,7 @@ import { ClinicalExaminationRepository } from "../../clinical-examination/reposi
 import { PatientAllergyResponseDto } from "../../patient/dtos/patient-allergy.response.dto";
 import { SharedRepository } from "../../shared/repositories/shared.repository";
 import { FullMedicalRecordDto } from "../../shared/dtos/medical-record-detail.dto";
+import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
 
 export class MedicalRecordService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -34,24 +35,16 @@ export class MedicalRecordService {
       throw new BaseError(403, "Bác sĩ không có quyền tạo bệnh án của phòng khám khác.");
     }
 
-    // Kiem tra trong ngay da co benh an cua benh nhan trong phong kham chua
-    // Tinh moc ngay theo UTC de khop voi thoi gian luu DB, tranh nham sang ngay hien tai khi server/DB khac mui gio
-    const now = new Date();
-    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-
-    const OFFSET = 7 * 60 * 60 * 1000;
-
-    const startOfDayVN = new Date(startOfDay.getTime() + OFFSET);
-    const endOfDayVN = new Date(endOfDay.getTime() + OFFSET);
-
+    const { startUtc, endUtc } = getUtcDayRangeForTimeZone(
+      new Date(),
+      "Asia/Ho_Chi_Minh"
+    );
 
     const existingRecord = await this.medicalRecordRepository.findExistingRecord(
       createData.patientId || "",
       createData.clinicId ?? "",
-      startOfDayVN,
-      endOfDayVN
+      startUtc,
+      endUtc
     );
     if (existingRecord) {
       throw new BaseError(
