@@ -82,7 +82,7 @@ const PatientSwagger = {
           required: false,
           schema: { type: "string" },
           description:
-            "Tìm kiếm theo tên, mã BN, sđt, email, CMND/CCCD hoặc giới tính (male/female/other)",
+            "Tìm kiếm theo tên, mã BN, sđt, email, CMND/CCCD",
         },
         {
           name: "sortBy",
@@ -90,7 +90,13 @@ const PatientSwagger = {
           required: false,
           schema: {
             type: "string",
-            enum: ["fullName", "gender", "patientCategory", "identityCard"],
+            enum: [
+              "fullName",
+              "gender",
+              "patientCategory",
+              "identityCard",
+              "createdAt",
+            ],
             default: "fullName",
           },
           description: "Sắp xếp theo thuộc tính",

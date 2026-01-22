@@ -167,6 +167,8 @@ export class ServiceRequestRepository {
         medicalRecord: {
           include: {
             patient: true,
+            clinic: true,
+            doctor: true,
           },
         },
         orderingDoctor: true,
@@ -191,9 +193,9 @@ export class ServiceRequestRepository {
         orderingDoctorId: doctorId,
         diagnoses: Prisma.JsonNull,
       },
-    })
+    });
   }
-  
+
   public async upsert(
     payload: CreateServiceRequestPayload & { requestId: string },
   ): Promise<ServiceRequestWithDetails> {
@@ -210,6 +212,15 @@ export class ServiceRequestRepository {
           updatedAt: new Date(),
         },
       });
+
+      if (payload.diagnoses !== undefined) {
+        await tx.medicalRecord.update({
+          where: { recordId: payload.recordId },
+          data: {
+            diagnoses: payload.diagnoses ?? Prisma.JsonNull,
+          },
+        });
+      }
 
       await tx.serviceRequestDetail.deleteMany({
         where: { requestId: payload.requestId },

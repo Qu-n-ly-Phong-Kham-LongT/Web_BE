@@ -29,14 +29,14 @@ export class PatientRepository {
 
   public async createPatient(
     data: CreatePatientRequestDto,
-    patientCode: string,
     clinicId?: string,
     tx?: TransactionClient,
+    patientCode?: string,
   ): Promise<Patient> {
     const client = tx || prisma;
     return await client.patient.create({
       data: {
-        patientCode: patientCode,
+        ...(patientCode ? { patientCode } : {}),
         fullName: data.fullName ?? null,
         gender: data.gender ?? null,
         dob: data.dob ? new Date(data.dob) : null,
@@ -73,7 +73,8 @@ export class PatientRepository {
       | "fullName"
       | "gender"
       | "patientCategory"
-      | "identityCard" = "fullName",
+      | "identityCard"
+      | "createdAt" = "fullName",
     sortDirection: "asc" | "desc" = "desc",
     gender?: Gender,
     patientCategory?: PatientCategory,

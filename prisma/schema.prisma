@@ -88,9 +88,9 @@ model Clinic {
   clinicId        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   clinicName      String?   @db.VarChar(255)
   address         String?   @db.VarChar(255)
-  phone           String?   @db.VarChar(255)
+  phones          String[]  @default([]) @db.VarChar(255)
   email           String?   @db.VarChar(150)
-  consultationFee Decimal?  @db.Decimal(10, 2)
+  consultationFee Decimal?  @db.Decimal(10, 0)
   createdAt       DateTime? @default(now()) @db.Timestamptz
   updatedAt       DateTime? @updatedAt @db.Timestamptz
 
@@ -102,6 +102,7 @@ model Clinic {
   medicines             Medicine[]
   medicalRecords        MedicalRecord[]
   clinicWorkingSessions ClinicWorkingSession[]
+  patientSequences      PatientSequence[]
 }
 
 model ClinicWorkingSession {
@@ -189,6 +190,16 @@ model Patient {
   clinicId        String?           @db.Uuid
 }
 
+model PatientSequence {
+  clinicId   String @db.Uuid
+  monthKey   String @db.VarChar(4)
+  currentVal Int    @default(0)
+
+  clinic Clinic @relation(fields: [clinicId], references: [clinicId], onDelete: Cascade)
+
+  @@id([clinicId, monthKey])
+}
+
 model PatientRelative {
   relativeId   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   patientId    String?  @db.Uuid
@@ -211,7 +222,7 @@ model PatientAllergy {
 
 model MedicalRecord {
   recordId               String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  recordCode             String?              @unique @default(dbgenerated("generate_record_code()"))
+  recordCode             String?              @unique
   patientId              String?              @db.Uuid
   patient                Patient?             @relation(fields: [patientId], references: [patientId])
   doctorId               String?              @db.Uuid
@@ -273,7 +284,7 @@ model Icd10Dictionary {
 
 model Prescription {
   prescriptionId   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  prescriptionCode String               @unique @default(dbgenerated("pres_gen_code()"))
+  prescriptionCode String?              @unique
   recordId         String?              @unique @db.Uuid
   medicalRecord    MedicalRecord?       @relation(fields: [recordId], references: [recordId])
   note             String?
@@ -282,7 +293,7 @@ model Prescription {
   createdAt        DateTime?            @default(now()) @db.Timestamptz
   updatedAt        DateTime?            @updatedAt @db.Timestamptz
   printedAt        DateTime?            @db.Timestamptz
-  printCount       Int?                 @default(0)
+  printCount       Int?                 @default(1)
   details          PrescriptionDetail[]
   file             File?                @relation()
 }
@@ -372,7 +383,7 @@ model ServiceItemConfig {
 
 model ServiceRequest {
   requestId     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  requestCode   String         @unique @default(dbgenerated())
+  requestCode   String?        @unique
   recordId      String?        @db.Uuid
   medicalRecord MedicalRecord? @relation(fields: [recordId], references: [recordId])
 

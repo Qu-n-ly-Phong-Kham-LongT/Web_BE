@@ -7,7 +7,7 @@ const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export interface ClinicRequestDto {
   clinicName: string;
   address: string;
-  phone: string;
+  phones?: string[];
   email: string;
   consultationFee?: Decimal;
   sessions?: ClinicSessionItemDto[];
@@ -89,13 +89,19 @@ export const ClinicRequestSchema = Joi.object({
   address: Joi.string().trim().max(255).allow(null, "").messages({
     "string.max": "Địa chỉ không được vượt quá 255 ký tự",
   }),
-
-  phone: Joi.string()
-    .trim()
-    .pattern(/^0[0-9]{9,10}$/)
-    .allow(null, "")
+  phones: Joi.array()
+    .items(
+      Joi.string()
+        .trim()
+        .pattern(/^0[0-9]{9,10}$/)
+        .messages({
+          "string.pattern.base": "Số điện thoại không đúng (10-11 số)",
+        }),
+    )
+    .max(5)
+    .default([])
     .messages({
-      "string.pattern.base": "Số điện thoại không đúng định dạng (10-11 số)",
+      "array.base": "Danh sách số điện thoại không hợp lệ",
     }),
 
   email: Joi.string().trim().email().max(150).required().messages({

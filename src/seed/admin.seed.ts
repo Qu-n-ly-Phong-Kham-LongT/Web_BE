@@ -16,13 +16,13 @@ export const seedAdmin = async () => {
       clinicName: "Default Clinic",
       email: DEFAULT_CLINIC_EMAIL,
       address: "N/A",
-      phone: null,
+      phones: [],
     },
     create: {
       clinicName: "Phòng Khám Chuyên Khoa PGS.TS.BS Nguyễn Thị Cẩm Hường",
       email: DEFAULT_CLINIC_EMAIL,
       address: "323 Phan Văn Trị, P.2, Q.5",
-      phone: null,
+      phones: ["0375314688", "0983773915"],
       clinicCode: DEFAULT_CLINIC_CODE,
     },
   });

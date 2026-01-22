@@ -18,7 +18,7 @@ export class ClinicRepository {
     const data = {
       clinicName: createData.clinicName,
       address: createData.address,
-      phone: createData.phone,
+      phones: createData.phones ?? [],
       email: createData.email,
       ...(sessions.length
         ? {
@@ -43,9 +43,11 @@ export class ClinicRepository {
     const data = {
       clinicName: updateData.clinicName,
       address: updateData.address,
-      phone: updateData.phone,
       email: updateData.email,
       consultationFee: updateData.consultationFee,
+      ...(typeof updateData.phones !== "undefined"
+        ? { phones: updateData.phones }
+        : {}),
       ...(updateData.sessions
         ? {
             clinicWorkingSessions: {
@@ -79,7 +81,7 @@ export class ClinicRepository {
           OR: [
             { clinicName: { contains: search, mode: "insensitive" as const } },
             { address: { contains: search, mode: "insensitive" as const } },
-            { phone: { contains: search, mode: "insensitive" as const } },
+            { phones: { has: search } },
             { email: { contains: search, mode: "insensitive" as const } },
             { clinicCode: { contains: search, mode: "insensitive" as const } },
           ],
