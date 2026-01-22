@@ -673,7 +673,8 @@ export class SharedRepository {
       note: toStringValue(request.note),
       createdAt: toStringValue(request.createdAt),
       patientId: toStringValue(request.patientId),
-      resultDivider: "............................................................",
+      resultDivider:
+        "............................................................",
       details: request.details.map((detail) => ({
         requestId: toStringValue(request.requestId),
         requestDetailId: toStringValue(detail.requestDetailId),
@@ -805,7 +806,7 @@ export class SharedRepository {
         reaction: toStringValue(item.reaction),
       })),
       prescriptionId: toStringValue(prescription?.prescriptionId),
-      prescriptionNote: toStringValue(prescription?.note),
+      prescriptionNote: toStringValue(prescription?.note || "Không có"),
       totalPrice: toStringValue(prescription?.totalPrice),
       status: toStringValue(prescription?.status),
       prescriptionCreatedAt: formatDateLong(prescription?.createdAt ?? null),
@@ -814,7 +815,7 @@ export class SharedRepository {
       medicines,
       requests: serviceRequests,
       requestSelectedConfigs: serviceRequestSelectedConfigs,
-      appointmentDate: formatDate(followUp?.appointmentDate ?? null),
+      appointmentDate: formatDate(followUp?.appointmentDate ?? "Không có"),
       appointmentSession: toStringValue(followUp?.session),
       appointmentReason: toStringValue(followUp?.reason),
     };

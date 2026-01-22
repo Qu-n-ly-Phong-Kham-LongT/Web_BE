@@ -59,4 +59,11 @@ export class ServiceNodeController {
     const types = this.service.getNodeTypes();
     return successResponse(res, 200, types, "Lấy danh sách Danh mục/Loại CLS thành công");
   };
+
+  public listTypesByCategory = async (req: Request<{ categoryId: string }>, res: Response) => {
+    const categoryId = req.params.categoryId;
+    const nodes = await this.service.listTypesByCategory(categoryId);
+    return successResponse(res, 200, nodes, "Lấy danh sách loại dịch vụ thành công theo danh mục thành công");
+  }
 }
+
