@@ -457,6 +457,16 @@ export class SharedRepository {
                 : undefined) ??
               [];
 
+            const enrichedResults = detailResults.map((result) => {
+              const meta = result.configId
+                ? configMetaMap.get(result.configId)
+                : undefined;
+              return {
+                ...result,
+                unit: result.unit ?? meta?.unit ?? null,
+              };
+            });
+
             return {
               requestDetailId: detail.requestDetailId,
               itemId: detail.itemId ?? null,
@@ -464,7 +474,7 @@ export class SharedRepository {
               itemName: serviceItem?.name ?? null,
               selectedOptions: detail.selectedOptions ?? null,
               selectedConfigs,
-              results: detailResults,
+              results: enrichedResults,
             };
           });
 
