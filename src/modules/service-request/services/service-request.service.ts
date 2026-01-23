@@ -614,21 +614,6 @@ export class ServiceRequestService {
     requestId: string,
     clinicId?: string,
   ): Promise<{ buffer: Buffer; requestCode: string }> {
-    const request =
-      await this.serviceRequestRepository.findByIdWithDetailsAndResults(
-        requestId,
-      );
-    if (!request) {
-      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
-    }
-
-    if (request.isPrinted) {
-      throw new BaseError(
-        400,
-        "Phiếu chỉ định đã được in, hãy tạo phiếu chỉ định mới",
-      );
-    }
-
     const templateData = await this.prepareForTemplate(requestId, clinicId);
     const requestCode = templateData.requestCode || requestId;
     const barcodeBase64 = templateData.barcode.toString("base64");
@@ -695,6 +680,18 @@ export class ServiceRequestService {
     requestId: string,
     dto: CreateServiceRequestDto,
   ) {
+    const printStatus =
+      await this.serviceRequestRepository.findPrintStatus(requestId);
+    if (!printStatus) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
+    }
+    if (printStatus.isPrinted) {
+      throw new BaseError(
+        400,
+        "Phiếu chỉ định đã được in, không thể chỉnh sửa.",
+      );
+    }
+
     const payload: CreateServiceRequestPayload & { requestId: string } = {
       requestId: requestId,
       recordId: dto.recordId,
@@ -711,6 +708,10 @@ export class ServiceRequestService {
       })),
     };
 
+    if (payload.isPrinted) {
+      await this.serviceRequestRepository.updatePrintedSatus(requestId, true);
+    }
     return await this.serviceRequestRepository.upsert(payload);
   }
 }
+
