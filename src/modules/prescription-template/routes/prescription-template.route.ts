@@ -5,6 +5,7 @@ import { CreatePrescriptionTemplateRequestSchema } from "../dtos/create-prescrip
 import { UpdatePrescriptionTemplateRequestSchema } from "../dtos/update-prescription-template.request.dto";
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { UserRoleEnum } from "@prisma/client";
+import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
 const prescriptionTemplateRouter = Router();
 
@@ -13,6 +14,7 @@ const prescriptionTemplateController = new PrescriptionTemplateController();
 prescriptionTemplateRouter.post(
   "/",
   authenticate,
+  auditLogsMiddleware("CREATE_PRESCRIPTION_TEMPLATE", "PrescriptionTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(CreatePrescriptionTemplateRequestSchema),
   prescriptionTemplateController.createPrescriptionTemplate
@@ -33,6 +35,7 @@ prescriptionTemplateRouter.get(
 prescriptionTemplateRouter.put(
   "/:id",
   authenticate,
+  auditLogsMiddleware("UPDATE_PRESCRIPTION_TEMPLATE", "PrescriptionTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(UpdatePrescriptionTemplateRequestSchema),
   prescriptionTemplateController.updatePrescriptionTemplate

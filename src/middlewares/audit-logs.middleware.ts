@@ -68,19 +68,33 @@ export const auditLogsMiddleware = (action: string, entityName: string) => {
             }
           }
         }
+        const remoteAddress =
+          (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+          req.ip ||
+          req.socket.remoteAddress ||
+          null;
+
+        const cleanIp = remoteAddress?.replace("::ffff:", "");
+
         const user = payload?.userId
           ? await prisma.user.findUnique({
               where: { userId: payload.userId },
-              select: { username: true },
+              select: {
+                username: true,
+                clinicId: true,
+                roles: {
+                  select: { role: { select: { roleName: true } } },
+                },
+              },
             })
           : null;
-
+        const roleNames = user?.roles?.map((r) => r.role.roleName) ?? [];
         // GHI LOG
         await prisma.auditLog.create({
           data: {
-            clinicId: payload?.clinicId,
+            clinicId: user?.clinicId,
             username: user?.username || "Unknown",
-            role: payload?.roles ? payload.roles.join(", ") : null,
+            role: roleNames.length > 0 ? roleNames.join(", ") : null,
 
             action: action,
             entityName: entityName,
@@ -88,7 +102,7 @@ export const auditLogsMiddleware = (action: string, entityName: string) => {
 
             requestMethod: req.method,
             requestUrl: req.originalUrl,
-            remoteAddress: req.ip || req.socket.remoteAddress || null,
+            remoteAddress: cleanIp,
 
             requestBody: maskSensitiveData(req.body) || {},
             responseBody: maskSensitiveData(parsedResBody) || {},
