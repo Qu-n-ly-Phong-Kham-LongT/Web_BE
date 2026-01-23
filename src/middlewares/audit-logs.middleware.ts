@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { prisma } from "../config/database.config";
 import { FileService } from "../modules/file/services/file.service";
 import { IJwtPayload } from "../utils/jwt.util";
-import { data } from "react-router-dom";
 
 interface CustomRequest extends Request {
   payload?: IJwtPayload;
