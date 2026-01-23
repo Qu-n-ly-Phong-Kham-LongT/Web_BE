@@ -59,5 +59,6 @@ app.use(
 app.use("/api", rootRouter);
 
 app.use(errorHandler);
+app.set("trust proxy", true);
 
 export default app;

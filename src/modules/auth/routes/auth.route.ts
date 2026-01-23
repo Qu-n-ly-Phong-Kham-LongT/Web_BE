@@ -18,12 +18,14 @@ authRouter.post(
 
 authRouter.post(
   "/refresh",
+  auditLogsMiddleware("REFRESH_TOKEN", "Auth"),
   validateBody(RefreshRequestSchema),
   authController.refresh,
 );
 
 authRouter.post(
   "/logout",
+  auditLogsMiddleware("LOGOUT", "Auth"),
   validateBody(RefreshRequestSchema),
   authController.logout,
 );

@@ -5,6 +5,7 @@ import { CreateServiceTemplateRequestSchema } from "../dtos/create-service-templ
 import { UpdateServiceTemplateRequestSchema } from "../dtos/update-service-template.request.dto";
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { UserRoleEnum } from "@prisma/client";
+import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
 const serviceTemplateRouter = Router();
 
@@ -13,6 +14,7 @@ const serviceTemplateController = new ServiceTemplateController();
 serviceTemplateRouter.post(
   "/",
   authenticate,
+  auditLogsMiddleware("CREATE_SERVICE_TEMPLATE", "ServiceTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(CreateServiceTemplateRequestSchema),
   serviceTemplateController.createServiceTemplate
@@ -33,6 +35,7 @@ serviceTemplateRouter.get(
 serviceTemplateRouter.put(
   "/:id",
   authenticate,
+  auditLogsMiddleware("UPDATE_SERVICE_TEMPLATE", "ServiceTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(UpdateServiceTemplateRequestSchema),
   serviceTemplateController.updateServiceTemplate
