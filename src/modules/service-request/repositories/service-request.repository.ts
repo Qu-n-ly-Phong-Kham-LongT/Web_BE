@@ -15,6 +15,7 @@ export interface CreateServiceRequestPayload {
   receiveResultAtClinic?: boolean;
   isForFollowUp?: boolean;
   note?: string | null;
+  isPrinted?: boolean;
   details: CreateServiceRequestDetailPayload[];
 }
 
@@ -69,6 +70,7 @@ export class ServiceRequestRepository {
           isPatientRequested: createData.isPatientRequested ?? false,
           receiveResultAtClinic: createData.receiveResultAtClinic ?? false,
           isForFollowUp: createData.isForFollowUp ?? false,
+          isPrinted: createData.isPrinted ?? false,
           note: createData.note ?? null,
         },
       });
@@ -102,6 +104,7 @@ export class ServiceRequestRepository {
           isPatientRequested: createData.isPatientRequested ?? false,
           receiveResultAtClinic: createData.receiveResultAtClinic ?? false,
           isForFollowUp: createData.isForFollowUp ?? false,
+          isPrinted: createData.isPrinted ?? false,
           note: createData.note ?? null,
         },
       });
@@ -208,6 +211,7 @@ export class ServiceRequestRepository {
           isPatientRequested: payload.isPatientRequested ?? false,
           receiveResultAtClinic: payload.receiveResultAtClinic ?? false,
           isForFollowUp: payload.isForFollowUp ?? false,
+          isPrinted: payload.isPrinted ?? false,
           note: payload.note ?? null,
           updatedAt: new Date(),
         },
@@ -244,6 +248,15 @@ export class ServiceRequestRepository {
           },
         },
       });
+    });
+  }
+
+  public async updatePrintedSatus(requestId: string, isPrinted: boolean) {
+    return await prisma.serviceRequest.update({
+      where: { requestId },
+      data: {
+        isPrinted,
+      },
     });
   }
 }

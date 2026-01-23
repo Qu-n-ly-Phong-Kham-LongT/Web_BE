@@ -166,6 +166,7 @@ export class ServiceRequestService {
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
       note: request.note ?? null,
+      isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
       patientId: request.medicalRecord?.patientId ?? null,
       details,
@@ -375,6 +376,7 @@ export class ServiceRequestService {
           isPatientRequested: data.isPatientRequested ?? false,
           receiveResultAtClinic: data.receiveResultAtClinic ?? false,
           isForFollowUp: data.isForFollowUp,
+          isPrinted: data.isPrinted,
           note: data.note ?? null,
           details: detailsToCreate,
         },
@@ -400,6 +402,7 @@ export class ServiceRequestService {
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
       note: request.note ?? null,
+      isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
       details: request.details.map(
         (detail): ServiceRequestDetailResponseDto => ({
@@ -574,7 +577,8 @@ export class ServiceRequestService {
     const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
     const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
     const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
-    const clinicPhonesText = clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
+    const clinicPhonesText =
+      clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
     const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
     return {
       requestCode,
@@ -610,6 +614,21 @@ export class ServiceRequestService {
     requestId: string,
     clinicId?: string,
   ): Promise<{ buffer: Buffer; requestCode: string }> {
+    const request =
+      await this.serviceRequestRepository.findByIdWithDetailsAndResults(
+        requestId,
+      );
+    if (!request) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
+    }
+
+    if (request.isPrinted) {
+      throw new BaseError(
+        400,
+        "Phiếu chỉ định đã được in, hãy tạo phiếu chỉ định mới",
+      );
+    }
+
     const templateData = await this.prepareForTemplate(requestId, clinicId);
     const requestCode = templateData.requestCode || requestId;
     const barcodeBase64 = templateData.barcode.toString("base64");
@@ -660,6 +679,8 @@ export class ServiceRequestService {
       requestCode,
       pdfBuffer,
     );
+
+    await this.serviceRequestRepository.updatePrintedSatus(requestId, true);
     return {
       buffer: pdfBuffer,
       requestCode,
@@ -682,6 +703,7 @@ export class ServiceRequestService {
       isPatientRequested: dto.isPatientRequested,
       receiveResultAtClinic: dto.receiveResultAtClinic,
       isForFollowUp: dto.isForFollowUp,
+      isPrinted: dto.isPrinted,
       note: dto.note,
       details: dto.details.map((d) => ({
         itemId: d.itemId,
