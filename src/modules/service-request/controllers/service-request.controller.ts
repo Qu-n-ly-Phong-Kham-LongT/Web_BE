@@ -1,10 +1,7 @@
 import { Response } from "express";
 import { successResponse } from "../../../utils/response.util";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
-import {
-  BasicServiceRequestDto,
-  CreateServiceRequestDto,
-} from "../dtos/service-request.request.dto";
+import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import { ServiceRequestService } from "../services/service-request.service";
 
 export class ServiceRequestController {
@@ -35,7 +32,7 @@ export class ServiceRequestController {
   ) => {
     const { requestId } = req.params;
 
-    const result = await this.serviceRequestService.saveServiceRequest( 
+    const result = await this.serviceRequestService.saveServiceRequest(
       requestId,
       req.body,
     );

@@ -26,6 +26,7 @@ export interface CreateServiceRequestDto {
   receiveResultAtClinic?: boolean;
   isForFollowUp: boolean;
   note?: string | null;
+  isPrinted?: boolean;
   details: CreateServiceRequestDetailDto[];
 }
 
@@ -67,6 +68,7 @@ export const createServiceRequestSchema = Joi.object({
   receiveResultAtClinic: Joi.boolean().optional().default(false),
   isForFollowUp: Joi.boolean().optional().default(false),
   note: Joi.string().allow("", null),
+  isPrinted: Joi.boolean().optional().default(false),
   details: Joi.array()
     .items(createServiceRequestDetailSchema)
     .default([])
