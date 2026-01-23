@@ -251,6 +251,13 @@ export class ServiceRequestRepository {
     });
   }
 
+  public async findPrintStatus(requestId: string) {
+    return await prisma.serviceRequest.findUnique({
+      where: { requestId },
+      select: { isPrinted: true },
+    });
+  }
+
   public async updatePrintedSatus(requestId: string, isPrinted: boolean) {
     return await prisma.serviceRequest.update({
       where: { requestId },
