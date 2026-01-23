@@ -84,6 +84,33 @@ model Role {
   users UserRole[]
 }
 
+model AuditLog {
+  logId         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId      String? @db.Uuid
+  username      String? @db.VarChar(100)
+  role          String?
+  action        String  @db.VarChar(50)
+  entityName    String  @db.VarChar(50)
+  entityId      String? @db.VarChar(100)
+  requestMethod String  @db.VarChar(10)
+  requestUrl    String  @db.Text
+  remoteAddress String? @db.VarChar(50)
+
+  requestBody  Json? @default("{}")
+  responseBody Json? @default("{}")
+
+  statusCode   Int?
+  errorMessage String? @db.Text
+  durationMs   Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  @@index([username])
+  @@index([entityName, entityId])
+  @@index([createdAt])
+  @@index([action])
+}
+
 model Clinic {
   clinicId        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   clinicName      String?   @db.VarChar(255)
