@@ -1,6 +1,6 @@
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrintJobStatus, PrintJobType } from "@prisma/client";
 import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 import {
@@ -31,6 +31,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
+import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
 
 export class ServiceRequestService {
   private serviceRequestRepository = new ServiceRequestRepository();
@@ -166,6 +167,7 @@ export class ServiceRequestService {
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
       note: request.note ?? null,
+      isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
       patientId: request.medicalRecord?.patientId ?? null,
       details,
@@ -375,6 +377,7 @@ export class ServiceRequestService {
           isPatientRequested: data.isPatientRequested ?? false,
           receiveResultAtClinic: data.receiveResultAtClinic ?? false,
           isForFollowUp: data.isForFollowUp,
+          isPrinted: data.isPrinted,
           note: data.note ?? null,
           details: detailsToCreate,
         },
@@ -400,6 +403,7 @@ export class ServiceRequestService {
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
       note: request.note ?? null,
+      isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
       details: request.details.map(
         (detail): ServiceRequestDetailResponseDto => ({
@@ -574,7 +578,8 @@ export class ServiceRequestService {
     const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
     const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
     const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
-    const clinicPhonesText = clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
+    const clinicPhonesText =
+      clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
     const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
     return {
       requestCode,
@@ -660,9 +665,51 @@ export class ServiceRequestService {
       requestCode,
       pdfBuffer,
     );
+
+    await this.serviceRequestRepository.updatePrintedSatus(requestId, true);
     return {
       buffer: pdfBuffer,
       requestCode,
+    };
+  }
+
+  public async enqueueServiceRequestPrint(
+    requestId: string,
+    clinicId?: string,
+    userId?: string,
+  ) {
+    const request = await prisma.serviceRequest.findUnique({
+      where: { requestId },
+      select: {
+        medicalRecord: { select: { clinicId: true } },
+      },
+    });
+
+    if (!request) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
+    }
+
+    if (clinicId && request.medicalRecord?.clinicId !== clinicId) {
+      throw new BaseError(403, "Phiếu chỉ định không thuộc phòng khám");
+    }
+
+    const job = await prisma.printJob.create({
+      data: {
+        type: PrintJobType.SERVICE_REQUEST,
+        status: PrintJobStatus.PENDING,
+        entityId: requestId,
+        clinicId: clinicId || null,
+        userId: userId ?? null,
+        payload: { requestId },
+      },
+    });
+
+    await enqueuePrintJob(job.jobId);
+
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      type: job.type,
     };
   }
 
@@ -674,6 +721,18 @@ export class ServiceRequestService {
     requestId: string,
     dto: CreateServiceRequestDto,
   ) {
+    const printStatus =
+      await this.serviceRequestRepository.findPrintStatus(requestId);
+    if (!printStatus) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
+    }
+    if (printStatus.isPrinted) {
+      throw new BaseError(
+        400,
+        "Phiếu chỉ định đã được in, không thể chỉnh sửa.",
+      );
+    }
+
     const payload: CreateServiceRequestPayload & { requestId: string } = {
       requestId: requestId,
       recordId: dto.recordId,
@@ -682,6 +741,7 @@ export class ServiceRequestService {
       isPatientRequested: dto.isPatientRequested,
       receiveResultAtClinic: dto.receiveResultAtClinic,
       isForFollowUp: dto.isForFollowUp,
+      isPrinted: dto.isPrinted,
       note: dto.note,
       details: dto.details.map((d) => ({
         itemId: d.itemId,
@@ -689,6 +749,10 @@ export class ServiceRequestService {
       })),
     };
 
+    if (payload.isPrinted) {
+      await this.serviceRequestRepository.updatePrintedSatus(requestId, true);
+    }
     return await this.serviceRequestRepository.upsert(payload);
   }
 }
+

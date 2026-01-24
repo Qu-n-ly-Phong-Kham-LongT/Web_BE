@@ -33,18 +33,17 @@ export class PrescriptionController {
     const clinicId = req.payload?.clinicId ?? "";
     const { id } = req.params;
 
-    const result = await this.prescriptionService.printPrescriptionPdf(
+    const result = await this.prescriptionService.enqueuePrescriptionPrint(
       id,
       clinicId,
+      req.payload?.userId,
     );
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.prescriptionCode}.pdf"`,
+    return successResponse(
+      res,
+      202,
+      result,
+      "Đã thêm vào hàng đợi in toa thuốc thành công",
     );
-
-    return res.send(result.buffer);
   };
 
   public getPrescriptionStatus = async (

@@ -252,7 +252,8 @@ const PatientSwagger = {
           in: "query",
           required: false,
           schema: { type: "string", example: "2026-07-01" },
-          description: "Ngày cần lấy danh sách (YYYY-MM-DD hoặc ISO)",
+          description:
+            "Ngày cần lấy danh sách (YYYY-MM-DD, theo giờ VN/Asia/Ho_Chi_Minh)",
         },
         {
           name: "status",

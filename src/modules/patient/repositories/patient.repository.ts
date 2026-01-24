@@ -342,13 +342,8 @@ export class PatientRepository {
     start: Date,
     end: Date,
     search?: string,
-    status?: string,
   ) {
     const normalizedSearch = search?.trim().toLocaleLowerCase();
-    let medicalRecordFilter: any = {
-      ...(clinicId ? { clinicId: clinicId } : {}),
-      createdAt: { gte: start, lte: end },
-    };
     return await prisma.patient.findMany({
       where: {
         ...(clinicId ? { clinicId: clinicId } : {}),
@@ -407,6 +402,7 @@ export class PatientRepository {
         medicalRecords: {
           where: {
             ...(clinicId ? { clinicId: clinicId } : {}),
+            createdAt: { gte: start, lte: end },
           },
           orderBy: { createdAt: "desc" },
           take: 1,

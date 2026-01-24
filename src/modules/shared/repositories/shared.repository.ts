@@ -506,6 +506,7 @@ export class SharedRepository {
           receiveResultAtClinic: request.receiveResultAtClinic ?? null,
           isForFollowUp: request.isForFollowUp ?? null,
           note: request.note ?? null,
+          isPrinted: request.isPrinted ?? null,
           createdAt: request.createdAt ? request.createdAt.toISOString() : null,
           patientId: record.patientId ?? null,
           details,

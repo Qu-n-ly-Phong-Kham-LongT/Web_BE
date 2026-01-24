@@ -7,6 +7,7 @@ import { UpdatePatientRelativeRequestSchema } from "../dtos/update-patient-relat
 import { CreatePatientAllergyRequestSchema } from "../dtos/create-patient-allergy.request.dto";
 import { UpdatePatientAllergyRequestSchema } from "../dtos/update-patient-allergy.request.dto";
 import { authenticate } from "../../../middlewares/auth.middleware";
+import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
 const patientRouter = Router();
 
@@ -15,6 +16,7 @@ const patientController = new PatientController();
 patientRouter.post(
   "/",
   authenticate,
+  auditLogsMiddleware("CREATE_PATIENT", "Patient"),
   validateBody(CreatePatientRequestSchema),
   patientController.createPatient,
 );
@@ -30,6 +32,7 @@ patientRouter.get("/:id", authenticate, patientController.getPatientById);
 patientRouter.put(
   "/:id",
   authenticate,
+  auditLogsMiddleware("UPDATE_PATIENT", "Patient"),
   validateBody(UpdatePatientRequestSchema),
   patientController.updatePatient,
 );
@@ -50,6 +53,7 @@ patientRouter.get(
 patientRouter.put(
   "/relatives/:relativeId",
   authenticate,
+  auditLogsMiddleware("UPDATE_PATIENT_RELATIVE", "PatientRelative"),
   validateBody(UpdatePatientRelativeRequestSchema),
   patientController.updateRelative,
 );
@@ -58,6 +62,7 @@ patientRouter.put(
 patientRouter.post(
   "/:patientId/allergies",
   authenticate,
+  auditLogsMiddleware("CREATE_PATIENT_ALLERGY", "PatientAllergy"),
   validateBody(CreatePatientAllergyRequestSchema),
   patientController.createAllergies,
 );
@@ -77,6 +82,7 @@ patientRouter.get(
 patientRouter.put(
   "/allergies/:allergyId",
   authenticate,
+  auditLogsMiddleware("UPDATE_PATIENT_ALLERGY", "PatientAllergy"),
   validateBody(UpdatePatientAllergyRequestSchema),
   patientController.updateAllergy,
 );
@@ -84,6 +90,7 @@ patientRouter.put(
 patientRouter.delete(
   "/allergies/:allergyId",
   authenticate,
+  auditLogsMiddleware("DELETE_PATIENT_ALLERGY", "PatientAllergy"),
   patientController.deleteAllergy,
 );
 
