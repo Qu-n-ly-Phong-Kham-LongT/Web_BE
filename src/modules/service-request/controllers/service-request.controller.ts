@@ -81,16 +81,16 @@ export class ServiceRequestController {
     res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.serviceRequestService.printServiceRequestPdf(
+    const result = await this.serviceRequestService.enqueueServiceRequestPrint(
       req.params.id,
       clinicId,
+      req.payload?.userId,
     );
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.requestCode}.pdf"`,
+    return successResponse(
+      res,
+      202,
+      result,
+      "Đã thêm vào hàng đợi in phiếu chỉ định thành công",
     );
-
-    return res.send(result.buffer);
   };
 }

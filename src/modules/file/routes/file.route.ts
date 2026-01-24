@@ -38,6 +38,7 @@ fileRouter.delete(
 fileRouter.get(
   "/medical-record/:recordId",
   authenticate,
+  auditLogsMiddleware("GET_MEDICAL_RECORD_FILE", "MedicalRecord"),
   fileController.getFileByMedicalRecordId
 );
 

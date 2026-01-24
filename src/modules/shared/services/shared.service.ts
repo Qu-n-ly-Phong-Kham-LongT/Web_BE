@@ -10,6 +10,9 @@ import { FileService } from "../../file/services/file.service";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
 import { FileRepository } from "../../file/repositories/file.repository";
+import { PrintJobStatus, PrintJobType } from "@prisma/client";
+import { prisma } from "../../../config/database.config";
+import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
 
 export class SharedService {
   private sharedReposoitory = new SharedRepository();
@@ -92,6 +95,33 @@ export class SharedService {
     return {
       buffer: pdfBuffer,
       recordCode,
+    };
+  }
+
+  public async enqueueMedicalRecordPrint(
+    recordId: string,
+    clinicId: string,
+    userId?: string,
+  ) {
+    await this.getFullMedicalRecord(recordId, clinicId);
+
+    const job = await prisma.printJob.create({
+      data: {
+        type: PrintJobType.MEDICAL_RECORD,
+        status: PrintJobStatus.PENDING,
+        entityId: recordId,
+        clinicId: clinicId || null,
+        userId: userId ?? null,
+        payload: { recordId },
+      },
+    });
+
+    await enqueuePrintJob(job.jobId);
+
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      type: job.type,
     };
   }
 
