@@ -102,6 +102,9 @@ export async function convertDocxToPdf(
   const requestFn = isHttps ? https.request : http.request;
   const port = url.port ? Number(url.port) : isHttps ? 443 : 80;
   const timeoutMs = getTimeoutMs();
+  console.log(
+    `[convert] start filename=${filename} bytes=${docxBuffer.length} timeoutMs=${timeoutMs} endpoint=${url.origin}${url.pathname}`,
+  );
 
   const doRequest = async (): Promise<Buffer> =>
     new Promise<Buffer>((resolve, reject) => {
@@ -125,6 +128,9 @@ export async function convertDocxToPdf(
           res.on("end", () => {
             const buffer = Buffer.concat(chunks);
             const status = res.statusCode ?? 500;
+            console.log(
+              `[convert] response status=${status} bytes=${buffer.length} contentType=${String(res.headers["content-type"] ?? "")}`,
+            );
 
             if (status < 200 || status >= 300) {
               const bodyText = buffer.toString("utf-8").slice(0, 1000);
