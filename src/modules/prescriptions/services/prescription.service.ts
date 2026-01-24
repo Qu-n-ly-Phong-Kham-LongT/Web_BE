@@ -1,4 +1,4 @@
-import { Prisma, PrescriptionStatus } from "@prisma/client";
+import { Prisma, PrescriptionStatus, PrintJobStatus, PrintJobType } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
 import { MedicalRecordRepository } from "../../medical-record/repositories/medical-record.repository";
@@ -16,6 +16,7 @@ import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
+import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -439,6 +440,51 @@ export class PrecriptionService {
     return {
       buffer: pdfBuffer,
       prescriptionCode,
+    };
+  }
+
+  public async enqueuePrescriptionPrint(
+    prescriptionId: string,
+    clinicId?: string,
+    userId?: string,
+  ) {
+    const existing = await prisma.prescription.findUnique({
+      where: { prescriptionId },
+      select: {
+        status: true,
+        medicalRecord: { select: { clinicId: true } },
+      },
+    });
+
+    if (!existing) {
+      throw new BaseError(404, "Không tìm thấy toa để in");
+    }
+
+    if (clinicId && existing.medicalRecord?.clinicId !== clinicId) {
+      throw new BaseError(403, "Không có quyền truy cập toa thuốc");
+    }
+
+    if (existing.status !== PrescriptionStatus.Draft) {
+      throw new BaseError(400, "Toa thuốc đã in, không được in lại");
+    }
+
+    const job = await prisma.printJob.create({
+      data: {
+        type: PrintJobType.PRESCRIPTION,
+        status: PrintJobStatus.PENDING,
+        entityId: prescriptionId,
+        clinicId: clinicId || null,
+        userId: userId ?? null,
+        payload: { prescriptionId },
+      },
+    });
+
+    await enqueuePrintJob(job.jobId);
+
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      type: job.type,
     };
   }
 

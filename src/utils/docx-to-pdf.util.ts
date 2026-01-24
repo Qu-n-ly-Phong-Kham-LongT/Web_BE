@@ -2,20 +2,16 @@ import http from "http";
 import https from "https";
 import { BaseError } from "./base-error.util";
 
-const DEFAULT_MAX_CONCURRENCY = 1;
+// Các mặc định vẫn giữ nguyên
 const DEFAULT_RETRY_MAX = 3;
 const DEFAULT_RETRY_BACKOFF_MS = 300;
 const DEFAULT_TIMEOUT_MS = 15000;
 
-let inFlight = 0;
-const waiters: Array<() => void> = [];
-
-function getMaxConcurrency(): number {
-  const raw = Number(
-    process.env.CONVERT_MAX_CONCURRENCY ?? DEFAULT_MAX_CONCURRENCY,
-  );
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_MAX_CONCURRENCY;
-}
+/**
+ * XÓA BỎ: inFlight và waiters.
+ * RabbitMQ sẽ là người giữ hàng đợi (waiters) và
+ * tham số 'prefetch' của RabbitMQ sẽ quản lý 'inFlight'.
+ */
 
 function getRetryMax(): number {
   const raw = Number(process.env.CONVERT_RETRY_MAX ?? DEFAULT_RETRY_MAX);
@@ -23,28 +19,17 @@ function getRetryMax(): number {
 }
 
 function getRetryBackoffMs(): number {
-  const raw = Number(process.env.CONVERT_RETRY_BACKOFF_MS ?? DEFAULT_RETRY_BACKOFF_MS);
-  return Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : DEFAULT_RETRY_BACKOFF_MS;
+  const raw = Number(
+    process.env.CONVERT_RETRY_BACKOFF_MS ?? DEFAULT_RETRY_BACKOFF_MS,
+  );
+  return Number.isFinite(raw) && raw >= 0
+    ? Math.floor(raw)
+    : DEFAULT_RETRY_BACKOFF_MS;
 }
 
 function getTimeoutMs(): number {
   const raw = Number(process.env.CONVERT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_TIMEOUT_MS;
-}
-
-async function withConcurrencyLimit<T>(fn: () => Promise<T>): Promise<T> {
-  const maxConcurrency = getMaxConcurrency();
-  if (inFlight >= maxConcurrency) {
-    await new Promise<void>((resolve) => waiters.push(resolve));
-  }
-  inFlight += 1;
-  try {
-    return await fn();
-  } finally {
-    inFlight -= 1;
-    const next = waiters.shift();
-    if (next) next();
-  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -56,16 +41,19 @@ function shouldRetry(error: unknown): boolean {
     return [408, 429, 500, 502, 503, 504].includes(error.statusCode);
   }
   const code = (error as NodeJS.ErrnoException | null)?.code;
-  return ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND"].includes(
-    String(code ?? ""),
-  );
+  return [
+    "ECONNRESET",
+    "ETIMEDOUT",
+    "ECONNREFUSED",
+    "EAI_AGAIN",
+    "ENOTFOUND",
+  ].includes(String(code ?? ""));
 }
 
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   const maxRetries = getRetryMax();
   const backoffMs = getRetryBackoffMs();
   let attempt = 0;
-  // maxRetries = number of retries after the first attempt.
   while (true) {
     try {
       return await fn();
@@ -73,6 +61,10 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
       if (!shouldRetry(error) || attempt >= maxRetries) {
         throw error;
       }
+      console.warn(
+        `Retry attempt ${attempt + 1} due to error:`,
+        (error as Error).message,
+      );
       await sleep(backoffMs * Math.pow(2, attempt));
       attempt += 1;
     }
@@ -87,6 +79,7 @@ export async function convertDocxToPdf(
   if (!endpoint) {
     throw new BaseError(500, "CONVERT_FILE chưa được cấu hình");
   }
+
   const url = new URL(endpoint);
   const boundary = `----FormBoundary${Date.now()}`;
   const header =
@@ -99,18 +92,18 @@ export async function convertDocxToPdf(
     docxBuffer,
     Buffer.from(footer, "utf-8"),
   ]);
+
   const apiKey = (
     process.env.CONVERT_API_KEY ??
     process.env.X_API_KEY ??
     ""
   ).trim();
-
   const isHttps = url.protocol === "https:";
   const requestFn = isHttps ? https.request : http.request;
   const port = url.port ? Number(url.port) : isHttps ? 443 : 80;
   const timeoutMs = getTimeoutMs();
 
-  const doConvert = async (): Promise<Buffer> =>
+  const doRequest = async (): Promise<Buffer> =>
     new Promise<Buffer>((resolve, reject) => {
       const req = requestFn(
         {
@@ -126,41 +119,36 @@ export async function convertDocxToPdf(
         },
         (res) => {
           const chunks: Buffer[] = [];
-          res.on("data", (chunk) => {
-            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-          });
+          res.on("data", (chunk) =>
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
+          );
           res.on("end", () => {
             const buffer = Buffer.concat(chunks);
             const status = res.statusCode ?? 500;
+
             if (status < 200 || status >= 300) {
-              const contentType = String(res.headers["content-type"] ?? "");
-              const bodyText = buffer.toString("utf-8").slice(0, 2000);
-              console.error("Convert service error:", {
-                status,
-                contentType,
-                body: bodyText,
-              });
+              const bodyText = buffer.toString("utf-8").slice(0, 1000);
               reject(
-                new BaseError(status, "Convert service failed", {
-                  contentType,
-                  body: bodyText,
-                }),
+                new BaseError(
+                  status,
+                  `Convert service failed with status ${status}`,
+                  { body: bodyText },
+                ),
               );
               return;
             }
+
             const contentType = String(res.headers["content-type"] ?? "");
             if (contentType.includes("application/json")) {
               try {
                 const json = JSON.parse(buffer.toString("utf-8"));
-                const base64 =
-                  json?.data ?? json?.file ?? json?.fileBase64 ?? null;
+                const base64 = json?.data ?? json?.file ?? json?.fileBase64;
                 if (typeof base64 === "string") {
                   resolve(Buffer.from(base64, "base64"));
                   return;
                 }
-              } catch (error) {
-                reject(new BaseError(500, "Invalid convert response"));
-                console.error("Lỗi convert file pdf: ", error);
+              } catch (e) {
+                reject(new BaseError(500, "Invalid JSON response"));
                 return;
               }
             }
@@ -169,22 +157,11 @@ export async function convertDocxToPdf(
         },
       );
 
-      req.setTimeout(timeoutMs, () => {
-        req.destroy(new Error("Convert request timeout"));
-      });
-
-      req.on("error", (error) => {
-        reject(
-          new BaseError(
-            500,
-            error instanceof Error ? error.message : "Convert failed",
-          ),
-        );
-        console.error("Lỗi convert file pdf: ", error);
-      });
+      req.setTimeout(timeoutMs, () => req.destroy(new Error("Timeout")));
+      req.on("error", (err) => reject(new BaseError(500, err.message)));
       req.write(body);
       req.end();
     });
 
-  return await withRetry(() => withConcurrencyLimit(doConvert));
+  return await withRetry(doRequest);
 }

@@ -1,6 +1,6 @@
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrintJobStatus, PrintJobType } from "@prisma/client";
 import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 import {
@@ -31,6 +31,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
+import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
 
 export class ServiceRequestService {
   private serviceRequestRepository = new ServiceRequestRepository();
@@ -669,6 +670,46 @@ export class ServiceRequestService {
     return {
       buffer: pdfBuffer,
       requestCode,
+    };
+  }
+
+  public async enqueueServiceRequestPrint(
+    requestId: string,
+    clinicId?: string,
+    userId?: string,
+  ) {
+    const request = await prisma.serviceRequest.findUnique({
+      where: { requestId },
+      select: {
+        medicalRecord: { select: { clinicId: true } },
+      },
+    });
+
+    if (!request) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
+    }
+
+    if (clinicId && request.medicalRecord?.clinicId !== clinicId) {
+      throw new BaseError(403, "Phiếu chỉ định không thuộc phòng khám");
+    }
+
+    const job = await prisma.printJob.create({
+      data: {
+        type: PrintJobType.SERVICE_REQUEST,
+        status: PrintJobStatus.PENDING,
+        entityId: requestId,
+        clinicId: clinicId || null,
+        userId: userId ?? null,
+        payload: { requestId },
+      },
+    });
+
+    await enqueuePrintJob(job.jobId);
+
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      type: job.type,
     };
   }
 
