@@ -75,12 +75,71 @@ export class PrescriptionRepository {
       orderBy: { createdAt: sort ?? "desc" },
       include: {
         medicalRecord: {
-          select: { recordId: true, recordCode: true, createdAt: true, diagnoses: true },
+          select: {
+            recordId: true,
+            recordCode: true,
+            createdAt: true,
+            diagnoses: true,
+          },
         },
         details: {
           include: { medicine: true },
         },
       },
     });
+  }
+
+  public async getDispenseData(
+    prescriptionId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || prisma;
+
+    return await client.prescription.findUnique({
+      where: { prescriptionId },
+      include: {
+        medicalRecord: { select: { clinicId: true } },
+        details: {
+          include: {
+            medicine: {
+              select: {
+                medicineId: true,
+                medicineName: true,
+                activeIngredient: true,
+                isInsuranceCovered: true,
+                totalQuantity: true,
+                baseUnit: true,
+                insurancePrice: true,
+                sellPrice: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  public async markDispensed(
+    prescriptionId: string,
+    userId: string,
+    totalPrice: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.prescription.update({
+      where: { prescriptionId },
+      data: {
+        isDispensed: true,
+        dispensedAt: new Date(),
+        dispensedBy: userId,
+        totalPrice: new Prisma.Decimal(totalPrice),
+      },
+    });
+  }
+
+  public async createInventoryLogs(
+    data: Prisma.InventoryLogCreateManyInput[],
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.inventoryLog.createMany({ data });
   }
 }

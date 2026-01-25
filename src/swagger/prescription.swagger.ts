@@ -135,6 +135,93 @@ const PrescriptionSwagger = {
     },
   },
 
+  "/api/prescriptions/{prescriptionId}/dispense": {
+    put: {
+      tags: ["Prescriptions"],
+      summary: "Xuất toa thuốc",
+      parameters: [
+        {
+          name: "prescriptionId",
+          in: "path",
+          required: true,
+          schema: {
+            type: "string",
+            format: "uuid",
+          },
+          description: "ID toa thuốc",
+        },
+        {
+          name: "forceExport",
+          in: "query",
+          required: false,
+          schema: { type: "boolean", default: false },
+          description:
+            "Xuất toa khi thiếu thuốc (true). Nếu false sẽ trả lỗi 409 kèm danh sách thiếu.",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xuất toa thuốc thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "object",
+                    properties: {
+                      prescriptionId: { type: "string", format: "uuid" },
+                      totalPrice: { type: "number" },
+                    },
+                  },
+                  pagination: { type: "object", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        409: {
+          description: "Không đủ thuốc để xuất",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  error: {
+                    type: "object",
+                    properties: {
+                      items: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            medicineId: { type: "string", format: "uuid" },
+                            medicineName: { type: "string" },
+                            required: { type: "number" },
+                            available: { type: "number" },
+                            shortage: { type: "number" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không có quyền truy cập" },
+        404: { description: "Không tìm thấy toa thuốc" },
+      },
+    },
+  },
+
   "/api/prescriptions/statuses": {
     get: {
       tags: ["Prescriptions"],
