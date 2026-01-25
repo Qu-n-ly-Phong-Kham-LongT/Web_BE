@@ -45,7 +45,14 @@ export class SharedController {
     res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.sharedService.getMedicalRecordFile(req.params.id, clinicId)
-    return successResponse(res, 200, result, "Lấy file bệnh án thành công");
+    const result = await this.sharedService.getMedicalRecordFile(
+      req.params.id,
+      clinicId,
+    );
+    const statusCode = result.enqueued ? 202 : 200;
+    const message = result.enqueued
+      ? "Dang tao file benh an, vui long thu lai"
+      : "Lay file benh an thanh cong";
+    return successResponse(res, statusCode, result, message);
   };
 }

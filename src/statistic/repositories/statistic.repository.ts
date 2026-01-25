@@ -73,4 +73,34 @@ export class StatisticRepository {
 
     return { records, newPatients };
   }
+
+  public async findDispensedPrescriptionsInRange(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    return await prisma.prescription.findMany({
+      where: {
+        ...(clinicId ? { medicalRecord: { clinicId } } : {}),
+        isDispensed: true,
+        dispensedAt: { gte: from, lt: to },
+      },
+      select: {
+        dispensedAt: true,
+        details: {
+          select: {
+            quantity: true,
+            totalPrice: true,
+            appliedExportPrice: true,
+            medicine: {
+              select: {
+                medicineId: true,
+                medicineName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }
