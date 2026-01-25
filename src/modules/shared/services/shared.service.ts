@@ -189,25 +189,19 @@ export class SharedService {
   }
 
   public async getMedicalRecordFile(recordId: string, clinicId: string) {
-    let existing;
-    existing = await this.fileRepository.findByMedicalRecordId(recordId);
-
-    if (!existing) {
-      await this.printMedicalRecordDocx(recordId, clinicId);
-      return await this.getMedicalRecordFileSafe(recordId);
-    }
+    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
 
     if (existing?.createdAt) {
       const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
       const latestChange = this.getLatestRecordChange(fullRecord);
-
       if (latestChange <= existing.createdAt) {
-        return existing;
+        return { file: existing, enqueued: false };
       }
     }
 
-    await this.printMedicalRecordDocx(recordId, clinicId);
+    // If file is missing or stale, enqueue a render job instead of blocking.
+    const job = await this.enqueueMedicalRecordPrint(recordId, clinicId);
 
-    return await this.getMedicalRecordFileSafe(recordId);
+    return { file: existing ?? null, enqueued: true, stale: true, job };
   }
 }
