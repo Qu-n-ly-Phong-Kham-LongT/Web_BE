@@ -44,4 +44,11 @@ prescriptionRouter.put(
   prescriptionController.updateStatusToDraft,
 );
 
+prescriptionRouter.put(
+  "/:id/dispense",
+  authenticate,
+  auditLogsMiddleware("DISPENSE_PRESCRIPTION", "Prescription"),
+  prescriptionController.dispensePrescription,
+);
+
 export default prescriptionRouter;

@@ -99,4 +99,25 @@ export class PrescriptionController {
 
     return successResponse(res, 200, result, "Lấy danh sách toa cũ thành công");
   };
+
+  public dispensePrescription = async (
+    req: AuthenticatedRequest<{ id: string }, {}, {}, { forceExport?: string }>,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const userId = req.payload?.userId ?? "";
+    const { id } = req.params;
+    const forceExport =
+      String(req.query.forceExport ?? "false").toLowerCase() === "true";
+
+    const result = await this.prescriptionService.dispensePrescription(
+      id,
+      userId,
+      forceExport,
+      clinicId,
+    );
+
+    return successResponse(res, 200, result, "Xuất toa thành công");
+  };
+
 }

@@ -1,4 +1,9 @@
-import { Prisma, PrescriptionStatus, PrintJobStatus, PrintJobType } from "@prisma/client";
+import {
+  Prisma,
+  PrescriptionStatus,
+  PrintJobStatus,
+  PrintJobType,
+} from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
 import { MedicalRecordRepository } from "../../medical-record/repositories/medical-record.repository";
@@ -636,6 +641,147 @@ export class PrecriptionService {
         isInsuranceCovered: d.isInsuranceCovered ?? false,
       })),
     }));
+  }
+
+  public async dispensePrescription(
+    prescriptionId: string,
+    userId: string,
+    forceExport: boolean = false,
+    clinicId?: string,
+  ) {
+    return await prisma.$transaction(async (tx) => {
+      const data = await this.prescriptionRepository.getDispenseData(
+        prescriptionId,
+        tx,
+      );
+
+      if (!data) {
+        throw new BaseError(404, "Không tim thấy toa thuốc.");
+      }
+
+      if (clinicId && data.medicalRecord?.clinicId !== clinicId) {
+        throw new BaseError(403, "Không có quyền truy cập toa thuốc.");
+      }
+
+      if (data.status !== PrescriptionStatus.Issued) {
+        throw new BaseError(400, "Chỉ được xuất khi toa đã in (Issued)");
+      }
+
+      if (data.isDispensed) {
+        throw new BaseError(400, "Toa thuốc đã được xuất.");
+      }
+
+      if (!forceExport) {
+        const insufficientMedicines: Array<{
+          medicineId: string;
+          medicineName: string;
+          required: number;
+          available: number;
+          shortage: number;
+        }> = [];
+        for (const detail of data.details) {
+          const required = Math.round(Number(detail.quantity));
+          const available = detail.medicine?.totalQuantity ?? 0;
+          if (required > available) {
+            insufficientMedicines.push({
+              medicineId: detail.medicineId ?? "",
+              medicineName: detail.medicine?.medicineName ?? "",
+              required,
+              available,
+              shortage: required - available,
+            });
+          }
+        }
+
+        if (insufficientMedicines.length > 0) {
+          throw new BaseError(409, "Không đủ thuốc để xuất.", {
+            items: insufficientMedicines,
+          });
+        }
+      }
+
+      for (const detail of data.details) {
+        const required = Math.round(Number(detail.quantity ?? 0));
+        if (!detail.medicineId || required <= 0) continue;
+
+        if (!forceExport) {
+          const updated = await this.medicineRepository.decrementStockIfEnough(
+            detail.medicineId,
+            required,
+            tx,
+          );
+          if (updated.count === 0) {
+            throw new BaseError(409, "Thuốc trong kho không đủ để xuất.", {
+              items: [
+                {
+                  medicineId: detail.medicineId,
+                  medicineName: detail.medicine?.medicineName,
+                  required,
+                  available: detail.medicine?.totalQuantity ?? 0,
+                  shortage: required - (detail.medicine?.totalQuantity ?? 0),
+                },
+              ],
+            });
+          }
+        } else {
+          const available = detail.medicine?.totalQuantity ?? 0;
+          if (available >= required) {
+            await this.medicineRepository.decrementStockForce(
+              detail.medicineId,
+              required,
+              tx,
+            );
+          } else {
+            await this.medicineRepository.setStockToZero(
+              detail.medicineId,
+              tx,
+            );
+          }
+        }
+      }
+
+      let totalPrice = 0;
+      for (const d of data.details) {
+        const qty = Number(d.quantity ?? 0);
+        const unitPrice =
+          d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
+            ? Number(d.appliedExportPrice)
+            : d.medicine?.sellPrice
+              ? Number(d.medicine.sellPrice)
+              : 0;
+        totalPrice += unitPrice * qty;
+      }
+
+      await this.prescriptionRepository.markDispensed(
+        prescriptionId,
+        userId,
+        totalPrice,
+        tx,
+      );
+
+      await this.prescriptionRepository.createInventoryLogs(
+        data.details.map((d) => {
+          const required = Math.round(Number(d.quantity ?? 0));
+          const available = d.medicine?.totalQuantity ?? 0;
+          return {
+            medicineId: d.medicineId ?? null,
+            type: "Export",
+            quantity: required,
+            shortage: required > available ? required - available : 0,
+            unitPrice:
+              d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
+                ? new Prisma.Decimal(d.appliedExportPrice)
+                : d.medicine?.sellPrice ?? null,
+            totalPrice: d.totalPrice ?? null,
+            performedBy: userId,
+            prescriptionId,
+          };
+        }),
+        tx,
+      );
+
+      return { prescriptionId, totalPrice };
+    });
   }
 
   // public async printPresctiptionPdf(
