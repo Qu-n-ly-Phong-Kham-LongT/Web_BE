@@ -7,5 +7,10 @@ const controller = new StatisticController();
 
 router.get("/dashboard", authenticate, controller.getDashboard);
 router.get("/range-types", authenticate, controller.getRangeTypes);
+router.get(
+  "/prescriptions/revenue",
+  authenticate,
+  controller.getPrescriptionRevenueByMedicine,
+);
 
 export default router;

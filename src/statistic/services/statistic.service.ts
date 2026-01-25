@@ -237,4 +237,131 @@ export class StatisticService {
       })),
     };
   }
+
+  public async getPrescriptionRevenueByMedicine(
+    range: RangeType = "month",
+    points = 4,
+    top = 10,
+    clinicId?: string,
+  ) {
+    const safePoints = Number.isFinite(points) ? Math.max(1, points) : 4;
+    const safeTop = Number.isFinite(top) ? Math.max(1, top) : 10;
+
+    const nowUtc = new Date();
+    const todayStart = this.vnStartOfDayUtc(nowUtc);
+    const weekStart = this.vnStartOfWeekUtc(nowUtc);
+    const monthStart = this.vnStartOfMonthUtc(nowUtc);
+
+    const anchorStartUtc =
+      range === "day"
+        ? todayStart
+        : range === "week"
+          ? weekStart
+          : monthStart;
+
+    const stepStart = (base: Date, step: number) => {
+      if (range === "day") return this.addDays(base, step);
+      if (range === "week") return this.addDays(base, step * 7);
+      return this.addMonths(base, step);
+    };
+
+    const starts: Date[] = [];
+    for (let i = safePoints - 1; i >= 0; i--) {
+      starts.push(stepStart(anchorStartUtc, -i));
+    }
+
+    const chartFrom = starts[0];
+    const chartTo = stepStart(anchorStartUtc, 1);
+    const prescriptions =
+      await this.statisticRepository.findDispensedPrescriptionsInRange(
+        chartFrom,
+        chartTo,
+        clinicId,
+      );
+
+    const revenueByBucket = new Map<string, number>();
+    const byMedicine = new Map<
+      string,
+      { medicineId: string; medicineName: string; revenue: number; quantity: number }
+    >();
+
+    for (const p of prescriptions) {
+      if (!p.dispensedAt) continue;
+      const bucketKey = this.vnBucketKeyFromUtc(p.dispensedAt, range);
+
+      let prescriptionRevenue = 0;
+      for (const d of p.details ?? []) {
+        const lineRevenue = d.totalPrice
+          ? Number(d.totalPrice)
+          : d.appliedExportPrice && d.quantity
+            ? Number(d.appliedExportPrice) * Number(d.quantity)
+            : 0;
+        prescriptionRevenue += lineRevenue;
+
+        const medicineId = d.medicine?.medicineId;
+        if (!medicineId) continue;
+        const medicineName = d.medicine?.medicineName ?? "Khac";
+        const quantity = d.quantity ? Number(d.quantity) : 0;
+
+        const existing = byMedicine.get(medicineId);
+        if (!existing) {
+          byMedicine.set(medicineId, {
+            medicineId,
+            medicineName,
+            revenue: lineRevenue,
+            quantity,
+          });
+        } else {
+          existing.revenue += lineRevenue;
+          existing.quantity += quantity;
+        }
+      }
+
+      revenueByBucket.set(
+        bucketKey,
+        (revenueByBucket.get(bucketKey) ?? 0) + prescriptionRevenue,
+      );
+    }
+
+    const labels: string[] = [];
+    const values: number[] = [];
+    for (const start of starts) {
+      const key = this.vnBucketKeyFromUtc(start, range);
+      labels.push(this.labelFromBucketStartUtc(start, range));
+      values.push(revenueByBucket.get(key) ?? 0);
+    }
+
+    const latest = values[values.length - 1] ?? 0;
+    const average =
+      values.length > 0
+        ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+        : 0;
+    const trendPct =
+      average === 0 ? 0 : Math.round(((latest - average) / average) * 100);
+
+    const totalRevenue = Array.from(byMedicine.values()).reduce(
+      (sum, item) => sum + item.revenue,
+      0,
+    );
+
+    const breakdown = Array.from(byMedicine.values())
+      .map((item) => ({
+        ...item,
+        pct:
+          totalRevenue === 0
+            ? 0
+            : Math.round((item.revenue / totalRevenue) * 100),
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, safeTop);
+
+    return {
+      summary: {
+        totalRevenue,
+        totalMedicines: byMedicine.size,
+      },
+      chart: { range, labels, values, latest, average, trendPct },
+      breakdown,
+    };
+  }
 }
