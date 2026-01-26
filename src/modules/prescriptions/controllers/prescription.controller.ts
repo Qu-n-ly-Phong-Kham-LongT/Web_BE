@@ -127,7 +127,7 @@ export class PrescriptionController {
       {},
       {},
       {},
-      { from?: string; to?: string; page?: string; size?: string; isDispended?: string }
+      { from?: string; to?: string; page?: string; size?: string; isDispended?: string; fullName?: string }
     >,
     res: Response,
   ) => {
@@ -154,6 +154,7 @@ export class PrescriptionController {
 
     const page = req.query.page ? Number(req.query.page) : 1;
     const size = req.query.size ? Number(req.query.size) : 10;
+    const fullName = req.query.fullName as string | undefined;
 
     const rawIsDispensed = req.query.isDispended as string | undefined;
     let isDispensed: boolean | undefined = undefined;
@@ -175,6 +176,7 @@ export class PrescriptionController {
         normalizedFrom,
         normalizedTo,
         isDispensed,
+        fullName,
         page,
         size,
         clinicId,

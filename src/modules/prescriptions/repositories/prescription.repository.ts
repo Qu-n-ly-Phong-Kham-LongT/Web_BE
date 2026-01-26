@@ -126,12 +126,25 @@ export class PrescriptionRepository {
     page: number;
     size: number;
     isDispensed?: boolean;
+    fullName?: string;
   }) {
-    const { from, to, clinicId, page, size, isDispensed } = params;
+    const { from, to, clinicId, page, size, isDispensed, fullName } = params;
+
+    const medicalRecordWhere: Prisma.MedicalRecordWhereInput = {};
+    if (clinicId) {
+      medicalRecordWhere.clinicId = clinicId;
+    }
+    if (fullName) {
+      medicalRecordWhere.patient = {
+        fullName: { contains: fullName, mode: "insensitive" },
+      };
+    }
 
     const where: Prisma.PrescriptionWhereInput = {
       createdAt: { gte: from, lte: to },
-      ...(clinicId ? { medicalRecord: { clinicId } } : {}),
+      ...(Object.keys(medicalRecordWhere).length
+        ? { medicalRecord: medicalRecordWhere }
+        : {}),
       ...(isDispensed === undefined ? {} : { isDispensed }),
     };
 
