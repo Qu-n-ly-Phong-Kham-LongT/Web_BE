@@ -125,12 +125,16 @@ export class ServiceTemplateService {
   public async getServiceTemplates(
     page: number = 1,
     size: number = 10,
-    search: string | undefined
+    search: string | undefined,
+    isActive?: boolean,
+    sort?: "asc" | "desc"
   ): Promise<ServiceTemplateListResponseDto> {
     const { templates, totalItems } = await this.templateRepository.findServiceTemplates(
       page,
       size,
-      search
+      search,
+      isActive,
+      sort
     );
 
     const pagination = createPagination(page, size, totalItems);

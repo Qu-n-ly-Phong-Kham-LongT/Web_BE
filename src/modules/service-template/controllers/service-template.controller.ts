@@ -36,11 +36,18 @@ export class ServiceTemplateController {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
+    const isActiveParam = req.query.isActive as string | undefined;
+    const isActive =
+      isActiveParam === undefined ? undefined : isActiveParam === "true";
+    const sort =
+      (req.query.sort as string)?.toLowerCase() === "desc" ? "desc" : "asc";
 
     let result: ServiceTemplateListResponseDto = await this.serviceTemplateService.getServiceTemplates(
       page,
       size,
-      search
+      search,
+      isActive,
+      sort
     );
     return successResponse(res, 200, result.templates, "Lấy danh sách mẫu dịch vụ thành công", result.pagination);
   };
