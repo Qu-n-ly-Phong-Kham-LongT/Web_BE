@@ -123,7 +123,10 @@ export class ServiceTemplateRepository {
   public async findServiceTemplates(
     page: number = 1,
     size: number = 10,
-    search?: string
+    search?: string,
+    isActive?: boolean,
+    sort: "asc" | "desc" = "asc",
+    onlyActiveItems: boolean = false
   ): Promise<{ templates: ServiceTemplateWithDetails[]; totalItems: number }> {
     const skip = (page - 1) * size;
 
@@ -135,14 +138,29 @@ export class ServiceTemplateRepository {
           ],
         }
       : {};
+    if (isActive !== undefined) {
+      where.isActive = isActive;
+    }
+    if (onlyActiveItems) {
+      where.details = { some: { serviceItem: { isActive: true } } };
+    }
+
+    const include = onlyActiveItems
+      ? {
+          details: {
+            where: { serviceItem: { isActive: true } },
+            include: templateInclude.details.include,
+          },
+        }
+      : templateInclude;
 
     const [templates, totalItems] = await Promise.all([
       prisma.serviceTemplate.findMany({
         where,
         skip,
         take: size,
-        orderBy: { templateName: "asc" },
-        include: templateInclude,
+        orderBy: { templateName: sort },
+        include,
       }),
       prisma.serviceTemplate.count({ where }),
     ]);

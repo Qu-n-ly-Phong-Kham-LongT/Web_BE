@@ -27,6 +27,12 @@ serviceTemplateRouter.get(
 );
 
 serviceTemplateRouter.get(
+  "/active-items",
+  authenticate,
+  serviceTemplateController.getServiceTemplatesForDoctor
+);
+
+serviceTemplateRouter.get(
   "/:id",
   authenticate,
   serviceTemplateController.getServiceTemplateById
