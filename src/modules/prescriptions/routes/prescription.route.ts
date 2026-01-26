@@ -30,6 +30,12 @@ prescriptionRouter.get(
 );
 
 prescriptionRouter.get(
+  "/patients-by-date",
+  authenticate,
+  prescriptionController.getPatientsWithPrescriptionsByDate,
+);
+
+prescriptionRouter.get(
   "/:id/print",
   authenticate,
   auditLogsMiddleware("PRINT_PRESCRIPTION", "Prescription"),

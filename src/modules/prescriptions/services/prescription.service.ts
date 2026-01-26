@@ -22,6 +22,8 @@ import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
 import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
+import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
+import { createPagination } from "../../../utils/pagination.util";
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -643,6 +645,112 @@ export class PrecriptionService {
     }));
   }
 
+  public async getPatientsWithPrescriptionsByDate(
+    from: string | undefined,
+    to: string | undefined,
+    isDispensed: boolean | undefined,
+    page: number = 1,
+    size: number = 10,
+    clinicId?: string,
+  ) {
+    const timeZone = "Asia/Ho_Chi_Minh";
+    const toParts = (value: string) => {
+      const [year, month, day] = value.split("-").map(Number);
+      return { year, month, day };
+    };
+
+    let startUtc: Date;
+    let endUtc: Date;
+
+    if (from) {
+      const fromParts = toParts(from);
+      startUtc = getUtcDayRangeForTimeZone(fromParts, timeZone).startUtc;
+
+      if (to) {
+        const toPartsValue = toParts(to);
+        endUtc = getUtcDayRangeForTimeZone(toPartsValue, timeZone).endUtc;
+      } else {
+        endUtc = getUtcDayRangeForTimeZone(new Date(), timeZone).endUtc;
+      }
+    } else if (to) {
+      const todayRange = getUtcDayRangeForTimeZone(new Date(), timeZone);
+      startUtc = todayRange.startUtc;
+      endUtc = todayRange.endUtc;
+    } else {
+      const todayRange = getUtcDayRangeForTimeZone(new Date(), timeZone);
+      startUtc = todayRange.startUtc;
+      endUtc = todayRange.endUtc;
+    }
+
+    const safePage = Math.max(Number(page) || 1, 1);
+    const safeSize = Math.max(Number(size) || 10, 1);
+
+    const { items, totalItems } =
+      await this.prescriptionRepository.findPatientsWithPrescriptionsByDate({
+        from: startUtc,
+        to: endUtc,
+        clinicId,
+        page: safePage,
+        size: safeSize,
+        isDispensed,
+      });
+
+    const data = items.map((pres) => ({
+      patient: {
+        patientId: pres.medicalRecord?.patient?.patientId ?? "",
+        patientCode: pres.medicalRecord?.patient?.patientCode ?? "",
+        fullName: pres.medicalRecord?.patient?.fullName ?? "",
+        gender: pres.medicalRecord?.patient?.gender ?? null,
+        dob: pres.medicalRecord?.patient?.dob
+          ? pres.medicalRecord?.patient?.dob.toISOString()
+          : "",
+        phone: pres.medicalRecord?.patient?.phone ?? "",
+      },
+      medicalRecord: {
+        recordId: pres.medicalRecord?.recordId ?? "",
+        recordCode: pres.medicalRecord?.recordCode ?? "",
+        createdAt: pres.medicalRecord?.createdAt
+          ? pres.medicalRecord?.createdAt.toISOString()
+          : "",
+      },
+      prescription: {
+        prescriptionId: pres.prescriptionId,
+        prescriptionCode: pres.prescriptionCode ?? "",
+        status: pres.status,
+        note: pres.note ?? "",
+        totalPrice: pres.totalPrice ? Number(pres.totalPrice) : 0,
+        createdAt: pres.createdAt ? pres.createdAt.toISOString() : "",
+        printedAt: pres.printedAt ? pres.printedAt.toISOString() : "",
+        isDispensed: pres.isDispensed ?? false,
+        dispensedAt: pres.dispensedAt ? pres.dispensedAt.toISOString() : "",
+        details: (pres.details ?? []).map((d) => ({
+          medicineId: d.medicineId ?? "",
+          medicineName: d.medicine?.medicineName ?? "",
+          sellPrice:
+            d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
+              ? Number(d.appliedExportPrice)
+              : d.medicine?.sellPrice !== null &&
+                  d.medicine?.sellPrice !== undefined
+                ? Number(d.medicine.sellPrice)
+                : null,
+          frequencyPerDay: d.frequencyPerDay ?? 0,
+          quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
+          quantity: d.quantity ? Number(d.quantity) : 0,
+          unit: d.unit ?? "",
+          timing: d.timing ?? "",
+          daysToTake: d.daysToTake ?? 0,
+          note: d.note ?? null,
+          isInsuranceCovered: d.isInsuranceCovered ?? false,
+        })),
+      },
+    }));
+
+    return {
+      items: data,
+      pagination: createPagination(safePage, safeSize, totalItems),
+    };
+  }
+
   public async dispensePrescription(
     prescriptionId: string,
     userId: string,
@@ -656,7 +764,7 @@ export class PrecriptionService {
       );
 
       if (!data) {
-        throw new BaseError(404, "Không tim thấy toa thuốc.");
+        throw new BaseError(404, "Không tìm thấy toa thuốc.");
       }
 
       if (clinicId && data.medicalRecord?.clinicId !== clinicId) {
