@@ -165,6 +165,77 @@ const ServiceTemplateSwagger = {
     },
   },
 
+  "/api/service-templates/active-items": {
+    get: {
+      tags: ["Core Businesses"],
+      summary: "Lấy danh sách mẫu dịch vụ (chỉ item hoạt động)",
+      description:
+        "Lấy danh sách mẫu dịch vụ có phân trang và tìm kiếm. Chỉ trả về các serviceItem đang hoạt động.",
+      parameters: [
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 1 },
+          description: "Số trang",
+        },
+        {
+          name: "size",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 10 },
+          description: "Số lượng mỗi trang",
+        },
+        {
+          name: "search",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Tìm kiếm theo tên hoặc mô tả mẫu dịch vụ",
+        },
+        {
+          name: "isActive",
+          in: "query",
+          required: false,
+          schema: { type: "boolean" },
+          description: "Lọc theo trạng thái hoạt động của mẫu",
+        },
+        {
+          name: "sort",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+          description: "Sắp xếp theo tên (asc/desc)",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Lấy danh sách mẫu dịch vụ thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Lấy danh sách mẫu dịch vụ thành công",
+                  },
+                  data: {
+                    type: "array",
+                    items: joiToSwagger(ServiceTemplateResponseSchema),
+                  },
+                  pagination: paginationSchema,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+
   "/api/service-templates/{id}": {
     get: {
       tags: ["Service Template"],

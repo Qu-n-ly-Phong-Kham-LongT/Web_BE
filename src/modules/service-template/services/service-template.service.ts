@@ -145,6 +145,30 @@ export class ServiceTemplateService {
     };
   }
 
+  public async getServiceTemplatesForDoctor(
+    page: number = 1,
+    size: number = 10,
+    search: string | undefined,
+    isActive?: boolean,
+    sort?: "asc" | "desc"
+  ): Promise<ServiceTemplateListResponseDto> {
+    const { templates, totalItems } = await this.templateRepository.findServiceTemplates(
+      page,
+      size,
+      search,
+      isActive,
+      sort,
+      true
+    );
+
+    const pagination = createPagination(page, size, totalItems);
+
+    return {
+      templates: templates.map((template) => this.mapToResponseDto(template)),
+      pagination,
+    };
+  }
+
   public async updateServiceTemplate(
     id: string,
     data: UpdateServiceTemplateRequestDto
