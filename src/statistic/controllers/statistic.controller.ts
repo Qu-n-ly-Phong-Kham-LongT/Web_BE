@@ -59,6 +59,6 @@ export class StatisticController {
       top,
       clinicId,
     );
-    return successResponse(res, 200, result, "Lay doanh thu thuoc thanh cong");
+    return successResponse(res, 200, result, "Lấy doanh thu thuốc thành công");
   };
 }
