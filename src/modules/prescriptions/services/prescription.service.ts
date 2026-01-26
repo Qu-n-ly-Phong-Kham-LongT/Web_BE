@@ -649,6 +649,7 @@ export class PrecriptionService {
     from: string | undefined,
     to: string | undefined,
     isDispensed: boolean | undefined,
+    fullName: string | undefined,
     page: number = 1,
     size: number = 10,
     clinicId?: string,
@@ -693,6 +694,7 @@ export class PrecriptionService {
         page: safePage,
         size: safeSize,
         isDispensed,
+        fullName: fullName?.trim() || undefined,
       });
 
     const data = items.map((pres) => ({

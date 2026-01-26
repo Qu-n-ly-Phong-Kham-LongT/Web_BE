@@ -101,7 +101,15 @@ const PrescriptionSwagger = {
           required: false,
           schema: { type: "boolean" },
           description: "Lọc theo trạng thái đã xuất thuốc hay chưa",
-        },        {
+        },
+        {
+          name: "fullName",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+          description: "Tìm theo họ tên bệnh nhân",
+        },
+        {
           name: "page",
           in: "query",
           required: false,
