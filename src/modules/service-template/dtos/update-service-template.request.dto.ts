@@ -1,9 +1,11 @@
 import Joi from "joi";
+import { SelectedConfigsDto } from "../../service-request/dtos/service-request.request.dto";
 
 export interface UpdateServiceTemplateDetailDto {
   templateDetailId?: string; // Optional - có nghĩa là update, không có nghĩa là create mới
   itemId: string;
-  note?: string;
+  selectedConfigs?: SelectedConfigsDto[] | null;
+  note?: string | null;
 }
 
 export interface UpdateServiceTemplateRequestDto {
@@ -13,6 +15,11 @@ export interface UpdateServiceTemplateRequestDto {
   details?: UpdateServiceTemplateDetailDto[];
 }
 
+const selectedConfigSchema = Joi.object({
+  configId: Joi.string().required(),
+  selectedValues: Joi.array().items(Joi.string()).min(1).required(),
+});
+
 export const UpdateServiceTemplateDetailSchema = Joi.object<UpdateServiceTemplateDetailDto>({
   templateDetailId: Joi.string().uuid().optional().messages({
     "string.guid": "Template Detail ID phải là UUID hợp lệ",
@@ -21,7 +28,10 @@ export const UpdateServiceTemplateDetailSchema = Joi.object<UpdateServiceTemplat
     "string.empty": "Service Item ID không được để trống",
     "any.required": "Service Item ID là bắt buộc",
   }),
-  note: Joi.string().optional(),
+  selectedConfigs: Joi.array().items(selectedConfigSchema).min(1).optional().allow(null).messages({
+    "array.min": "Phải chọn ít nhất một cấu hình cho dịch vụ",
+  }),
+  note: Joi.string().allow("", null).optional(),
 }).required();
 
 export const UpdateServiceTemplateRequestSchema = Joi.object<UpdateServiceTemplateRequestDto>({
