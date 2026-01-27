@@ -305,6 +305,39 @@ const ServiceTemplateSwagger = {
         content: {
           "application/json": {
             schema: joiToSwagger(UpdateServiceTemplateRequestSchema),
+            examples: {
+              update: {
+                summary: "Cập nhật mẫu dịch vụ",
+                value: {
+                  templateName: "Mẫu xét nghiệm tổng quát",
+                  description: "Cập nhật cấu hình mẫu xét nghiệm",
+                  isActive: true,
+                  details: [
+                    {
+                      templateDetailId: "0e4f07b2-4f2a-45e9-9b7f-8a2c1f6a1caa",
+                      itemId: "9b20993b-11f9-4986-88b1-296947c9c604",
+                      selectedConfigs: [
+                        {
+                          configId: "1b540d22-c353-42c7-a752-5f065f90ed67",
+                          selectedValues: ["mIU/mL"],
+                        },
+                      ],
+                      note: "Lấy mẫu buổi sáng",
+                    },
+                    {
+                      itemId: "a87f4a38-8d6c-4b7e-9e75-41a5f2a7d0b1",
+                      selectedConfigs: [
+                        {
+                          configId: "3f5b9b18-5d5a-4b2f-9b8b-8c0f7a7f6b6d",
+                          selectedValues: ["Nữ", "Nam"],
+                        },
+                      ],
+                      note: null,
+                    },
+                  ],
+                },
+              },
+            },
           },
         },
       },

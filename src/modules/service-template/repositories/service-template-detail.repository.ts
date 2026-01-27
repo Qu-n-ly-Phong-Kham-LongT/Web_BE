@@ -81,6 +81,7 @@ export class ServiceTemplateDetailRepository {
     data: {
       itemId?: string;
       note?: string | null;
+      selectedConfigs?: SelectedConfigsDto[] | null;
     },
     tx?: TransactionClient
   ): Promise<ServiceTemplateDetail> {
@@ -92,6 +93,12 @@ export class ServiceTemplateDetailRepository {
     }
     if (data.note !== undefined) {
       updateData.note = data.note;
+    }
+    if (data.selectedConfigs !== undefined) {
+      updateData.configSelections =
+        data.selectedConfigs === null
+          ? Prisma.JsonNull
+          : (data.selectedConfigs as unknown as Prisma.InputJsonValue);
     }
 
     return await client.serviceTemplateDetail.update({
