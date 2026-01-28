@@ -1,4 +1,4 @@
-import { prisma } from "../../config/database.config";
+import { prisma } from "../../../config/database.config";
 
 export class StatisticRepository {
   public async countRecords(from: Date, to: Date, clinicId?: string) {
@@ -100,6 +100,23 @@ export class StatisticRepository {
             },
           },
         },
+      },
+    });
+  }
+
+  public async findConsultationFeesInRange(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    return await prisma.medicalRecord.findMany({
+      where: {
+        ...(clinicId ? { clinicId } : {}),
+        createdAt: { gte: from, lt: to },
+      },
+      select: {
+        createdAt: true,
+        consultationFee: true,
       },
     });
   }
