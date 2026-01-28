@@ -272,14 +272,21 @@ export class StatisticService {
 
     const chartFrom = starts[0];
     const chartTo = stepStart(anchorStartUtc, 1);
-    const prescriptions =
-      await this.statisticRepository.findDispensedPrescriptionsInRange(
+    const [prescriptions, consultationFees] = await Promise.all([
+      this.statisticRepository.findDispensedPrescriptionsInRange(
         chartFrom,
         chartTo,
         clinicId,
-      );
+      ),
+      this.statisticRepository.findConsultationFeesInRange(
+        chartFrom,
+        chartTo,
+        clinicId,
+      ),
+    ]);
 
     const revenueByBucket = new Map<string, number>();
+    const consultationFeesByBucket = new Map<string, number>();
     const byMedicine = new Map<
       string,
       { medicineId: string; medicineName: string; revenue: number; quantity: number }
@@ -323,12 +330,24 @@ export class StatisticService {
       );
     }
 
+    for (const r of consultationFees) {
+      if (!r.createdAt) continue;
+      const bucketKey = this.vnBucketKeyFromUtc(r.createdAt, range);
+      const fee = r.consultationFee ? Number(r.consultationFee) : 0;
+      consultationFeesByBucket.set(
+        bucketKey,
+        (consultationFeesByBucket.get(bucketKey) ?? 0) + fee,
+      );
+    }
+
     const labels: string[] = [];
     const values: number[] = [];
+    const consultationFeeValues: number[] = [];
     for (const start of starts) {
       const key = this.vnBucketKeyFromUtc(start, range);
       labels.push(this.labelFromBucketStartUtc(start, range));
       values.push(revenueByBucket.get(key) ?? 0);
+      consultationFeeValues.push(consultationFeesByBucket.get(key) ?? 0);
     }
 
     const latest = values[values.length - 1] ?? 0;
@@ -341,6 +360,10 @@ export class StatisticService {
 
     const totalRevenue = Array.from(byMedicine.values()).reduce(
       (sum, item) => sum + item.revenue,
+      0,
+    );
+    const totalConsultationFees = consultationFeeValues.reduce(
+      (sum, fee) => sum + fee,
       0,
     );
 
@@ -359,8 +382,17 @@ export class StatisticService {
       summary: {
         totalRevenue,
         totalMedicines: byMedicine.size,
+        totalConsultationFees,
       },
-      chart: { range, labels, values, latest, average, trendPct },
+      chart: {
+        range,
+        labels,
+        values,
+        latest,
+        average,
+        trendPct,
+        consultationFeeValues,
+      },
       breakdown,
     };
   }

@@ -1,6 +1,6 @@
 import { Response } from "express";
-import { successResponse } from "../../utils/response.util";
-import { AuthenticatedRequest } from "../../middlewares/auth.middleware";
+import { successResponse } from "../../../utils/response.util";
+import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 import { StatisticService } from "../services/statistic.service";
 
 export class StatisticController {
