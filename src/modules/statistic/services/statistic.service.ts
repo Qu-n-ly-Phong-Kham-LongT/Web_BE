@@ -170,11 +170,37 @@ export class StatisticService {
     const monthStart = this.vnStartOfMonthUtc(nowUtc);
     const monthEnd = this.addMonths(monthStart, 1);
 
-    const [today, week, month] = await Promise.all([
+    const [
+      todayRecords,
+      weekRecords,
+      monthRecords,
+      todayNewPatients,
+      weekNewPatients,
+      monthNewPatients,
+    ] = await Promise.all([
       this.statisticRepository.countRecords(todayStart, tomorrow, clinicId),
       this.statisticRepository.countRecords(weekStart, weekEnd, clinicId),
       this.statisticRepository.countRecords(monthStart, monthEnd, clinicId),
+      this.statisticRepository.countNewPatientsWithoutRecordsInRange(
+        todayStart,
+        tomorrow,
+        clinicId,
+      ),
+      this.statisticRepository.countNewPatientsWithoutRecordsInRange(
+        weekStart,
+        weekEnd,
+        clinicId,
+      ),
+      this.statisticRepository.countNewPatientsWithoutRecordsInRange(
+        monthStart,
+        monthEnd,
+        clinicId,
+      ),
     ]);
+
+    const today = todayRecords + todayNewPatients;
+    const week = weekRecords + weekNewPatients;
+    const month = monthRecords + monthNewPatients;
 
     const anchorStartUtc =
       range === "day"
@@ -196,16 +222,24 @@ export class StatisticService {
 
     const chartFrom = starts[0];
     const chartTo = stepStart(anchorStartUtc, 1);
-    const rows = await this.statisticRepository.recordsInRange(
-      chartFrom,
-      chartTo,
-      clinicId,
-    );
+    const [rows, newPatients] = await Promise.all([
+      this.statisticRepository.recordsInRange(chartFrom, chartTo, clinicId),
+      this.statisticRepository.patientsWithoutRecordsInRange(
+        chartFrom,
+        chartTo,
+        clinicId,
+      ),
+    ]);
 
     const buckets = new Map<string, number>();
     for (const r of rows) {
       if (!r.createdAt) continue;
       const key = this.vnBucketKeyFromUtc(r.createdAt, range);
+      buckets.set(key, (buckets.get(key) ?? 0) + 1);
+    }
+    for (const p of newPatients) {
+      if (!p.createdAt) continue;
+      const key = this.vnBucketKeyFromUtc(p.createdAt, range);
       buckets.set(key, (buckets.get(key) ?? 0) + 1);
     }
 
