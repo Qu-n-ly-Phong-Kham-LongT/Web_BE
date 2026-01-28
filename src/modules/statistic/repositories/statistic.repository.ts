@@ -20,6 +20,35 @@ export class StatisticRepository {
     });
   }
 
+  public async countNewPatientsWithoutRecordsInRange(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    return await prisma.patient.count({
+      where: {
+        ...(clinicId ? { clinicId } : {}),
+        createdAt: { gte: from, lt: to },
+        medicalRecords: { none: {} },
+      },
+    });
+  }
+
+  public async patientsWithoutRecordsInRange(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    return await prisma.patient.findMany({
+      where: {
+        ...(clinicId ? { clinicId } : {}),
+        createdAt: { gte: from, lt: to },
+        medicalRecords: { none: {} },
+      },
+      select: { createdAt: true },
+    });
+  }
+
   public async recentPatientsToday(clinicId?: string, limit: number = 5) {
     const now = new Date();
     const startOfDay = new Date(
