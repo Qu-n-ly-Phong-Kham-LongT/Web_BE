@@ -21,9 +21,14 @@ type MedicineListOptions = {
 export class MedicineService {
   private medicineRepository = new MedicineRepository();
 
-  public async createMedicine(data: CreateMedicineRequestDto, clinicId?: string): Promise<MedicineResponseDto> {
+  public async createMedicine(
+    data: CreateMedicineRequestDto,
+    clinicId?: string,
+  ): Promise<MedicineResponseDto> {
     // Check if medicineCode already exists
-    const existingMedicine = await this.medicineRepository.findMedicineByCode(data.medicineCode);
+    const existingMedicine = await this.medicineRepository.findMedicineByCode(
+      data.medicineCode,
+    );
     if (existingMedicine) {
       throw new BaseError(400, "Mã thuốc đã tồn tại");
     }
@@ -32,7 +37,10 @@ export class MedicineService {
     return this.mapToResponseDto(result);
   }
 
-  public async getMedicineById(id: string, clinicId?: string): Promise<MedicineResponseDto> {
+  public async getMedicineById(
+    id: string,
+    clinicId?: string,
+  ): Promise<MedicineResponseDto> {
     let medicine = await this.medicineRepository.findMedicineById(id, clinicId);
     if (!medicine) {
       throw new BaseError(404, "Không tìm thấy thuốc");
@@ -45,14 +53,14 @@ export class MedicineService {
     size: number = 10,
     search: string | undefined,
     clinicId?: string,
-    options: MedicineListOptions = {}
+    options: MedicineListOptions = {},
   ): Promise<MedicineListResponseDto> {
     let { medicines, totalItems } = await this.medicineRepository.findMedicines(
       page,
       size,
       search,
       clinicId,
-      options
+      options,
     );
 
     let pagination = createPagination(page, size, totalItems);
@@ -63,17 +71,29 @@ export class MedicineService {
     };
   }
 
-  public async updateMedicine(id: string, data: UpdateMedicineRequestDto, clinicId?: string): Promise<MedicineResponseDto> {
-    let existingMedicine = await this.medicineRepository.findMedicineById(id, clinicId);
+  public async updateMedicine(
+    id: string,
+    data: UpdateMedicineRequestDto,
+    clinicId?: string,
+  ): Promise<MedicineResponseDto> {
+    let existingMedicine = await this.medicineRepository.findMedicineById(
+      id,
+      clinicId,
+    );
     if (!existingMedicine) {
       throw new BaseError(404, "Không tìm thấy thuốc");
     }
 
     const updateData: Prisma.MedicineUpdateInput = {};
 
-    if (data.medicineCode !== undefined && data.medicineCode !== existingMedicine.medicineCode) {
+    if (
+      data.medicineCode !== undefined &&
+      data.medicineCode !== existingMedicine.medicineCode
+    ) {
       // Check if new medicineCode already exists
-      const existingByCode = await this.medicineRepository.findMedicineByCode(data.medicineCode);
+      const existingByCode = await this.medicineRepository.findMedicineByCode(
+        data.medicineCode,
+      );
       if (existingByCode) {
         throw new BaseError(400, "Mã thuốc đã tồn tại");
       }
@@ -101,7 +121,9 @@ export class MedicineService {
     }
 
     if (data.insurancePrice !== undefined) {
-      updateData.insurancePrice = data.insurancePrice ? new Prisma.Decimal(data.insurancePrice) : null;
+      updateData.insurancePrice = data.insurancePrice
+        ? new Prisma.Decimal(data.insurancePrice)
+        : null;
     }
 
     if (data.baseUnit !== undefined) {
@@ -113,7 +135,9 @@ export class MedicineService {
     }
 
     if (data.sellPrice !== undefined) {
-      updateData.sellPrice = data.sellPrice ? new Prisma.Decimal(data.sellPrice) : null;
+      updateData.sellPrice = data.sellPrice
+        ? new Prisma.Decimal(data.sellPrice)
+        : null;
     }
 
     if (data.note !== undefined) {
@@ -132,7 +156,11 @@ export class MedicineService {
       updateData.isActive = data.isActive;
     }
 
-    let result = await this.medicineRepository.updateMedicine(id, updateData, clinicId);
+    let result = await this.medicineRepository.updateMedicine(
+      id,
+      updateData,
+      clinicId,
+    );
     if (!result) {
       throw new BaseError(404, "Không tìm thấy thuốc");
     }
@@ -148,7 +176,9 @@ export class MedicineService {
       registrationNo: medicine.registrationNo,
       isInsuranceCovered: medicine.isInsuranceCovered,
       medicineCodeBhyt: medicine.medicineCodeBhyt,
-      insurancePrice: medicine.insurancePrice ? Number(medicine.insurancePrice) : 0,
+      insurancePrice: medicine.insurancePrice
+        ? Number(medicine.insurancePrice)
+        : 0,
       baseUnit: medicine.baseUnit,
       totalQuantity: medicine.totalQuantity ?? 0,
       sellPrice: medicine.sellPrice ? Number(medicine.sellPrice) : 0,
@@ -156,8 +186,7 @@ export class MedicineService {
       supplier: medicine.supplier,
       sideEffects: medicine.sideEffects,
       isActive: medicine.isActive,
-      createdAt: medicine.createdAt ? medicine.createdAt.toISOString() : ""
+      createdAt: medicine.createdAt ? medicine.createdAt.toISOString() : "",
     };
   }
 }
-

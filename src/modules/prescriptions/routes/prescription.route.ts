@@ -30,6 +30,12 @@ prescriptionRouter.get(
 );
 
 prescriptionRouter.get(
+  "/patients-by-date",
+  authenticate,
+  prescriptionController.getPatientsWithPrescriptionsByDate,
+);
+
+prescriptionRouter.get(
   "/:id/print",
   authenticate,
   auditLogsMiddleware("PRINT_PRESCRIPTION", "Prescription"),
@@ -42,6 +48,13 @@ prescriptionRouter.put(
   auditLogsMiddleware("UPDATE_PRESCRIPTION_STATUS", "Prescription"),
   authorize([UserRoleEnum.Doctor]),
   prescriptionController.updateStatusToDraft,
+);
+
+prescriptionRouter.put(
+  "/:id/dispense",
+  authenticate,
+  auditLogsMiddleware("DISPENSE_PRESCRIPTION", "Prescription"),
+  prescriptionController.dispensePrescription,
 );
 
 export default prescriptionRouter;

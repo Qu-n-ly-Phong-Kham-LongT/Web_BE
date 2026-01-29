@@ -125,12 +125,40 @@ export class ServiceTemplateService {
   public async getServiceTemplates(
     page: number = 1,
     size: number = 10,
-    search: string | undefined
+    search: string | undefined,
+    isActive?: boolean,
+    sort?: "asc" | "desc"
   ): Promise<ServiceTemplateListResponseDto> {
     const { templates, totalItems } = await this.templateRepository.findServiceTemplates(
       page,
       size,
-      search
+      search,
+      isActive,
+      sort
+    );
+
+    const pagination = createPagination(page, size, totalItems);
+
+    return {
+      templates: templates.map((template) => this.mapToResponseDto(template)),
+      pagination,
+    };
+  }
+
+  public async getServiceTemplatesForDoctor(
+    page: number = 1,
+    size: number = 10,
+    search: string | undefined,
+    isActive?: boolean,
+    sort?: "asc" | "desc"
+  ): Promise<ServiceTemplateListResponseDto> {
+    const { templates, totalItems } = await this.templateRepository.findServiceTemplates(
+      page,
+      size,
+      search,
+      isActive,
+      sort,
+      true
     );
 
     const pagination = createPagination(page, size, totalItems);
@@ -180,6 +208,90 @@ export class ServiceTemplateService {
         throw new BaseError(400, "Một hoặc nhiều dịch vụ không tồn tại");
       }
 
+
+      const detailsMissingConfigs = detailsToCreate.filter(
+        (detail) => !detail.selectedConfigs || detail.selectedConfigs.length === 0
+      );
+      if (detailsMissingConfigs.length > 0) {
+        throw new BaseError(400, "Chưa chọn cấu hình cho dịch vụ");
+      }
+
+      const detailsNeedingValidation = data.details.filter(
+        (detail) => detail.selectedConfigs && detail.selectedConfigs.length > 0
+      );
+
+      if (detailsNeedingValidation.length > 0) {
+        const itemsWithConfigs = await this.serviceItemRepository.findItemsWithConfigsByIds(
+          uniqueItemIds
+        );
+        if (itemsWithConfigs.length !== uniqueItemIds.length) {
+          throw new BaseError(400, "Một hoặc nhiều dịch vụ không tồn tại");
+        }
+
+        const itemConfigMap = new Map<
+          string,
+          { configs: Map<string, { options: Map<string, number> }> }
+        >();
+        for (const item of itemsWithConfigs) {
+          const configMetaMap = new Map<string, { options: Map<string, number> }>();
+          for (const config of item.configs) {
+            const optionsMap = new Map<string, number>();
+            const metaOptions = Array.isArray((config.metaData as { options?: unknown })?.options)
+              ? (config.metaData as { options?: { value?: string; surcharge?: number }[] })
+                  .options ?? []
+              : [];
+            for (const option of metaOptions) {
+              if (typeof option?.value !== "string") {
+                continue;
+              }
+              const surcharge = Number(option?.surcharge ?? 0);
+              if (!Number.isFinite(surcharge)) {
+                continue;
+              }
+              optionsMap.set(option.value, surcharge);
+            }
+            configMetaMap.set(config.configId, { options: optionsMap });
+          }
+          itemConfigMap.set(item.itemId, { configs: configMetaMap });
+        }
+
+        for (const detail of detailsNeedingValidation) {
+          const selectedConfigs = detail.selectedConfigs!;
+          const itemMeta = itemConfigMap.get(detail.itemId);
+          if (!itemMeta) {
+            throw new BaseError(400, "Dịch vụ không hợp lệ cho mẫu chỉ định");
+          }
+
+          const configIds = selectedConfigs.map((cfg) => cfg.configId);
+          const uniqueConfigIds = [...new Set(configIds)];
+          if (uniqueConfigIds.length !== configIds.length) {
+            throw new BaseError(
+              400,
+              "Không được chọn trùng lặp cấu hình trong cùng một dịch vụ"
+            );
+          }
+
+          for (const config of selectedConfigs) {
+            if (!config.selectedValues || config.selectedValues.length === 0) {
+              throw new BaseError(400, "Giá trị chọn của cấu hình không hợp lệ");
+            }
+
+            const configMeta = itemMeta.configs.get(config.configId);
+            if (!configMeta) {
+              throw new BaseError(400, "Cấu hình không thuộc dịch vụ đã chọn");
+            }
+
+            if (configMeta.options.size > 0) {
+              for (const selectedValue of config.selectedValues) {
+                if (!configMeta.options.has(selectedValue)) {
+                  throw new BaseError(400, "Giá trị chọn không thuộc cấu hình");
+                }
+              }
+            }
+          }
+        }
+      }
+
       // Step 3: Execute transaction - Orchestrate repository calls
       await prisma.$transaction(async (tx) => {
         // 1. Build header update data - chỉ chứa fields có giá trị
@@ -212,6 +324,7 @@ export class ServiceTemplateService {
             detailsToCreate.map((d) => ({
               itemId: d.itemId,
               note: d.note ?? null,
+              selectedConfigs: d.selectedConfigs ?? undefined,
             })),
             tx
           );
@@ -224,6 +337,8 @@ export class ServiceTemplateService {
             {
               itemId: detail.itemId,
               note: detail.note ?? null,
+              selectedConfigs:
+                detail.selectedConfigs !== undefined ? detail.selectedConfigs : undefined,
             },
             tx
           );

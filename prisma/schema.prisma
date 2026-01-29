@@ -334,6 +334,9 @@ model Prescription {
   updatedAt        DateTime?            @updatedAt @db.Timestamptz
   printedAt        DateTime?            @db.Timestamptz
   printCount       Int?                 @default(1)
+  isDispensed      Boolean?             @default(false)
+  dispensedAt      DateTime?            @db.Timestamptz
+  dispensedBy      String?              @db.Uuid
   details          PrescriptionDetail[]
   file             File?                @relation()
 }
@@ -527,18 +530,20 @@ model Medicine {
 }
 
 model InventoryLog {
-  logId        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  medicineId   String?           @db.Uuid
-  medicine     Medicine?         @relation(fields: [medicineId], references: [medicineId])
-  type         InventoryLogType?
-  quantity     Int?
-  quantityBase Int?
-  unitPrice    Decimal?          @db.Decimal(18, 0)
-  totalPrice   Decimal?          @db.Decimal(18, 0)
-  performedBy  String?           @db.Uuid
-  performer    User?             @relation(fields: [performedBy], references: [userId])
-  note         String?
-  createdAt    DateTime?         @default(now()) @db.Timestamptz
+  logId          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  medicineId     String?           @db.Uuid
+  medicine       Medicine?         @relation(fields: [medicineId], references: [medicineId])
+  type           InventoryLogType?
+  quantity       Int?
+  shortage       Int?
+  quantityBase   Int?
+  unitPrice      Decimal?          @db.Decimal(18, 0)
+  totalPrice     Decimal?          @db.Decimal(18, 0)
+  performedBy    String?           @db.Uuid
+  performer      User?             @relation(fields: [performedBy], references: [userId])
+  note           String?
+  createdAt      DateTime?         @default(now()) @db.Timestamptz
+  prescriptionId String?           @db.Uuid
 }
 
 model PrescriptionTemplate {
