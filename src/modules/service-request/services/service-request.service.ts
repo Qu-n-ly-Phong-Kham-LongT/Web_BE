@@ -1,6 +1,6 @@
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
-import { Prisma, PrintJobStatus, PrintJobType } from "@prisma/client";
+import { Prisma, PrintJobStatus, PrintJobType, Session } from "@prisma/client";
 import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 import {
@@ -166,6 +166,11 @@ export class ServiceRequestService {
       isPatientRequested: request.isPatientRequested ?? null,
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
+      isFollowUpTransferred: request.isFollowUpTransferred ?? null,
+      followUpDate: request.followUpDate
+        ? request.followUpDate.toISOString()
+        : null,
+      followUpSession: request.followUpSession ?? null,
       note: request.note ?? null,
       isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
@@ -377,6 +382,9 @@ export class ServiceRequestService {
           isPatientRequested: data.isPatientRequested ?? false,
           receiveResultAtClinic: data.receiveResultAtClinic ?? false,
           isForFollowUp: data.isForFollowUp,
+          isFollowUpTransferred: false,
+          followUpDate: data.followUpDate ? new Date(data.followUpDate) : null,
+          followUpSession: (data.followUpSession as Session) ?? null,
           isPrinted: data.isPrinted,
           note: data.note ?? null,
           details: detailsToCreate,
@@ -402,6 +410,11 @@ export class ServiceRequestService {
       isPatientRequested: request.isPatientRequested ?? null,
       receiveResultAtClinic: request.receiveResultAtClinic ?? null,
       isForFollowUp: request.isForFollowUp ?? null,
+      isFollowUpTransferred: request.isFollowUpTransferred ?? null,
+      followUpDate: request.followUpDate
+        ? request.followUpDate.toISOString()
+        : null,
+      followUpSession: request.followUpSession ?? null,
       note: request.note ?? null,
       isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
@@ -581,6 +594,12 @@ export class ServiceRequestService {
     const clinicPhonesText =
       clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
     const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
+    const followUpDate = rawData.isForFollowUp
+      ? formatDate(rawData.followUpDate ?? null)
+      : "";
+    const followUpSession = rawData.isForFollowUp
+      ? toStringValue(rawData.followUpSession ?? null)
+      : "";
     return {
       requestCode,
       barcode,
@@ -608,6 +627,8 @@ export class ServiceRequestService {
       clinicPhones,
       clinicPhonesText,
       doctorName,
+      followUpDate,
+      followUpSession,
     };
   }
 
@@ -741,6 +762,9 @@ export class ServiceRequestService {
       isPatientRequested: dto.isPatientRequested,
       receiveResultAtClinic: dto.receiveResultAtClinic,
       isForFollowUp: dto.isForFollowUp,
+      isFollowUpTransferred: false,
+      followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
+      followUpSession: dto.followUpSession ?? null,
       isPrinted: dto.isPrinted,
       note: dto.note,
       details: dto.details.map((d) => ({
@@ -755,4 +779,3 @@ export class ServiceRequestService {
     return await this.serviceRequestRepository.upsert(payload);
   }
 }
-

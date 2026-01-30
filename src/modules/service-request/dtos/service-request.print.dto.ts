@@ -50,4 +50,6 @@ export interface ServiceRequestPrintData {
   clinicPhones: string[];
   clinicPhonesText: string;
   doctorName: string;
+  followUpDate: string;
+  followUpSession: string;
 }

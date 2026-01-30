@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
-import { ServiceRequest } from "@prisma/client";
+import { Session } from "@prisma/client";
 
 export interface CreateServiceRequestDetailPayload {
   itemId: string;
@@ -14,6 +14,12 @@ export interface CreateServiceRequestPayload {
   isPatientRequested?: boolean;
   receiveResultAtClinic?: boolean;
   isForFollowUp?: boolean;
+  isFollowUpTransferred?: boolean;
+  followUpDate?: Date | null;
+  followUpSession?:
+    | Prisma.EnumSessionFieldUpdateOperationsInput
+    | Session
+    | null;
   note?: string | null;
   isPrinted?: boolean;
   details: CreateServiceRequestDetailPayload[];
@@ -57,6 +63,96 @@ export type ServiceRequestWithDetailsAndResults =
   }>;
 
 export class ServiceRequestRepository {
+  public async transferFollowUpRequestsToRecord(
+    patientId: string,
+    newRecordId: string,
+  ): Promise<{ transferred: number }> {
+    return await prisma.$transaction(async (tx) => {
+      const requests = await tx.serviceRequest.findMany({
+        where: {
+          isForFollowUp: true,
+          isFollowUpTransferred: false,
+          medicalRecord: { patientId },
+        },
+        include: {
+          details: true,
+          serviceResults: true,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+
+      if (requests.length === 0) {
+        return { transferred: 0 };
+      }
+
+      for (const request of requests) {
+        const created = await tx.serviceRequest.create({
+          data: {
+            recordId: newRecordId,
+            orderingDoctorId: request.orderingDoctorId ?? null,
+            diagnoses: request.diagnoses ?? Prisma.JsonNull,
+            isPatientRequested: request.isPatientRequested ?? false,
+            receiveResultAtClinic: request.receiveResultAtClinic ?? false,
+            isForFollowUp: false,
+            isFollowUpTransferred: false,
+            isPrinted: false,
+            followUpDate: request.followUpDate ?? null,
+            followUpSession: request.followUpSession ?? null,
+            note: request.note ?? null,
+            details: {
+              create: request.details.map((detail) => ({
+                itemId: detail.itemId,
+                selectedOptions: detail.selectedOptions ?? Prisma.JsonNull,
+              })),
+            },
+          },
+          include: { details: true },
+        });
+
+        const detailIdByItemId = new Map(
+          created.details
+            .filter((detail) => detail.itemId)
+            .map((detail) => [detail.itemId as string, detail.requestDetailId]),
+        );
+
+        const resultsToCreate = request.serviceResults
+          .map((result) => {
+            const itemId = result.itemId ?? null;
+            const detailId =
+              itemId && detailIdByItemId.get(itemId)
+                ? detailIdByItemId.get(itemId) ?? null
+                : null;
+            if (!detailId) {
+              return null;
+            }
+            return {
+              detailId,
+              requestId: created.requestId,
+              itemId,
+              configId: result.configId ?? null,
+              indicatorName: result.indicatorName ?? null,
+              valueString: result.valueString ?? null,
+              valueNumber: result.valueNumber ?? null,
+              unit: result.unit ?? null,
+              executedAt: result.executedAt ?? null,
+            };
+          })
+          .filter(Boolean) as Prisma.ServiceResultUncheckedCreateInput[];
+
+        if (resultsToCreate.length > 0) {
+          await tx.serviceResult.createMany({ data: resultsToCreate });
+        }
+      }
+
+      await tx.serviceRequest.updateMany({
+        where: { requestId: { in: requests.map((r) => r.requestId) } },
+        data: { isFollowUpTransferred: true },
+      });
+
+      return { transferred: requests.length };
+    });
+  }
+
   public async create(
     createData: CreateServiceRequestPayload,
     tx?: Prisma.TransactionClient,
@@ -70,7 +166,10 @@ export class ServiceRequestRepository {
           isPatientRequested: createData.isPatientRequested ?? false,
           receiveResultAtClinic: createData.receiveResultAtClinic ?? false,
           isForFollowUp: createData.isForFollowUp ?? false,
+          isFollowUpTransferred: createData.isFollowUpTransferred ?? false,
           isPrinted: createData.isPrinted ?? false,
+          followUpDate: createData.followUpDate ?? null,
+          followUpSession: createData.followUpSession as Session ?? null,
           note: createData.note ?? null,
         },
       });
@@ -104,7 +203,10 @@ export class ServiceRequestRepository {
           isPatientRequested: createData.isPatientRequested ?? false,
           receiveResultAtClinic: createData.receiveResultAtClinic ?? false,
           isForFollowUp: createData.isForFollowUp ?? false,
+          isFollowUpTransferred: createData.isFollowUpTransferred ?? false,
           isPrinted: createData.isPrinted ?? false,
+          followUpDate: createData.followUpDate ?? null,
+          followUpSession: createData.followUpSession as Session ?? null,
           note: createData.note ?? null,
         },
       });
@@ -211,7 +313,10 @@ export class ServiceRequestRepository {
           isPatientRequested: payload.isPatientRequested ?? false,
           receiveResultAtClinic: payload.receiveResultAtClinic ?? false,
           isForFollowUp: payload.isForFollowUp ?? false,
+          isFollowUpTransferred: payload.isFollowUpTransferred ?? false,
           isPrinted: payload.isPrinted ?? false,
+          followUpDate: payload.followUpDate ?? null,
+          followUpSession: payload.followUpSession as Session ?? null,
           note: payload.note ?? null,
           updatedAt: new Date(),
         },

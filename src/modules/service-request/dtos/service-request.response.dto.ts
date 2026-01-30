@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { Session } from "@prisma/client";
 import {
   MedicalDiagnosisDto,
   DiagnosisSchema,
@@ -51,6 +52,9 @@ export interface ServiceRequestResponseDto {
   isPatientRequested: boolean | null;
   receiveResultAtClinic: boolean | null;
   isForFollowUp: boolean | null;
+  isFollowUpTransferred: boolean | null;
+  followUpDate: string | null;
+  followUpSession: Session | null;
   note: string | null;
   isPrinted: boolean | null;
   createdAt: string | null;
@@ -115,6 +119,9 @@ export const ServiceRequestResponseSchema = Joi.object({
   isPatientRequested: Joi.boolean().allow(null),
   receiveResultAtClinic: Joi.boolean().allow(null),
   isForFollowUp: Joi.boolean().allow(null),
+  isFollowUpTransferred: Joi.boolean().allow(null),
+  followUpDate: Joi.string().allow(null),
+  followUpSession: Joi.string().allow(null),
   note: Joi.string().allow(null),
   isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
@@ -131,6 +138,9 @@ export const ServiceRequestFullResponseSchema = Joi.object({
   isPatientRequested: Joi.boolean().allow(null),
   receiveResultAtClinic: Joi.boolean().allow(null),
   isForFollowUp: Joi.boolean().allow(null),
+  isFollowUpTransferred: Joi.boolean().allow(null),
+  followUpDate: Joi.string().allow(null),
+  followUpSession: Joi.string().allow(null),
   note: Joi.string().allow(null),
   isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
