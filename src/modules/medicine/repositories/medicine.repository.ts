@@ -14,7 +14,7 @@ export class MedicineRepository {
 
   public async createMedicine(
     data: CreateMedicineRequestDto,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Medicine> {
     return await prisma.medicine.create({
       data: {
@@ -41,7 +41,7 @@ export class MedicineRepository {
 
   public async findMedicineById(
     id: string,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Medicine | null> {
     return await prisma.medicine.findFirst({
       where: {
@@ -65,7 +65,7 @@ export class MedicineRepository {
       maxPrice?: number;
       sortBy?: "medicineName" | "sellPrice" | "createdAt" | "medicineCode";
       sort?: "asc" | "desc";
-    } = {}
+    } = {},
   ): Promise<{ medicines: Medicine[]; totalItems: number }> {
     const skip = (page - 1) * size;
 
@@ -77,7 +77,10 @@ export class MedicineRepository {
     const priceFilter: Prisma.MedicineWhereInput = {};
     if (options.sellPrice !== undefined) {
       priceFilter.sellPrice = new Prisma.Decimal(options.sellPrice);
-    } else if (options.minPrice !== undefined || options.maxPrice !== undefined) {
+    } else if (
+      options.minPrice !== undefined ||
+      options.maxPrice !== undefined
+    ) {
       priceFilter.sellPrice = {
         ...(options.minPrice !== undefined
           ? { gte: new Prisma.Decimal(options.minPrice) }
@@ -99,7 +102,9 @@ export class MedicineRepository {
                 },
               }
             : {}),
-          ...(options.isActive === undefined ? {} : { isActive: options.isActive }),
+          ...(options.isActive === undefined
+            ? {}
+            : { isActive: options.isActive }),
           ...(options.isInsuranceCovered === undefined
             ? {}
             : { isInsuranceCovered: options.isInsuranceCovered }),
@@ -161,8 +166,12 @@ export class MedicineRepository {
     const primaryOrderBy: Prisma.MedicineOrderByWithRelationInput =
       sortBy === "createdAt"
         ? { createdAt: sortDirection }
-        : ({ [sortBy]: sortDirection } as Prisma.MedicineOrderByWithRelationInput);
-    const orderBy: Prisma.MedicineOrderByWithRelationInput | Prisma.MedicineOrderByWithRelationInput[] =
+        : ({
+            [sortBy]: sortDirection,
+          } as Prisma.MedicineOrderByWithRelationInput);
+    const orderBy:
+      | Prisma.MedicineOrderByWithRelationInput
+      | Prisma.MedicineOrderByWithRelationInput[] =
       sortBy === "createdAt"
         ? primaryOrderBy
         : [primaryOrderBy, { createdAt: "desc" as Prisma.SortOrder }];
@@ -183,7 +192,7 @@ export class MedicineRepository {
   public async updateMedicine(
     id: string,
     data: Prisma.MedicineUpdateInput,
-    clinicId?: string
+    clinicId?: string,
   ): Promise<Medicine | null> {
     // First check if medicine exists with clinic filter
     const existing = await prisma.medicine.findFirst({
@@ -205,7 +214,7 @@ export class MedicineRepository {
   }
 
   public async findMedicineByCode(
-    medicineCode: string
+    medicineCode: string,
   ): Promise<Medicine | null> {
     return await prisma.medicine.findUnique({
       where: { medicineCode: medicineCode },
@@ -214,11 +223,15 @@ export class MedicineRepository {
 
   public async findMedicinesByIds(
     medicineIds: string[],
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<
     Pick<
       Medicine,
-      "medicineId" | "sellPrice" | "medicineName" | "isInsuranceCovered" | "insurancePrice"
+      | "medicineId"
+      | "sellPrice"
+      | "medicineName"
+      | "isInsuranceCovered"
+      | "insurancePrice"
     >[]
   > {
     const client = tx || prisma;
@@ -234,6 +247,67 @@ export class MedicineRepository {
         isInsuranceCovered: true,
         insurancePrice: true,
       },
+    });
+  }
+
+  public async decrementStockIfEnough(
+    medicineId: string,
+    quantity: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.medicine.updateMany({
+      where: {
+        medicineId: medicineId,
+        totalQuantity: { gte: quantity },
+      },
+      data: { totalQuantity: { decrement: quantity } },
+    });
+  }
+
+  public async decrementStockForce(
+    medicineId: string,
+    quantity: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.medicine.update({
+      where: { medicineId },
+      data: { totalQuantity: { decrement: quantity } },
+    });
+  }
+
+  public async markDispensed(
+    prescriptionId: string,
+    userId: string,
+    totalPrice: number,
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.prescription.update({
+      where: { prescriptionId },
+      data: {
+        isDispensed: true,
+        dispensedAt: new Date(),
+        dispensedBy: userId,
+        totalPrice: new Prisma.Decimal(totalPrice),
+      },
+    });
+  }
+
+  public async createInventoryLog(
+    data: Prisma.InventoryLogCreateManyInput,
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.inventoryLog.create({
+      data: data,
+    });
+  }
+
+  public async setStockToZero(
+    medicineId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    return await tx.medicine.update({
+      where: { medicineId },
+      data: { totalQuantity: 0 },
     });
   }
 }

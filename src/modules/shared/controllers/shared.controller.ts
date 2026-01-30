@@ -27,17 +27,17 @@ export class SharedController {
     res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.sharedService.printMedicalRecordDocx(
+    const result = await this.sharedService.enqueueMedicalRecordPrint(
       req.params.id,
       clinicId,
+      req.payload?.userId,
     );
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.recordCode}.pdf"`,
+    return successResponse(
+      res,
+      202,
+      result,
+      "Đã thêm vào hàng đợi in bệnh án thành công",
     );
-    return res.send(result.buffer);
   };
 
   public getOrPrintMedicalRecordPdf = async (
@@ -45,7 +45,14 @@ export class SharedController {
     res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.sharedService.getMedicalRecordFile(req.params.id, clinicId)
-    return successResponse(res, 200, result, "Lấy file bệnh án thành công");
+    const result = await this.sharedService.getMedicalRecordFile(
+      req.params.id,
+      clinicId,
+    );
+    const statusCode = result.enqueued ? 202 : 200;
+    const message = result.enqueued
+      ? "Dang tao file benh an, vui long thu lai"
+      : "Lay file benh an thanh cong";
+    return successResponse(res, statusCode, result, message);
   };
 }

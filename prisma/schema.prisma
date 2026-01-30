@@ -77,11 +77,51 @@ enum FileType {
   OTHER
 }
 
+enum PrintJobType {
+  MEDICAL_RECORD
+  PRESCRIPTION
+  SERVICE_REQUEST
+}
+
+enum PrintJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
 model Role {
   roleId   String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   roleName UserRoleEnum @unique
 
   users UserRole[]
+}
+
+model AuditLog {
+  logId         String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  clinicId      String? @db.Uuid
+  username      String? @db.VarChar(100)
+  role          String?
+  action        String  @db.VarChar(50)
+  entityName    String  @db.VarChar(50)
+  entityId      String? @db.VarChar(100)
+  requestMethod String  @db.VarChar(10)
+  requestUrl    String  @db.Text
+  remoteAddress String? @db.VarChar(50)
+
+  requestBody  Json? @default("{}")
+  responseBody Json? @default("{}")
+
+  statusCode   Int?
+  errorMessage String? @db.Text
+  durationMs   Int?
+
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  @@index([username])
+  @@index([entityName, entityId])
+  @@index([createdAt])
+  @@index([action])
 }
 
 model Clinic {
@@ -294,6 +334,9 @@ model Prescription {
   updatedAt        DateTime?            @updatedAt @db.Timestamptz
   printedAt        DateTime?            @db.Timestamptz
   printCount       Int?                 @default(1)
+  isDispensed      Boolean?             @default(false)
+  dispensedAt      DateTime?            @db.Timestamptz
+  dispensedBy      String?              @db.Uuid
   details          PrescriptionDetail[]
   file             File?                @relation()
 }
@@ -393,7 +436,11 @@ model ServiceRequest {
   isPatientRequested    Boolean   @default(false)
   receiveResultAtClinic Boolean   @default(false)
   isForFollowUp         Boolean   @default(false)
+  isFollowUpTransferred Boolean   @default(false)
+  isPrinted             Boolean   @default(false)
   note                  String?
+  followUpDate          DateTime? @db.Timestamptz
+  followUpSession       Session?
   createdAt             DateTime? @default(now()) @db.Timestamptz
   updatedAt             DateTime? @updatedAt @db.Timestamptz
 
@@ -486,18 +533,20 @@ model Medicine {
 }
 
 model InventoryLog {
-  logId        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  medicineId   String?           @db.Uuid
-  medicine     Medicine?         @relation(fields: [medicineId], references: [medicineId])
-  type         InventoryLogType?
-  quantity     Int?
-  quantityBase Int?
-  unitPrice    Decimal?          @db.Decimal(18, 0)
-  totalPrice   Decimal?          @db.Decimal(18, 0)
-  performedBy  String?           @db.Uuid
-  performer    User?             @relation(fields: [performedBy], references: [userId])
-  note         String?
-  createdAt    DateTime?         @default(now()) @db.Timestamptz
+  logId          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  medicineId     String?           @db.Uuid
+  medicine       Medicine?         @relation(fields: [medicineId], references: [medicineId])
+  type           InventoryLogType?
+  quantity       Int?
+  shortage       Int?
+  quantityBase   Int?
+  unitPrice      Decimal?          @db.Decimal(18, 0)
+  totalPrice     Decimal?          @db.Decimal(18, 0)
+  performedBy    String?           @db.Uuid
+  performer      User?             @relation(fields: [performedBy], references: [userId])
+  note           String?
+  createdAt      DateTime?         @default(now()) @db.Timestamptz
+  prescriptionId String?           @db.Uuid
 }
 
 model PrescriptionTemplate {
@@ -545,4 +594,34 @@ model File {
 
   serviceResultId String?        @db.Uuid
   serviceResult   ServiceResult? @relation(fields: [serviceResultId], references: [resultId])
+  printJobs       PrintJob[]
+}
+
+model PrintJob {
+  jobId String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+
+  type   PrintJobType
+  status PrintJobStatus @default(PENDING)
+
+  entityId String? @db.Uuid
+  clinicId String? @db.Uuid
+  userId   String? @db.Uuid
+
+  payload  Json?   @default("{}")
+  errorMsg String? @db.Text
+
+  fileId String?
+  file   File?   @relation(fields: [fileId], references: [fileID])
+
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+  updatedAt  DateTime  @updatedAt @db.Timestamptz
+  startedAt  DateTime? @db.Timestamptz
+  finishedAt DateTime? @db.Timestamptz
+
+  @@index([status])
+  @@index([type])
+  @@index([entityId])
+  @@index([clinicId])
+  @@index([userId])
+  @@index([createdAt])
 }

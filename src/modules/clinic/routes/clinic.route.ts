@@ -5,6 +5,7 @@ import { ClinicController } from "../controllers/clinic.controller";
 import { UserRoleEnum } from "@prisma/client";
 import { validateBody, validateParams } from "../../../middlewares/validate";
 import { ClinicRequestSchema } from "../dtos/clinic.request.dto";
+import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
 const ClinicRouter = Router();
 const clinicController = new ClinicController();
@@ -18,6 +19,7 @@ const IdParamSchema = Joi.object({
 ClinicRouter.post(
   "/",
   authenticate,
+  auditLogsMiddleware("CREATE_CLINIC", "Clinic"),
   authorize([UserRoleEnum.Admin]),
   validateBody(ClinicRequestSchema),
   clinicController.createClinic
@@ -33,6 +35,7 @@ ClinicRouter.get(
 ClinicRouter.put(
   "/:id",
   authenticate,
+  auditLogsMiddleware("UPDATE_CLINIC", "Clinic"),
   authorize([UserRoleEnum.Admin]),
   validateBody(ClinicRequestSchema),
   clinicController.updateClinic

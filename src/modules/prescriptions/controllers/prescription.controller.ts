@@ -33,18 +33,17 @@ export class PrescriptionController {
     const clinicId = req.payload?.clinicId ?? "";
     const { id } = req.params;
 
-    const result = await this.prescriptionService.printPrescriptionPdf(
+    const result = await this.prescriptionService.enqueuePrescriptionPrint(
       id,
       clinicId,
+      req.payload?.userId,
     );
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.prescriptionCode}.pdf"`,
+    return successResponse(
+      res,
+      202,
+      result,
+      "Đã thêm vào hàng đợi in toa thuốc thành công",
     );
-
-    return res.send(result.buffer);
   };
 
   public getPrescriptionStatus = async (
@@ -100,4 +99,96 @@ export class PrescriptionController {
 
     return successResponse(res, 200, result, "Lấy danh sách toa cũ thành công");
   };
+
+  public dispensePrescription = async (
+    req: AuthenticatedRequest<{ id: string }, {}, {}, { forceExport?: string }>,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const userId = req.payload?.userId ?? "";
+    const { id } = req.params;
+    const forceExport =
+      String(req.query.forceExport ?? "false").toLowerCase() === "true";
+
+    const result = await this.prescriptionService.dispensePrescription(
+      id,
+      userId,
+      forceExport,
+      clinicId,
+    );
+
+    return successResponse(res, 200, result, "Xuất toa thành công");
+  };
+
+
+
+  public getPatientsWithPrescriptionsByDate = async (
+    req: AuthenticatedRequest<
+      {},
+      {},
+      {},
+      { from?: string; to?: string; page?: string; size?: string; isDispended?: string; fullName?: string }
+    >,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+    const normalizedFrom = from?.trim();
+    const normalizedTo = to?.trim();
+    if (normalizedFrom && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedFrom)) {
+      return res.status(400).json({
+        message: "Thời gian phải teo định dạng YYYY-MM-DD (theo giờ VN)",
+      });
+    }
+    if (normalizedTo && !/^\d{4}-\d{2}-\d{2}$/.test(normalizedTo)) {
+      return res.status(400).json({
+        message: "Thời gian phải theo định dạng YYYY-MM-DD (theo giờ VN)",
+      });
+    }
+    if (normalizedFrom && normalizedTo && normalizedFrom > normalizedTo) {
+      return res.status(400).json({
+        message: "From không được lớn hơn To (theo ngày giờ VN)",
+      });
+    }
+
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const size = req.query.size ? Number(req.query.size) : 10;
+    const fullName = req.query.fullName as string | undefined;
+
+    const rawIsDispensed = req.query.isDispended as string | undefined;
+    let isDispensed: boolean | undefined = undefined;
+    if (rawIsDispensed !== undefined) {
+      const normalized = rawIsDispensed.trim().toLowerCase();
+      if (["true", "1"].includes(normalized)) {
+        isDispensed = true;
+      } else if (["false", "0"].includes(normalized)) {
+        isDispensed = false;
+      } else {
+        return res.status(400).json({
+          message: "isDispended chỉ nhận true/false",
+        });
+      }
+    }
+
+    const result =
+      await this.prescriptionService.getPatientsWithPrescriptionsByDate(
+        normalizedFrom,
+        normalizedTo,
+        isDispensed,
+        fullName,
+        page,
+        size,
+        clinicId,
+      );
+
+    return successResponse(
+      res,
+      200,
+      result.items,
+      "Lấy danh sách bệnh nhân có toa thuốc thành công",
+      result.pagination,
+    );
+  };
+
 }

@@ -1,6 +1,7 @@
 import Joi from "joi";
 import { ICD10_REGEX } from "../../icd-10/dtos/icd-10.dto";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
+import { Session } from "@prisma/client";
 
 export interface BasicServiceRequestDto {
   recordId: string;
@@ -24,7 +25,10 @@ export interface CreateServiceRequestDto {
   diagnoses?: MedicalDiagnosisDto;
   isPatientRequested?: boolean;
   receiveResultAtClinic?: boolean;
-  isForFollowUp: boolean;
+  isForFollowUp?: boolean;
+  followUpDate?: string | Date | null;
+  followUpSession?: Session | null;
+  isPrinted?: boolean;
   note?: string | null;
   details: CreateServiceRequestDetailDto[];
 }
@@ -66,7 +70,13 @@ export const createServiceRequestSchema = Joi.object({
   isPatientRequested: Joi.boolean().optional().default(false),
   receiveResultAtClinic: Joi.boolean().optional().default(false),
   isForFollowUp: Joi.boolean().optional().default(false),
+  followUpDate: Joi.date().allow(null).optional(),
+  followUpSession: Joi.string()
+    .valid("Morning", "Noon", "Afternoon", "Evening")
+    .allow(null)
+    .optional(),
   note: Joi.string().allow("", null),
+  isPrinted: Joi.boolean().optional().default(false),
   details: Joi.array()
     .items(createServiceRequestDetailSchema)
     .default([])

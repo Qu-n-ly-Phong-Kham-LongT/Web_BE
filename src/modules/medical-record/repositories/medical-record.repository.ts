@@ -3,7 +3,7 @@ import { Prisma, MedicalRecord } from "@prisma/client";
 
 export class MedicalRecordRepository {
   public async createRecord(
-    data: Prisma.MedicalRecordUncheckedCreateInput
+    data: Prisma.MedicalRecordUncheckedCreateInput,
   ): Promise<MedicalRecord> {
     return await prisma.medicalRecord.create({
       data,
@@ -12,7 +12,7 @@ export class MedicalRecordRepository {
 
   public async findById(
     recordId: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ): Promise<MedicalRecord | null> {
     const client = tx ?? prisma;
     return await client.medicalRecord.findUnique({ where: { recordId } });
@@ -22,7 +22,7 @@ export class MedicalRecordRepository {
     patientId: string,
     clinicId: string,
     start: Date,
-    end: Date
+    end: Date,
   ): Promise<MedicalRecord | null> {
     return await prisma.medicalRecord.findFirst({
       where: {
@@ -41,8 +41,8 @@ export class MedicalRecordRepository {
     skip: number;
     take: number;
     search?: string;
-    clinicId?: string;  // Thay cho categoryId
-    doctorId?: string;  // Thay cho typeId
+    clinicId?: string; // Thay cho categoryId
+    doctorId?: string; // Thay cho typeId
     patientId?: string; // Lọc theo bệnh nhân cụ thể
   }) {
     const { skip, take, search, clinicId, doctorId, patientId } = params;
@@ -59,9 +59,13 @@ export class MedicalRecordRepository {
                   patient: {
                     OR: [
                       { fullName: { contains: search, mode: "insensitive" } },
-                      { patientCode: { contains: search, mode: "insensitive" } },
+                      {
+                        patientCode: { contains: search, mode: "insensitive" },
+                      },
                       { phone: { contains: search, mode: "insensitive" } },
-                      { identityCard: { contains: search, mode: "insensitive" } },
+                      {
+                        identityCard: { contains: search, mode: "insensitive" },
+                      },
                     ],
                   },
                 },
@@ -80,15 +84,16 @@ export class MedicalRecordRepository {
         where,
         skip,
         take,
-        orderBy: { createdAt: 'desc' }, // Mặc định hồ sơ mới nhất lên đầu
+        orderBy: { createdAt: "desc" }, // Mặc định hồ sơ mới nhất lên đầu
         include: {
           patient: true, // Lấy kèm thông tin bệnh nhân
-          doctor: {      // Lấy kèm tên bác sĩ
+          doctor: {
+            // Lấy kèm tên bác sĩ
             select: {
-                userId: true,
-                fullName: true
-            }
-          }, 
+              userId: true,
+              fullName: true,
+            },
+          },
         },
       }),
       prisma.medicalRecord.count({ where }),
@@ -101,7 +106,23 @@ export class MedicalRecordRepository {
         page: Math.floor(skip / take) + 1,
         limit: take,
         totalPages: Math.ceil(total / take),
-      }
+      },
     };
+  }
+
+  public async calculateConsultationFees(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    return await prisma.medicalRecord.findMany({
+      where: {
+        ...(clinicId ? { clinicId } : {}),
+        createdAt: { gte: from, lt: to },
+      },
+      select: {
+        consultationFee: true,
+      },
+    });
   }
 }

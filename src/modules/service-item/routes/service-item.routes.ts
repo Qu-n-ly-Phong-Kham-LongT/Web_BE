@@ -7,6 +7,7 @@ import {
   updateServiceItemSchema,
 } from "../dtos/service-item.request.dto";
 import { UserRoleEnum } from "@prisma/client";
+import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
 const serviceItemRouter = Router();
 
@@ -17,6 +18,7 @@ serviceItemRouter.get("/input-types", controller.getAllInputTypes);
 serviceItemRouter.post(
   "/",
   authenticate,
+  auditLogsMiddleware("CREATE_SERVICE_ITEM", "ServiceItem"),
   authorize([UserRoleEnum.Admin]),
   validateBody(createServiceItemSchema),
   controller.create,
@@ -29,6 +31,7 @@ serviceItemRouter.get("/:id", authenticate, controller.getById);
 serviceItemRouter.put(
   "/:id/status",
   authenticate,
+  auditLogsMiddleware("UPDATE_SERVICE_ITEM_STATUS", "ServiceItem"),
   authorize([UserRoleEnum.Admin]),
   validateBody(updateServiceItemSchema),
   controller.udpateStatus,

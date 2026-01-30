@@ -1,10 +1,7 @@
 import { Response } from "express";
 import { successResponse } from "../../../utils/response.util";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
-import {
-  BasicServiceRequestDto,
-  CreateServiceRequestDto,
-} from "../dtos/service-request.request.dto";
+import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import { ServiceRequestService } from "../services/service-request.service";
 
 export class ServiceRequestController {
@@ -35,7 +32,7 @@ export class ServiceRequestController {
   ) => {
     const { requestId } = req.params;
 
-    const result = await this.serviceRequestService.saveServiceRequest( 
+    const result = await this.serviceRequestService.saveServiceRequest(
       requestId,
       req.body,
     );
@@ -84,16 +81,16 @@ export class ServiceRequestController {
     res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.serviceRequestService.printServiceRequestPdf(
+    const result = await this.serviceRequestService.enqueueServiceRequestPrint(
       req.params.id,
       clinicId,
+      req.payload?.userId,
     );
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.requestCode}.pdf"`,
+    return successResponse(
+      res,
+      202,
+      result,
+      "Đã thêm vào hàng đợi in phiếu chỉ định thành công",
     );
-
-    return res.send(result.buffer);
   };
 }

@@ -12,27 +12,28 @@ export class MedicineController {
 
   public createMedicine = async (
     req: AuthenticatedRequest<{}, any, CreateMedicineRequestDto>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? undefined;
-    let result: MedicineResponseDto = await this.medicineService.createMedicine(req.body, clinicId);
+    let result: MedicineResponseDto = await this.medicineService.createMedicine(
+      req.body,
+      clinicId,
+    );
     return successResponse(res, 201, result, "Tạo thuốc thành công");
   };
 
   public getMedicineById = async (
     req: AuthenticatedRequest<{ id: string }>,
-    res: Response
+    res: Response,
   ) => {
     const { id } = req.params;
     const clinicId = req.payload?.clinicId ?? undefined;
-    let result: MedicineResponseDto = await this.medicineService.getMedicineById(id, clinicId);
+    let result: MedicineResponseDto =
+      await this.medicineService.getMedicineById(id, clinicId);
     return successResponse(res, 200, result, "Lấy thông tin thuốc thành công");
   };
 
-  public getMedicines = async (
-    req: AuthenticatedRequest,
-    res: Response
-  ) => {
+  public getMedicines = async (req: AuthenticatedRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
@@ -55,23 +56,23 @@ export class MedicineController {
     const minPrice = minPriceRaw ? Number(minPriceRaw) : undefined;
     const maxPrice = maxPriceRaw ? Number(maxPriceRaw) : undefined;
     const sortByParam = (req.query.sortBy as string | undefined) ?? "createdAt";
-    const sortBy = ["medicineName", "sellPrice", "createdAt", "medicineCode"].includes(
-      sortByParam
-    )
+    const sortBy = [
+      "medicineName",
+      "sellPrice",
+      "createdAt",
+      "medicineCode",
+    ].includes(sortByParam)
       ? (sortByParam as
           | "medicineName"
           | "sellPrice"
           | "createdAt"
           | "medicineCode")
       : "createdAt";
-    const sort = (req.query.sort as string)?.toLowerCase() === "asc" ? "asc" : "desc";
+    const sort =
+      (req.query.sort as string)?.toLowerCase() === "asc" ? "asc" : "desc";
 
-    let result: MedicineListResponseDto = await this.medicineService.getMedicines(
-      page,
-      size,
-      search,
-      clinicId,
-      {
+    let result: MedicineListResponseDto =
+      await this.medicineService.getMedicines(page, size, search, clinicId, {
         supplier,
         isActive,
         isInsuranceCovered,
@@ -80,19 +81,32 @@ export class MedicineController {
         maxPrice: Number.isFinite(maxPrice as number) ? maxPrice : undefined,
         sortBy,
         sort,
-      }
+      });
+    return successResponse(
+      res,
+      200,
+      result.medicines,
+      "Lấy danh sách thuốc thành công",
+      result.pagination,
     );
-    return successResponse(res, 200, result.medicines, "Lấy danh sách thuốc thành công", result.pagination);
   };
 
   public updateMedicine = async (
     req: AuthenticatedRequest<{ id: string }, {}, UpdateMedicineRequestDto>,
-    res: Response
+    res: Response,
   ) => {
     const { id } = req.params;
     const clinicId = req.payload?.clinicId ?? undefined;
-    let result: MedicineResponseDto = await this.medicineService.updateMedicine(id, req.body, clinicId);
-    return successResponse(res, 200, result, "Cập nhật thông tin thuốc thành công");
+    let result: MedicineResponseDto = await this.medicineService.updateMedicine(
+      id,
+      req.body,
+      clinicId,
+    );
+    return successResponse(
+      res,
+      200,
+      result,
+      "Cập nhật thông tin thuốc thành công",
+    );
   };
 }
-

@@ -127,6 +127,19 @@ export class ServiceItemRepository {
     });
   }
 
+  public async findItemsWithConfigsByIds(
+    itemIds: string[],
+  ): Promise<Prisma.ServiceItemGetPayload<{ include: { configs: true } }>[]> {
+    return await prisma.serviceItem.findMany({
+      where: {
+        itemId: { in: itemIds },
+      },
+      include: {
+        configs: true,
+      },
+    });
+  }
+
   public async findActiveItemsWithConfigsByIds(
     itemIds: string[],
     tx?: Prisma.TransactionClient,

@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { Session } from "@prisma/client";
 import {
   MedicalDiagnosisDto,
   DiagnosisSchema,
@@ -37,8 +38,7 @@ export interface ServiceRequestSelectedConfigResponseDto {
   totalSurcharge: number | null;
 }
 
-export interface ServiceRequestDetailFullResponseDto
-  extends ServiceRequestDetailResponseDto {
+export interface ServiceRequestDetailFullResponseDto extends ServiceRequestDetailResponseDto {
   selectedConfigs: ServiceRequestSelectedConfigResponseDto[];
   results: ServiceRequestResultResponseDto[];
 }
@@ -52,13 +52,19 @@ export interface ServiceRequestResponseDto {
   isPatientRequested: boolean | null;
   receiveResultAtClinic: boolean | null;
   isForFollowUp: boolean | null;
+  isFollowUpTransferred: boolean | null;
+  followUpDate: string | null;
+  followUpSession: Session | null;
   note: string | null;
+  isPrinted: boolean | null;
   createdAt: string | null;
   details: ServiceRequestDetailResponseDto[];
 }
 
-export interface ServiceRequestFullResponseDto
-  extends Omit<ServiceRequestResponseDto, "details"> {
+export interface ServiceRequestFullResponseDto extends Omit<
+  ServiceRequestResponseDto,
+  "details"
+> {
   recordCode: string | null;
   patientId: string | null;
   details: ServiceRequestDetailFullResponseDto[];
@@ -98,7 +104,7 @@ export const ServiceRequestDetailFullResponseSchema =
           refRange: Joi.string().allow(null),
           selectedValues: Joi.array().items(Joi.string()).required(),
           totalSurcharge: Joi.number().allow(null),
-        })
+        }),
       )
       .required(),
     results: Joi.array().items(ServiceRequestResultResponseSchema).required(),
@@ -113,7 +119,11 @@ export const ServiceRequestResponseSchema = Joi.object({
   isPatientRequested: Joi.boolean().allow(null),
   receiveResultAtClinic: Joi.boolean().allow(null),
   isForFollowUp: Joi.boolean().allow(null),
+  isFollowUpTransferred: Joi.boolean().allow(null),
+  followUpDate: Joi.string().allow(null),
+  followUpSession: Joi.string().allow(null),
   note: Joi.string().allow(null),
+  isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
   details: Joi.array().items(ServiceRequestDetailResponseSchema).required(),
 });
@@ -128,7 +138,11 @@ export const ServiceRequestFullResponseSchema = Joi.object({
   isPatientRequested: Joi.boolean().allow(null),
   receiveResultAtClinic: Joi.boolean().allow(null),
   isForFollowUp: Joi.boolean().allow(null),
+  isFollowUpTransferred: Joi.boolean().allow(null),
+  followUpDate: Joi.string().allow(null),
+  followUpSession: Joi.string().allow(null),
   note: Joi.string().allow(null),
+  isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
   patientId: Joi.string().allow(null),
   details: Joi.array().items(ServiceRequestDetailFullResponseSchema).required(),

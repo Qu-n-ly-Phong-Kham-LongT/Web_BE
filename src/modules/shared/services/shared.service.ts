@@ -10,6 +10,9 @@ import { FileService } from "../../file/services/file.service";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
 import { FileRepository } from "../../file/repositories/file.repository";
+import { PrintJobStatus, PrintJobType } from "@prisma/client";
+import { prisma } from "../../../config/database.config";
+import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
 
 export class SharedService {
   private sharedReposoitory = new SharedRepository();
@@ -95,6 +98,33 @@ export class SharedService {
     };
   }
 
+  public async enqueueMedicalRecordPrint(
+    recordId: string,
+    clinicId: string,
+    userId?: string,
+  ) {
+    await this.getFullMedicalRecord(recordId, clinicId);
+
+    const job = await prisma.printJob.create({
+      data: {
+        type: PrintJobType.MEDICAL_RECORD,
+        status: PrintJobStatus.PENDING,
+        entityId: recordId,
+        clinicId: clinicId || null,
+        userId: userId ?? null,
+        payload: { recordId },
+      },
+    });
+
+    await enqueuePrintJob(job.jobId);
+
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      type: job.type,
+    };
+  }
+
   private parseDate(value?: string | Date | null): Date | null {
     if (!value) {
       return null;
@@ -159,25 +189,19 @@ export class SharedService {
   }
 
   public async getMedicalRecordFile(recordId: string, clinicId: string) {
-    let existing;
-    existing = await this.fileRepository.findByMedicalRecordId(recordId);
-
-    if (!existing) {
-      await this.printMedicalRecordDocx(recordId, clinicId);
-      return await this.getMedicalRecordFileSafe(recordId);
-    }
+    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
 
     if (existing?.createdAt) {
       const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
       const latestChange = this.getLatestRecordChange(fullRecord);
-
       if (latestChange <= existing.createdAt) {
-        return existing;
+        return { file: existing, enqueued: false };
       }
     }
 
-    await this.printMedicalRecordDocx(recordId, clinicId);
+    // If file is missing or stale, enqueue a render job instead of blocking.
+    const job = await this.enqueueMedicalRecordPrint(recordId, clinicId);
 
-    return await this.getMedicalRecordFileSafe(recordId);
+    return { file: existing ?? null, enqueued: true, stale: true, job };
   }
 }
