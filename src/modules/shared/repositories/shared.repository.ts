@@ -563,6 +563,7 @@ export class SharedRepository {
           reason: record.followUp.reason ?? null,
         }
       : null;
+    const hasFollowUp = !!followUp?.appointmentDate;
 
     return {
       patient,
@@ -622,12 +623,27 @@ export class SharedRepository {
       }
       return value ? "Có" : "Không";
     };
+    const toSessionLabel = (value?: string | null) => {
+      switch (value) {
+        case "Morning":
+          return "sáng";
+        case "Noon":
+          return "trưa";
+        case "Afternoon":
+          return "chiều";
+        case "Evening":
+          return "tối";
+        default:
+          return "";
+      }
+    };
 
     const medicalRecord = dto.medicalRecord;
     const patient = dto.patient;
     const clinicalExamination = dto.clinicalExamination;
     const prescription = dto.prescription;
     const followUp = dto.followUp;
+    const hasFollowUp = !!followUp?.appointmentDate;
 
     const diagnoses = medicalRecord.diagnoses;
     const diagnosisLines: string[] = [];
@@ -849,8 +865,11 @@ export class SharedRepository {
       requests: serviceRequests,
       requestSelectedConfigs: serviceRequestSelectedConfigs,
       appointmentDate: formatDate(followUp?.appointmentDate ?? "Không có"),
-      appointmentSession: toStringValue(followUp?.session),
+      appointmentSession: toSessionLabel(
+        followUp?.session ? String(followUp.session) : null,
+      ),
       appointmentReason: toStringValue(followUp?.reason),
+      hasFollowUp: hasFollowUp ? "true" : "",
     };
   }
 }

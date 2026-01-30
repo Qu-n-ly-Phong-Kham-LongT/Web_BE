@@ -258,6 +258,20 @@ export class PrecriptionService {
       }
       return value ? "Có" : "Không";
     };
+    const toSessionLabel = (value?: string | null) => {
+      switch (value) {
+        case "Morning":
+          return "sáng";
+        case "Noon":
+          return "trưa";
+        case "Afternoon":
+          return "chiều";
+        case "Evening":
+          return "tối";
+        default:
+          return "";
+      }
+    };
 
     const prescriptionCode = toStringValue(rawData.prescriptionCode);
     const barcode = await generateBarcodeBuffer(prescriptionCode);
@@ -337,6 +351,11 @@ export class PrecriptionService {
     const followUpDate = formatDate(
       rawData.medicalRecord?.followUp?.appointmentDate,
     );
+    const followUpSession = toSessionLabel(
+      rawData.medicalRecord?.followUp?.session
+        ? String(rawData.medicalRecord.followUp.session)
+        : null,
+    );
     const reason = toStringValue(rawData.medicalRecord?.followUp?.reason);
     return {
       prescriptionCode,
@@ -352,6 +371,7 @@ export class PrecriptionService {
       medicines,
       createDate,
       followUpDate,
+      followUpSession,
       note,
       reason,
       printCount,

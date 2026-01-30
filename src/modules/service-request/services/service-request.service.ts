@@ -459,6 +459,20 @@ export class ServiceRequestService {
       const year = date.getFullYear();
       return `Ngày ${day} tháng ${month} năm ${year}`;
     };
+    const toSessionLabel = (value?: string | null) => {
+      switch (value) {
+        case "Morning":
+          return "sáng";
+        case "Noon":
+          return "trưa";
+        case "Afternoon":
+          return "chiều";
+        case "Evening":
+          return "tối";
+        default:
+          return "";
+      }
+    };
     const rawData = await this.serviceRequestRepository.getDataPrint(requestId);
     if (!rawData) {
       throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
@@ -598,7 +612,9 @@ export class ServiceRequestService {
       ? formatDate(rawData.followUpDate ?? null)
       : "";
     const followUpSession = rawData.isForFollowUp
-      ? toStringValue(rawData.followUpSession ?? null)
+      ? toSessionLabel(
+          rawData.followUpSession ? String(rawData.followUpSession) : null,
+        )
       : "";
     return {
       requestCode,
