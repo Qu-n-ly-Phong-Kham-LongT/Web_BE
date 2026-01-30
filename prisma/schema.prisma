@@ -322,6 +322,11 @@ model Icd10Dictionary {
   description String?
 }
 
+model Dictionary {
+  key   String  @id
+  value String?
+}
+
 model Prescription {
   prescriptionId   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   prescriptionCode String?              @unique
