@@ -10,7 +10,10 @@ import { PatientAllergyResponseDto } from "../../patient/dtos/patient-allergy.re
 import { SharedRepository } from "../../shared/repositories/shared.repository";
 import { FullMedicalRecordDto } from "../../shared/dtos/medical-record-detail.dto";
 import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
-import { ServiceRequestRepository } from "../../service-request/repositories/service-request.repository";
+import {
+  ServiceRequestRepository,
+  ServiceRequestWithDetails,
+} from "../../service-request/repositories/service-request.repository";
 
 export class MedicalRecordService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -23,7 +26,15 @@ export class MedicalRecordService {
 
   public async createBasicMedicalRecord(
     createData: BasicMedicalRecordRequestDto
-  ): Promise<{ record: MedicalRecord; examinationId: string; allergies: PatientAllergyResponseDto[] }> {
+  ): Promise<{
+    record: MedicalRecord;
+    examinationId: string;
+    allergies: PatientAllergyResponseDto[];
+    transferredServiceRequests: {
+      transferred: number;
+      requests: ServiceRequestWithDetails[];
+    };
+  }> {
     const [doctor, patient, clinic] = await Promise.all([
       this.userRepository.findUserById(createData.doctorId || ""),
       this.patientRepository.findPatientById(createData.patientId || ""),
@@ -89,12 +100,13 @@ export class MedicalRecordService {
       };
     });
 
-    await this.serviceRequestRepository.transferFollowUpRequestsToRecord(
+    const transferredServiceRequests =
+      await this.serviceRequestRepository.transferFollowUpRequestsToRecord(
       createData.patientId || "",
       record.recordId,
     );
 
-    return { record, examinationId, allergies };
+    return { record, examinationId, allergies, transferredServiceRequests };
   }
 
   public async getMedicalRecordsByPatientId(

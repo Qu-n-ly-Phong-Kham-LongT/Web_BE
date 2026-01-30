@@ -23,14 +23,46 @@ const MedicalRecordSwagger = {
               schema: {
                 type: "object",
                 properties: {
-                  recordId: { type: "string", format: "uuid" },
-                  recordCode: { type: "string", nullable: true },
-                  patientId: { type: "string", format: "uuid" },
-                  doctorId: { type: "string", format: "uuid" },
-                  clinicClinicId: { type: "string", format: "uuid", nullable: true },
-                  consultationFee: { type: "number", nullable: true },
-                  createdAt: { type: "string", format: "date-time", nullable: true },
-                  updatedAt: { type: "string", format: "date-time", nullable: true },
+                  record: {
+                    type: "object",
+                    properties: {
+                      recordId: { type: "string", format: "uuid" },
+                      recordCode: { type: "string", nullable: true },
+                      patientId: { type: "string", format: "uuid" },
+                      doctorId: { type: "string", format: "uuid" },
+                      clinicId: {
+                        type: "string",
+                        format: "uuid",
+                        nullable: true,
+                      },
+                      consultationFee: { type: "number", nullable: true },
+                      createdAt: {
+                        type: "string",
+                        format: "date-time",
+                        nullable: true,
+                      },
+                      updatedAt: {
+                        type: "string",
+                        format: "date-time",
+                        nullable: true,
+                      },
+                    },
+                  },
+                  examinationId: { type: "string", format: "uuid" },
+                  allergies: {
+                    type: "array",
+                    items: { type: "object" },
+                  },
+                  transferredServiceRequests: {
+                    type: "object",
+                    properties: {
+                      transferred: { type: "number" },
+                      requests: {
+                        type: "array",
+                        items: { type: "object" },
+                      },
+                    },
+                  },
                 },
               },
             },
