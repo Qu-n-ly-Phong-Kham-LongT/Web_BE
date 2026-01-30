@@ -18,6 +18,7 @@ import serviceResultRouter from "../modules/service-result/routes/service-result
 import sharedRouter from "../modules/shared/routes/shared.route";
 import auditLogRouter from "../modules/audit-log/routes/audit-log.route";
 import statisticRouter from "../modules/statistic/routes/statistic.route";
+import dictionaryRouter from "../modules/dictionary/routes/dictionary.route";
 
 const rootRouter = Router();
 
@@ -40,5 +41,6 @@ rootRouter.use("/service-results", serviceResultRouter);
 rootRouter.use("/medical-records", sharedRouter);
 rootRouter.use("/audit-logs", auditLogRouter);
 rootRouter.use("/statistic", statisticRouter);
+rootRouter.use("/dictionaries", dictionaryRouter);
 
 export default rootRouter;
