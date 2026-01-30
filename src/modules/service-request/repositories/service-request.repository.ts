@@ -66,7 +66,7 @@ export class ServiceRequestRepository {
   public async transferFollowUpRequestsToRecord(
     patientId: string,
     newRecordId: string,
-  ): Promise<{ transferred: number }> {
+  ): Promise<{ transferred: number; requests: ServiceRequestWithDetails[] }> {
     return await prisma.$transaction(async (tx) => {
       const requests = await tx.serviceRequest.findMany({
         where: {
@@ -82,8 +82,10 @@ export class ServiceRequestRepository {
       });
 
       if (requests.length === 0) {
-        return { transferred: 0 };
+        return { transferred: 0, requests: [] };
       }
+
+      const createdRequests: ServiceRequestWithDetails[] = [];
 
       for (const request of requests) {
         const created = await tx.serviceRequest.create({
@@ -95,7 +97,7 @@ export class ServiceRequestRepository {
             receiveResultAtClinic: request.receiveResultAtClinic ?? false,
             isForFollowUp: false,
             isFollowUpTransferred: false,
-            isPrinted: false,
+            isPrinted: true,
             followUpDate: request.followUpDate ?? null,
             followUpSession: request.followUpSession ?? null,
             note: request.note ?? null,
@@ -106,8 +108,16 @@ export class ServiceRequestRepository {
               })),
             },
           },
-          include: { details: true },
+          include: {
+            details: {
+              include: {
+                serviceItem: true,
+              },
+            },
+          },
         });
+
+        createdRequests.push(created);
 
         const detailIdByItemId = new Map(
           created.details
@@ -149,7 +159,7 @@ export class ServiceRequestRepository {
         data: { isFollowUpTransferred: true },
       });
 
-      return { transferred: requests.length };
+      return { transferred: requests.length, requests: createdRequests };
     });
   }
 
