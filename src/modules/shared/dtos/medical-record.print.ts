@@ -152,4 +152,5 @@ export interface MedicalRecordPrintDto {
   appointmentDate: string;
   appointmentSession: string;
   appointmentReason: string;
+  hasFollowUp: string;
 }
