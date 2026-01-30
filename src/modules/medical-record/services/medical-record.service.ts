@@ -10,6 +10,7 @@ import { PatientAllergyResponseDto } from "../../patient/dtos/patient-allergy.re
 import { SharedRepository } from "../../shared/repositories/shared.repository";
 import { FullMedicalRecordDto } from "../../shared/dtos/medical-record-detail.dto";
 import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
+import { ServiceRequestRepository } from "../../service-request/repositories/service-request.repository";
 
 export class MedicalRecordService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -18,6 +19,7 @@ export class MedicalRecordService {
   private patientRepository = new PatientRepository();
   private clinicalExaminationRepository = new ClinicalExaminationRepository();
   private sharedRepository = new SharedRepository();
+  private serviceRequestRepository = new ServiceRequestRepository();
 
   public async createBasicMedicalRecord(
     createData: BasicMedicalRecordRequestDto
@@ -86,6 +88,11 @@ export class MedicalRecordService {
         })),
       };
     });
+
+    await this.serviceRequestRepository.transferFollowUpRequestsToRecord(
+      createData.patientId || "",
+      record.recordId,
+    );
 
     return { record, examinationId, allergies };
   }

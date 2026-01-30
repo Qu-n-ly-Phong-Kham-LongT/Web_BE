@@ -436,8 +436,11 @@ model ServiceRequest {
   isPatientRequested    Boolean   @default(false)
   receiveResultAtClinic Boolean   @default(false)
   isForFollowUp         Boolean   @default(false)
+  isFollowUpTransferred Boolean   @default(false)
   isPrinted             Boolean   @default(false)
   note                  String?
+  followUpDate          DateTime? @db.Timestamptz
+  followUpSession       Session?
   createdAt             DateTime? @default(now()) @db.Timestamptz
   updatedAt             DateTime? @updatedAt @db.Timestamptz
 
