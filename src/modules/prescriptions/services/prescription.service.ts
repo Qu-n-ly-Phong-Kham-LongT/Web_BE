@@ -491,8 +491,12 @@ export class PrecriptionService {
       throw new BaseError(403, "Không có quyền truy cập toa thuốc");
     }
 
-    if (existing.status !== PrescriptionStatus.Draft) {
-      throw new BaseError(400, "Toa thuốc đã in, không được in lại");
+    if ((existing.status === PrescriptionStatus.Issued)) {
+      const nowFile =
+        await this.fileService.findByPrescriptionId(prescriptionId);
+      if (nowFile) {
+        return { nowFile, enqueued: false };
+      }
     }
 
     const job = await prisma.printJob.create({
@@ -512,6 +516,7 @@ export class PrecriptionService {
       jobId: job.jobId,
       status: job.status,
       type: job.type,
+      enqueued: true,
     };
   }
 
@@ -862,10 +867,7 @@ export class PrecriptionService {
               tx,
             );
           } else {
-            await this.medicineRepository.setStockToZero(
-              detail.medicineId,
-              tx,
-            );
+            await this.medicineRepository.setStockToZero(detail.medicineId, tx);
           }
         }
       }
@@ -899,9 +901,10 @@ export class PrecriptionService {
             quantity: required,
             shortage: required > available ? required - available : 0,
             unitPrice:
-              d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
+              d.appliedExportPrice !== null &&
+              d.appliedExportPrice !== undefined
                 ? new Prisma.Decimal(d.appliedExportPrice)
-                : d.medicine?.sellPrice ?? null,
+                : (d.medicine?.sellPrice ?? null),
             totalPrice: d.totalPrice ?? null,
             performedBy: userId,
             prescriptionId,

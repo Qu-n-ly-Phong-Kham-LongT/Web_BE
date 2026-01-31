@@ -10,13 +10,13 @@ sharedRouter.get(
   "/:id/full",
   authenticate,
   auditLogsMiddleware("VIEW_MEDICAL_RECORD_FULL", "MedicalRecord"),
-  controller.getFullMedicalRecord
+  controller.getFullMedicalRecord,
 );
 sharedRouter.get(
   "/:id/print",
   authenticate,
   auditLogsMiddleware("PRINT_MEDICAL_RECORD", "MedicalRecord"),
-  controller.printMedicalRecordPdf
+  controller.getOrPrintMedicalRecordPdf,
 );
 sharedRouter.get(
   "/:id/file",

@@ -80,17 +80,17 @@ export class ServiceRequestController {
     req: AuthenticatedRequest<{ id: string }>,
     res: Response,
   ) => {
-    const clinicId = req.payload?.clinicId ?? "";
-    const result = await this.serviceRequestService.enqueueServiceRequestPrint(
+    const clinicId = req.payload?.clinicId ?? undefined;
+    const result = await this.serviceRequestService.printOrGet(
       req.params.id,
       clinicId,
-      req.payload?.userId,
+      req.payload?.userId ?? undefined,
     );
-    return successResponse(
-      res,
-      202,
-      result,
-      "Đã thêm vào hàng đợi in phiếu chỉ định thành công",
-    );
+
+    const statusCode = result.enqueued ? 202 : 200;
+    const messages = result.enqueued
+      ? "Đã thêm phiếu in vào hàng đợi"
+      : "Lấy file phiếu chỉ định thành công";
+    return successResponse(res, statusCode, result, messages);
   };
 }

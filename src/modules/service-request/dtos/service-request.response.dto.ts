@@ -58,6 +58,7 @@ export interface ServiceRequestResponseDto {
   note: string | null;
   isPrinted: boolean | null;
   createdAt: string | null;
+  updatedAt: string | null;
   details: ServiceRequestDetailResponseDto[];
 }
 
@@ -144,6 +145,7 @@ export const ServiceRequestFullResponseSchema = Joi.object({
   note: Joi.string().allow(null),
   isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
+  updatedAt: Joi.string().allow(null),
   patientId: Joi.string().allow(null),
   details: Joi.array().items(ServiceRequestDetailFullResponseSchema).required(),
 });

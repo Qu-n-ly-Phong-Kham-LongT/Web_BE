@@ -199,7 +199,6 @@ export class SharedService {
       }
     }
 
-    // If file is missing or stale, enqueue a render job instead of blocking.
     const job = await this.enqueueMedicalRecordPrint(recordId, clinicId);
 
     return { file: existing ?? null, enqueued: true, stale: true, job };

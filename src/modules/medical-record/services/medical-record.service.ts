@@ -115,13 +115,11 @@ export class MedicalRecordService {
     fromDate?: Date,
     toDate?: Date
   ): Promise<FullMedicalRecordDto[]> {
-    // Kiểm tra bệnh nhân có tồn tại không
     const patient = await this.patientRepository.findPatientById(patientId);
     if (!patient) {
       throw new BaseError(404, "Bệnh nhân không tồn tại");
     }
 
-    // Lấy tất cả bệnh án đầy đủ của bệnh nhân (dùng method mới)
     return await this.sharedRepository.getPatientMedicalRecords(
       patientId,
       clinicId,
