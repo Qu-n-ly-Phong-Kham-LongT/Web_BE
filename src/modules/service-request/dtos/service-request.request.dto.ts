@@ -70,10 +70,10 @@ export const createServiceRequestSchema = Joi.object({
   isPatientRequested: Joi.boolean().optional().default(false),
   receiveResultAtClinic: Joi.boolean().optional().default(false),
   isForFollowUp: Joi.boolean().optional().default(false),
-  followUpDate: Joi.date().allow(null).optional(),
+  followUpDate: Joi.date().allow(null, "").optional(),
   followUpSession: Joi.string()
     .valid("Morning", "Noon", "Afternoon", "Evening")
-    .allow(null)
+    .allow(null, "")
     .optional(),
   note: Joi.string().allow("", null),
   isPrinted: Joi.boolean().optional().default(false),
