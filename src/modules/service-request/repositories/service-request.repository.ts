@@ -130,7 +130,7 @@ export class ServiceRequestRepository {
             const itemId = result.itemId ?? null;
             const detailId =
               itemId && detailIdByItemId.get(itemId)
-                ? detailIdByItemId.get(itemId) ?? null
+                ? (detailIdByItemId.get(itemId) ?? null)
                 : null;
             if (!detailId) {
               return null;
@@ -179,7 +179,7 @@ export class ServiceRequestRepository {
           isFollowUpTransferred: createData.isFollowUpTransferred ?? false,
           isPrinted: createData.isPrinted ?? false,
           followUpDate: createData.followUpDate ?? null,
-          followUpSession: createData.followUpSession as Session ?? null,
+          followUpSession: (createData.followUpSession as Session) ?? null,
           note: createData.note ?? null,
         },
       });
@@ -216,7 +216,7 @@ export class ServiceRequestRepository {
           isFollowUpTransferred: createData.isFollowUpTransferred ?? false,
           isPrinted: createData.isPrinted ?? false,
           followUpDate: createData.followUpDate ?? null,
-          followUpSession: createData.followUpSession as Session ?? null,
+          followUpSession: (createData.followUpSession as Session) ?? null,
           note: createData.note ?? null,
         },
       });
@@ -326,7 +326,7 @@ export class ServiceRequestRepository {
           isFollowUpTransferred: payload.isFollowUpTransferred ?? false,
           isPrinted: payload.isPrinted ?? false,
           followUpDate: payload.followUpDate ?? null,
-          followUpSession: payload.followUpSession as Session ?? null,
+          followUpSession: (payload.followUpSession as Session) ?? null,
           note: payload.note ?? null,
           updatedAt: new Date(),
         },
@@ -378,6 +378,16 @@ export class ServiceRequestRepository {
       where: { requestId },
       data: {
         isPrinted,
+      },
+    });
+  }
+
+  public async findById(requestId: string) {
+    return await prisma.serviceRequest.findUnique({
+      where: { requestId },
+      select: {
+        medicalRecord: { select: { clinicId: true } },
+        isPrinted: true,
       },
     });
   }

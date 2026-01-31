@@ -51,8 +51,8 @@ export class SharedController {
     );
     const statusCode = result.enqueued ? 202 : 200;
     const message = result.enqueued
-      ? "Dang tao file benh an, vui long thu lai"
-      : "Lay file benh an thanh cong";
+      ? "Đã thêm file in vào hàng đợi"
+      : "Lấy file bệnh án thành công";
     return successResponse(res, statusCode, result, message);
   };
 }

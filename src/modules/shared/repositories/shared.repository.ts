@@ -513,6 +513,7 @@ export class SharedRepository {
           note: request.note ?? null,
           isPrinted: request.isPrinted ?? null,
           createdAt: request.createdAt ? request.createdAt.toISOString() : null,
+          updatedAt: request.updatedAt ? request.updatedAt.toISOString() : null,
           patientId: record.patientId ?? null,
           details,
         };

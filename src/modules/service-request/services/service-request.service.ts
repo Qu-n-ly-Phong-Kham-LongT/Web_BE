@@ -174,6 +174,7 @@ export class ServiceRequestService {
       note: request.note ?? null,
       isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
+      updatedAt: request.updatedAt ? request.updatedAt.toISOString() : null,
       patientId: request.medicalRecord?.patientId ?? null,
       details,
     };
@@ -418,6 +419,7 @@ export class ServiceRequestService {
       note: request.note ?? null,
       isPrinted: request.isPrinted ?? null,
       createdAt: request.createdAt ? request.createdAt.toISOString() : null,
+      updatedAt: request.updatedAt ? request.updatedAt.toISOString() : null,
       details: request.details.map(
         (detail): ServiceRequestDetailResponseDto => ({
           requestDetailId: detail.requestDetailId,
@@ -793,5 +795,45 @@ export class ServiceRequestService {
       await this.serviceRequestRepository.updatePrintedSatus(requestId, true);
     }
     return await this.serviceRequestRepository.upsert(payload);
+  }
+
+  public async printOrGet(
+    requestId: string,
+    clinicId?: string,
+    userId?: string,
+  ) {
+    const request = await this.serviceRequestRepository.findById(requestId);
+    if (!request) {
+      throw new BaseError(404, "Không tìm thấy phiếu chỉ định để in");
+    }
+
+    if (clinicId && request.medicalRecord?.clinicId !== clinicId) {
+      throw new BaseError(403, "Phiếu chỉ định không thuộc phòng khám");
+    }
+
+    if (request.isPrinted) {
+      const file = await this.fileService.findByServiceRequestId(requestId);
+      return { file, enqueued: false };
+    }
+
+    const job = await prisma.printJob.create({
+      data: {
+        type: PrintJobType.SERVICE_REQUEST,
+        status: PrintJobStatus.PENDING,
+        entityId: requestId,
+        clinicId: clinicId ? clinicId : null,
+        userId: userId ? userId : null,
+        payload: { requestId },
+      },
+    });
+
+    await enqueuePrintJob(job.jobId);
+
+    return {
+      jobId: job.jobId,
+      status: job.status,
+      type: job.type,
+      enqueued: true,
+    };
   }
 }

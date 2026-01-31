@@ -4,7 +4,6 @@ import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 import { UpsertDianosisPrescriptionDto } from "../dtos/prescription.request.dto";
 import { PrecriptionService } from "../services/prescription.service";
 import { PrescriptionStatus } from "@prisma/client";
-import { BaseError } from "../../../utils/base-error.util";
 
 export class PrescriptionController {
   private prescriptionService = new PrecriptionService();
@@ -38,12 +37,12 @@ export class PrescriptionController {
       clinicId,
       req.payload?.userId,
     );
-    return successResponse(
-      res,
-      202,
-      result,
-      "Đã thêm vào hàng đợi in toa thuốc thành công",
-    );
+
+    const statusCode = result.enqueued ? 202 : 200;
+    const messages = result.enqueued
+      ? "Đã thêm vào hàng đợi in thành công"
+      : "Lấy file toa thành công";
+    return successResponse(res, statusCode, result, messages);
   };
 
   public getPrescriptionStatus = async (
@@ -120,14 +119,19 @@ export class PrescriptionController {
     return successResponse(res, 200, result, "Xuất toa thành công");
   };
 
-
-
   public getPatientsWithPrescriptionsByDate = async (
     req: AuthenticatedRequest<
       {},
       {},
       {},
-      { from?: string; to?: string; page?: string; size?: string; isDispended?: string; fullName?: string }
+      {
+        from?: string;
+        to?: string;
+        page?: string;
+        size?: string;
+        isDispended?: string;
+        fullName?: string;
+      }
     >,
     res: Response,
   ) => {
@@ -190,5 +194,4 @@ export class PrescriptionController {
       result.pagination,
     );
   };
-
 }
