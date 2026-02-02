@@ -235,7 +235,7 @@
       security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "L?y th?ng kê doanh thu thành công",
+          description: "Lấy thống kê doanh thu thành công",
           content: {
             "application/json": {
               schema: {
