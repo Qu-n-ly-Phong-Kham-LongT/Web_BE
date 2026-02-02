@@ -97,7 +97,7 @@ export class ServiceRequestRepository {
             receiveResultAtClinic: request.receiveResultAtClinic ?? false,
             isForFollowUp: false,
             isFollowUpTransferred: false,
-            isPrinted: true,
+            isPrinted: false,
             followUpDate: request.followUpDate ?? null,
             followUpSession: request.followUpSession ?? null,
             note: request.note ?? null,
