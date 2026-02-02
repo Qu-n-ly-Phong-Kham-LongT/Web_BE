@@ -1,6 +1,8 @@
 import { StatisticRepository } from "../repositories/statistic.repository";
 
 type RangeType = "day" | "week" | "month";
+type RevenueView = "day" | "week" | "month";
+type MonthView = "week";
 
 export class StatisticService {
   private statisticRepository = new StatisticRepository();
@@ -54,6 +56,45 @@ export class StatisticService {
       Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate()),
     );
     return this.fromVnWallClock(startVn);
+  }
+
+  private pad2(n: number) {
+    return n.toString().padStart(2, "0");
+  }
+
+  private formatVnDateLabelFromUtc(utc: Date) {
+    const vn = this.toVnWallClock(utc);
+    return `${this.pad2(vn.getUTCDate())}/${this.pad2(vn.getUTCMonth() + 1)}`;
+  }
+
+  private parseVnDateInput(dateStr?: string) {
+    if (!dateStr) return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+      return null;
+    }
+    const vn = new Date(Date.UTC(year, month - 1, day));
+    return this.fromVnWallClock(vn);
+  }
+
+  private vnStartOfIsoWeekUtc(year: number, week: number) {
+    const safeWeek = Math.max(1, Math.floor(week));
+    const jan4Vn = new Date(Date.UTC(year, 0, 4));
+    const jan4Day = jan4Vn.getUTCDay();
+    const diff = jan4Day === 0 ? -6 : 1 - jan4Day;
+    const week1MonVn = new Date(Date.UTC(year, 0, 4 + diff));
+    const targetMonVn = new Date(
+      Date.UTC(
+        week1MonVn.getUTCFullYear(),
+        week1MonVn.getUTCMonth(),
+        week1MonVn.getUTCDate() + (safeWeek - 1) * 7,
+      ),
+    );
+    return this.fromVnWallClock(targetMonVn);
   }
 
   private vnStartOfWeekUtc(utc: Date) {
@@ -269,6 +310,354 @@ export class StatisticService {
         fullName: r.fullName,
         at: r.at ? r.at.toISOString() : "",
       })),
+    };
+  }
+
+  public async getRevenueStatistics(
+    range: RangeType = "day",
+    points = 7,
+    clinicId?: string,
+    options?: {
+      date?: string;
+      startDate?: string;
+      weekNumber?: number;
+      year?: number;
+      month?: number;
+      view?: MonthView;
+    },
+  ) {
+    const hasNewParams = Boolean(
+      options?.date ||
+        options?.startDate ||
+        options?.weekNumber ||
+        options?.year ||
+        options?.month ||
+        options?.view,
+    );
+
+    if (hasNewParams) {
+      return this.getRevenueStatisticsByPeriod(range, clinicId, options);
+    }
+
+    const safePoints = Number.isFinite(points) ? Math.max(1, points) : 7;
+
+    const nowUtc = new Date();
+    const todayStart = this.vnStartOfDayUtc(nowUtc);
+    const weekStart = this.vnStartOfWeekUtc(nowUtc);
+    const monthStart = this.vnStartOfMonthUtc(nowUtc);
+
+    const anchorStartUtc =
+      range === "day"
+        ? todayStart
+        : range === "week"
+          ? weekStart
+          : monthStart;
+
+    const stepStart = (base: Date, step: number) => {
+      if (range === "day") return this.addDays(base, step);
+      if (range === "week") return this.addDays(base, step * 7);
+      return this.addMonths(base, step);
+    };
+
+    const starts: Date[] = [];
+    for (let i = safePoints - 1; i >= 0; i--) {
+      starts.push(stepStart(anchorStartUtc, -i));
+    }
+
+    const chartFrom = starts[0];
+    const chartTo = stepStart(anchorStartUtc, 1);
+
+    const [prescriptions, consultationFees] = await Promise.all([
+      this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+        chartFrom,
+        chartTo,
+        clinicId,
+      ),
+      this.statisticRepository.findConsultationFeesInRange(
+        chartFrom,
+        chartTo,
+        clinicId,
+      ),
+    ]);
+
+    const prescriptionByBucket = new Map<string, number>();
+    const consultationByBucket = new Map<string, number>();
+
+    for (const p of prescriptions) {
+      if (!p.dispensedAt) continue;
+      const key = this.vnBucketKeyFromUtc(p.dispensedAt, range);
+      const val = p.totalPrice ? Number(p.totalPrice) : 0;
+      prescriptionByBucket.set(key, (prescriptionByBucket.get(key) ?? 0) + val);
+    }
+
+    for (const c of consultationFees) {
+      if (!c.createdAt) continue;
+      const key = this.vnBucketKeyFromUtc(c.createdAt, range);
+      const val = c.consultationFee ? Number(c.consultationFee) : 0;
+      consultationByBucket.set(key, (consultationByBucket.get(key) ?? 0) + val);
+    }
+
+    const labels: string[] = [];
+    const prescriptionValues: number[] = [];
+    const consultationValues: number[] = [];
+
+    for (const start of starts) {
+      const key = this.vnBucketKeyFromUtc(start, range);
+      labels.push(this.labelFromBucketStartUtc(start, range));
+      prescriptionValues.push(prescriptionByBucket.get(key) ?? 0);
+      consultationValues.push(consultationByBucket.get(key) ?? 0);
+    }
+
+    const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+    const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+
+    return {
+      totalRevenue: totalPrescription + totalConsultation,
+      totalPrescription,
+      totalConsultation,
+      chart: {
+        labels,
+        prescriptionValues,
+        consultationValues,
+        range,
+      },
+    };
+  }
+
+  private async getRevenueStatisticsByPeriod(
+    range: RevenueView,
+    clinicId?: string,
+    options?: {
+      date?: string;
+      startDate?: string;
+      weekNumber?: number;
+      year?: number;
+      month?: number;
+      view?: MonthView;
+    },
+  ) {
+    const nowUtc = new Date();
+
+    if (range === "day") {
+      const startUtc =
+        this.parseVnDateInput(options?.date) ?? this.vnStartOfDayUtc(nowUtc);
+      const endUtc = this.addDays(startUtc, 1);
+
+      const [prescriptions, consultationFees] = await Promise.all([
+        this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+          startUtc,
+          endUtc,
+          clinicId,
+        ),
+        this.statisticRepository.findConsultationFeesInRange(
+          startUtc,
+          endUtc,
+          clinicId,
+        ),
+      ]);
+
+      const startHour = 6;
+      const endHour = 23;
+      const bucketCount = endHour - startHour + 1;
+      const labels: string[] = [];
+      const prescriptionValues = Array.from({ length: bucketCount }, () => 0);
+      const consultationValues = Array.from({ length: bucketCount }, () => 0);
+
+      for (let h = startHour; h <= endHour; h++) {
+        labels.push(this.pad2(h));
+      }
+
+      for (const p of prescriptions) {
+        if (!p.dispensedAt) continue;
+        const vn = this.toVnWallClock(p.dispensedAt);
+        const hour = vn.getUTCHours();
+        if (hour < startHour || hour > endHour) continue;
+        const val = p.totalPrice ? Number(p.totalPrice) : 0;
+        prescriptionValues[hour - startHour] += val;
+      }
+
+      for (const c of consultationFees) {
+        if (!c.createdAt) continue;
+        const vn = this.toVnWallClock(c.createdAt);
+        const hour = vn.getUTCHours();
+        if (hour < startHour || hour > endHour) continue;
+        const val = c.consultationFee ? Number(c.consultationFee) : 0;
+        consultationValues[hour - startHour] += val;
+      }
+
+      const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+      const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+
+      return {
+        totalRevenue: totalPrescription + totalConsultation,
+        totalPrescription,
+        totalConsultation,
+        chart: {
+          labels,
+          prescriptionValues,
+          consultationValues,
+          range,
+          granularity: "hour",
+        },
+      };
+    }
+
+    if (range === "week") {
+      let weekStartUtc: Date | null = null;
+      if (options?.startDate) {
+        const parsed = this.parseVnDateInput(options.startDate);
+        weekStartUtc = parsed ? this.vnStartOfWeekUtc(parsed) : null;
+      } else if (options?.weekNumber && options?.year) {
+        weekStartUtc = this.vnStartOfIsoWeekUtc(
+          options.year,
+          options.weekNumber,
+        );
+      }
+
+      const startUtc = weekStartUtc ?? this.vnStartOfWeekUtc(nowUtc);
+      const endUtc = this.addDays(startUtc, 7);
+
+      const [prescriptions, consultationFees] = await Promise.all([
+        this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+          startUtc,
+          endUtc,
+          clinicId,
+        ),
+        this.statisticRepository.findConsultationFeesInRange(
+          startUtc,
+          endUtc,
+          clinicId,
+        ),
+      ]);
+
+      const labels: string[] = [];
+      const prescriptionValues: number[] = [];
+      const consultationValues: number[] = [];
+      const bucketMap = new Map<string, number>();
+
+      const starts: Date[] = [];
+      for (let i = 0; i < 7; i++) {
+        const d = this.addDays(startUtc, i);
+        starts.push(d);
+        const key = this.vnBucketKeyFromUtc(d, "day");
+        bucketMap.set(key, i);
+        labels.push(this.formatVnDateLabelFromUtc(d));
+        prescriptionValues.push(0);
+        consultationValues.push(0);
+      }
+
+      for (const p of prescriptions) {
+        if (!p.dispensedAt) continue;
+        const key = this.vnBucketKeyFromUtc(p.dispensedAt, "day");
+        const idx = bucketMap.get(key);
+        if (idx === undefined) continue;
+        const val = p.totalPrice ? Number(p.totalPrice) : 0;
+        prescriptionValues[idx] += val;
+      }
+
+      for (const c of consultationFees) {
+        if (!c.createdAt) continue;
+        const key = this.vnBucketKeyFromUtc(c.createdAt, "day");
+        const idx = bucketMap.get(key);
+        if (idx === undefined) continue;
+        const val = c.consultationFee ? Number(c.consultationFee) : 0;
+        consultationValues[idx] += val;
+      }
+
+      const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+      const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+
+      return {
+        totalRevenue: totalPrescription + totalConsultation,
+        totalPrescription,
+        totalConsultation,
+        chart: {
+          labels,
+          prescriptionValues,
+          consultationValues,
+          range,
+          granularity: "day",
+        },
+      };
+    }
+
+    const year =
+      options?.year && Number.isFinite(options.year)
+        ? options.year
+        : this.toVnWallClock(nowUtc).getUTCFullYear();
+    const month =
+      options?.month && Number.isFinite(options.month)
+        ? options.month
+        : this.toVnWallClock(nowUtc).getUTCMonth() + 1;
+
+    const monthStartUtc = this.fromVnWallClock(
+      new Date(Date.UTC(year, month - 1, 1)),
+    );
+    const monthEndUtc = this.addMonths(monthStartUtc, 1);
+
+    const [prescriptions, consultationFees] = await Promise.all([
+      this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+        monthStartUtc,
+        monthEndUtc,
+        clinicId,
+      ),
+      this.statisticRepository.findConsultationFeesInRange(
+        monthStartUtc,
+        monthEndUtc,
+        clinicId,
+      ),
+    ]);
+
+    const firstWeekStartUtc = this.vnStartOfWeekUtc(monthStartUtc);
+    const weekStarts: Date[] = [];
+    const labels: string[] = [];
+    const prescriptionValues: number[] = [];
+    const consultationValues: number[] = [];
+    const bucketIndex = new Map<string, number>();
+
+    for (let cursor = firstWeekStartUtc; cursor < monthEndUtc; ) {
+      const key = cursor.toISOString();
+      const labelDate = cursor < monthStartUtc ? monthStartUtc : cursor;
+      bucketIndex.set(key, weekStarts.length);
+      weekStarts.push(cursor);
+      labels.push(this.formatVnDateLabelFromUtc(labelDate));
+      prescriptionValues.push(0);
+      consultationValues.push(0);
+      cursor = this.addDays(cursor, 7);
+    }
+
+    for (const p of prescriptions) {
+      if (!p.dispensedAt) continue;
+      const weekStart = this.vnStartOfWeekUtc(p.dispensedAt);
+      const idx = bucketIndex.get(weekStart.toISOString());
+      if (idx === undefined) continue;
+      const val = p.totalPrice ? Number(p.totalPrice) : 0;
+      prescriptionValues[idx] += val;
+    }
+
+    for (const c of consultationFees) {
+      if (!c.createdAt) continue;
+      const weekStart = this.vnStartOfWeekUtc(c.createdAt);
+      const idx = bucketIndex.get(weekStart.toISOString());
+      if (idx === undefined) continue;
+      const val = c.consultationFee ? Number(c.consultationFee) : 0;
+      consultationValues[idx] += val;
+    }
+
+    const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+    const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+
+    return {
+      totalRevenue: totalPrescription + totalConsultation,
+      totalPrescription,
+      totalConsultation,
+      chart: {
+        labels,
+        prescriptionValues,
+        consultationValues,
+        range,
+        granularity: "week",
+      },
     };
   }
 
