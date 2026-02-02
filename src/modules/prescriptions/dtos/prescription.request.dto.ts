@@ -17,6 +17,7 @@ export interface PrescriptionItemDto {
   administrationRoute?: string;
   timing: string;
   daysToTake: number;
+  total?: number;
   note?: string | null;
   isInsuranceCovered: boolean;
 }

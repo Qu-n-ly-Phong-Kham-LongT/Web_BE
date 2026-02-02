@@ -531,29 +531,36 @@ export class SharedRepository {
           updateAt: record.prescription.updatedAt ?? new Date(0),
           printedAt: record.prescription.printedAt ?? null,
           printCount: record.prescription.printCount ?? 0,
-          details: record.prescription.details.map((detail) => ({
-            medicineId: detail.medicineId ?? "",
-            medicineName: detail.medicine?.medicineName ?? "",
-            sellPrice:
+          details: record.prescription.details.map((detail) => {
+            const unitPrice =
               detail.appliedExportPrice !== null &&
               detail.appliedExportPrice !== undefined
                 ? Number(detail.appliedExportPrice)
                 : detail.medicine?.sellPrice !== null &&
                     detail.medicine?.sellPrice !== undefined
                   ? Number(detail.medicine.sellPrice)
-                  : null,
-            frequencyPerDay: detail.frequencyPerDay ?? 0,
-            quantityPerTime: detail.quantityPerTime
-              ? Number(detail.quantityPerTime)
-              : 0,
-            quantity: detail.quantity ? Number(detail.quantity) : 0,
-            unit: detail.unit ?? "",
-            administrationRoute: detail.administrationRoute ?? undefined,
-            timing: detail.timing ?? "",
-            daysToTake: detail.daysToTake ?? 0,
-            note: detail.note ?? null,
-            isInsuranceCovered: detail.isInsuranceCovered ?? false,
-          })),
+                  : null;
+            const quantity = detail.quantity ? Number(detail.quantity) : 0;
+            const total = unitPrice !== null ? unitPrice * quantity : 0;
+
+            return {
+              medicineId: detail.medicineId ?? "",
+              medicineName: detail.medicine?.medicineName ?? "",
+              sellPrice: unitPrice,
+              frequencyPerDay: detail.frequencyPerDay ?? 0,
+              quantityPerTime: detail.quantityPerTime
+                ? Number(detail.quantityPerTime)
+                : 0,
+              quantity,
+              unit: detail.unit ?? "",
+              administrationRoute: detail.administrationRoute ?? undefined,
+              timing: detail.timing ?? "",
+              daysToTake: detail.daysToTake ?? 0,
+              total,
+              note: detail.note ?? null,
+              isInsuranceCovered: detail.isInsuranceCovered ?? false,
+            };
+          }),
         }
       : null;
 

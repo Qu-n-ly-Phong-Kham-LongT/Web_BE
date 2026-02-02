@@ -648,25 +648,33 @@ export class PrecriptionService {
       status: pres.status,
       createdAt: pres.createdAt ?? null,
       printedAt: pres.printedAt ?? null,
-      details: (pres.details ?? []).map((d) => ({
-        medicineId: d.medicineId ?? "",
-        medicineName: d.medicine?.medicineName ?? "",
-        sellPrice:
+      details: (pres.details ?? []).map((d) => {
+        const unitPrice =
           d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
             ? Number(d.appliedExportPrice)
             : d.medicine?.sellPrice !== null &&
                 d.medicine?.sellPrice !== undefined
               ? Number(d.medicine.sellPrice)
-              : null,
-        frequencyPerDay: d.frequencyPerDay ?? 0,
-        quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
-        quantity: d.quantity ? Number(d.quantity) : 0,
-        unit: d.unit ?? "",
-        timing: d.timing ?? "",
-        daysToTake: d.daysToTake ?? 0,
-        note: d.note ?? null,
-        isInsuranceCovered: d.isInsuranceCovered ?? false,
-      })),
+              : null;
+        const quantity = d.quantity ? Number(d.quantity) : 0;
+        const total = unitPrice !== null ? unitPrice * quantity : 0;
+
+        return {
+          medicineId: d.medicineId ?? "",
+          medicineName: d.medicine?.medicineName ?? "",
+          sellPrice: unitPrice,
+          frequencyPerDay: d.frequencyPerDay ?? 0,
+          quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
+          quantity,
+          unit: d.unit ?? "",
+          administrationRoute: d.administrationRoute ?? undefined,
+          timing: d.timing ?? "",
+          daysToTake: d.daysToTake ?? 0,
+          note: d.note ?? null,
+          isInsuranceCovered: d.isInsuranceCovered ?? false,
+          total,
+        };
+      }),
     }));
   }
 
@@ -750,25 +758,33 @@ export class PrecriptionService {
         printedAt: pres.printedAt ? pres.printedAt.toISOString() : "",
         isDispensed: pres.isDispensed ?? false,
         dispensedAt: pres.dispensedAt ? pres.dispensedAt.toISOString() : "",
-        details: (pres.details ?? []).map((d) => ({
-          medicineId: d.medicineId ?? "",
-          medicineName: d.medicine?.medicineName ?? "",
-          sellPrice:
+        details: (pres.details ?? []).map((d) => {
+          const unitPrice =
             d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
               ? Number(d.appliedExportPrice)
               : d.medicine?.sellPrice !== null &&
                   d.medicine?.sellPrice !== undefined
                 ? Number(d.medicine.sellPrice)
-                : null,
-          frequencyPerDay: d.frequencyPerDay ?? 0,
-          quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
-          quantity: d.quantity ? Number(d.quantity) : 0,
-          unit: d.unit ?? "",
-          timing: d.timing ?? "",
-          daysToTake: d.daysToTake ?? 0,
-          note: d.note ?? null,
-          isInsuranceCovered: d.isInsuranceCovered ?? false,
-        })),
+                : null;
+          const quantity = d.quantity ? Number(d.quantity) : 0;
+          const total = unitPrice !== null ? unitPrice * quantity : 0;
+
+          return {
+            medicineId: d.medicineId ?? "",
+            medicineName: d.medicine?.medicineName ?? "",
+            sellPrice: unitPrice,
+            frequencyPerDay: d.frequencyPerDay ?? 0,
+            quantityPerTime: d.quantityPerTime ? Number(d.quantityPerTime) : 0,
+            quantity,
+            unit: d.unit ?? "",
+            administrationRoute: d.administrationRoute ?? undefined,
+            timing: d.timing ?? "",
+            daysToTake: d.daysToTake ?? 0,
+            note: d.note ?? null,
+            isInsuranceCovered: d.isInsuranceCovered ?? false,
+            total,
+          };
+        }),
       },
     }));
 
