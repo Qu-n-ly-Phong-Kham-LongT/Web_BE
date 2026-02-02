@@ -1,0 +1,32 @@
+services:
+  core:
+    image: phong-kham-core:${ENVIRONMENT_NAME}-${BUILD_NUMBER}
+    container_name: phong-kham-core-${ENVIRONMENT_NAME}
+    build:
+      context: ../core
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env.runtime
+    networks: 
+      - at-net
+    restart: unless-stopped
+    volumes:
+      - /data/phong-kham/${ENVIRONMENT_NAME}/public:/app/public:rw
+
+  pdf:
+    image: phong-kham-pdf:${ENVIRONMENT_NAME}-stable
+    container_name: phong-kham-pdf-${ENVIRONMENT_NAME}
+    build:
+      context: ../pdf
+      dockerfile: Dockerfile
+    env_file:
+      - ./.env.runtime
+    networks: 
+      - at-net
+    mem_limit: 4g
+    cpus: 2
+    restart: unless-stopped
+
+networks:
+  at-net:
+    external: true
