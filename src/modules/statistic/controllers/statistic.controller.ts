@@ -61,4 +61,48 @@ export class StatisticController {
     );
     return successResponse(res, 200, result, "Lấy doanh thu thuốc thành công");
   };
+
+  public getRevenueStatistics = async (
+    req: AuthenticatedRequest<
+      {},
+      {},
+      {},
+      {
+        range?: string;
+        points?: string;
+        date?: string;
+        startDate?: string;
+        weekNumber?: string;
+        year?: string;
+        month?: string;
+        view?: string;
+      }
+    >,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? "";
+    const range = (req.query.range as "day" | "week" | "month") ?? "day";
+    const points = req.query.points ? Number(req.query.points) : 7;
+    const weekNumber = req.query.weekNumber
+      ? Number(req.query.weekNumber)
+      : undefined;
+    const year = req.query.year ? Number(req.query.year) : undefined;
+    const month = req.query.month ? Number(req.query.month) : undefined;
+    const view = req.query.view as "week" | undefined;
+
+    const result = await this.statisticService.getRevenueStatistics(
+      range,
+      points,
+      clinicId,
+      {
+        date: req.query.date,
+        startDate: req.query.startDate,
+        weekNumber,
+        year,
+        month,
+        view,
+      },
+    );
+    return successResponse(res, 200, result, "Lấy thống kê doanh thu thành công");
+  };
 }

@@ -1,4 +1,4 @@
-const StatisticSwagger = {
+﻿const StatisticSwagger = {
   "/api/statistic/dashboard": {
     get: {
       tags: ["Statistic"],
@@ -154,6 +154,109 @@ const StatisticSwagger = {
                             quantity: { type: "number" },
                             pct: { type: "number" },
                           },
+                        },
+                      },
+                    },
+                  },
+                  pagination: { type: "object", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không có quyền truy cập" },
+      },
+    },
+  },
+
+  "/api/statistic/revenue": {
+    get: {
+      tags: ["Statistic"],
+      summary: "Thống kê doanh thu",
+      parameters: [
+        {
+          name: "range",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["day", "week", "month"], default: "day" },
+          description: "Phạm vi thống kê: day|week|month",
+        },
+        {
+          name: "date",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "date", example: "2026-02-02" },
+          description: "Theo ngày (YYYY-MM-DD, giờ VN). Dùng khi range=day.",
+        },
+        {
+          name: "startDate",
+          in: "query",
+          required: false,
+          schema: { type: "string", format: "date", example: "2026-02-02" },
+          description: "Ngày thứ 2 của tuần (YYYY-MM-DD). Dùng khi range=week.",
+        },
+        {
+          name: "weekNumber",
+          in: "query",
+          required: false,
+          schema: { type: "integer", minimum: 1, example: 6 },
+          description: "Số tuần ISO. Dùng khi range=week (cần kèm year).",
+        },
+        {
+          name: "year",
+          in: "query",
+          required: false,
+          schema: { type: "integer", minimum: 2000, example: 2026 },
+          description: "Năm dùng cho weekNumber hoặc month.",
+        },
+        {
+          name: "month",
+          in: "query",
+          required: false,
+          schema: { type: "integer", minimum: 1, maximum: 12, example: 2 },
+          description: "Tháng (1-12). Dùng khi range=month.",
+        },
+        {
+          name: "view",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: ["week"] },
+          description: "Góc nhìn theo tuần trong tháng (hiện tại chỉ hỗ trợ week).",
+        },
+        {
+          name: "points",
+          in: "query",
+          required: false,
+          schema: { type: "integer", default: 7, minimum: 1 },
+          description: "Tham số: số cột biểu đồ (khi không dùng date/startDate/weekNumber/month).",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "L?y th?ng kê doanh thu thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: {
+                    type: "object",
+                    properties: {
+                      totalRevenue: { type: "number" },
+                      totalPrescription: { type: "number" },
+                      totalConsultation: { type: "number" },
+                      chart: {
+                        type: "object",
+                        properties: {
+                          range: { type: "string", enum: ["day", "week", "month"] },
+                          granularity: { type: "string", enum: ["hour", "day", "week"] },
+                          labels: { type: "array", items: { type: "string" } },
+                          prescriptionValues: { type: "array", items: { type: "number" } },
+                          consultationValues: { type: "array", items: { type: "number" } },
                         },
                       },
                     },

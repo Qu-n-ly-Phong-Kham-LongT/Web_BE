@@ -149,4 +149,22 @@ export class StatisticRepository {
       },
     });
   }
+  public async findDispensedPrescriptionTotalsInRange(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    return await prisma.prescription.findMany({
+      where: {
+        ...(clinicId ? { medicalRecord: { clinicId } } : {}),
+        isDispensed: true,
+        dispensedAt: { gte: from, lt: to },
+      },
+      select: {
+        dispensedAt: true,
+        totalPrice: true,
+      },
+    });
+  }
 }
+

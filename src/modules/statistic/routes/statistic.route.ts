@@ -12,4 +12,5 @@ router.get(
   authenticate,
   controller.getPrescriptionRevenueByMedicine,
 );
+router.get("/revenue", authenticate, controller.getRevenueStatistics);
 export default router;
