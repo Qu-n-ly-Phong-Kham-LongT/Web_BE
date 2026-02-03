@@ -531,6 +531,8 @@ export class SharedRepository {
           updateAt: record.prescription.updatedAt ?? new Date(0),
           printedAt: record.prescription.printedAt ?? null,
           printCount: record.prescription.printCount ?? 0,
+          isDispensed: record.prescription.isDispensed ?? false,
+          dispensedAt: record.prescription.dispensedAt ?? null,
           details: record.prescription.details.map((detail) => {
             const unitPrice =
               detail.appliedExportPrice !== null &&

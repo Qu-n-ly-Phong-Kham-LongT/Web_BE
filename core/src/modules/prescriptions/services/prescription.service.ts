@@ -653,6 +653,8 @@ export class PrecriptionService {
       status: pres.status,
       createdAt: pres.createdAt ?? null,
       printedAt: pres.printedAt ?? null,
+      isDispensed: pres.isDispensed ?? false,
+      dispensedAt: pres.dispensedAt ?? null,
       details: (pres.details ?? []).map((d) => {
         const unitPrice =
           d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
