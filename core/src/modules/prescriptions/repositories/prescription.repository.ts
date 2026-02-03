@@ -165,6 +165,7 @@ export class PrescriptionRepository {
             select: {
               recordId: true,
               recordCode: true,
+              consultationFee: true,
               createdAt: true,
               patient: {
                 select: {

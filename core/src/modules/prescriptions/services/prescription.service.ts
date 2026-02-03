@@ -754,6 +754,7 @@ export class PrecriptionService {
         createdAt: pres.medicalRecord?.createdAt
           ? pres.medicalRecord?.createdAt.toISOString()
           : "",
+        consultationFee: Number(pres.medicalRecord?.consultationFee) ?? 0,
       },
       prescription: {
         prescriptionId: pres.prescriptionId,
