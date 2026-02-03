@@ -1,0 +1,69 @@
+import os
+import uuid
+import shutil
+import subprocess
+from fastapi import FastAPI, UploadFile, File, Header, HTTPException, BackgroundTasks
+from fastapi.responses import FileResponse
+
+API_KEY = os.getenv("API_KEY", "hanDOIVODOI!@#123")
+MAX_SIZE_MB = 30
+
+app = FastAPI()
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+def cleanup_dir(path: str):
+    # xóa cả thư mục uuid
+    shutil.rmtree(path, ignore_errors=True)
+
+@app.post("/convert")
+async def convert(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    x_api_key: str = Header(None)
+):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    content = await file.read()
+    if len(content) > MAX_SIZE_MB * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large")
+
+    uid = str(uuid.uuid4())
+    workdir = f"/tmp/{uid}"
+    os.makedirs(workdir, exist_ok=True)
+
+    input_path = f"{workdir}/{file.filename}"
+    output_path = f"{workdir}/{file.filename.rsplit('.',1)[0]}.pdf"
+
+    with open(input_path, "wb") as f:
+        f.write(content)
+
+    try:
+        subprocess.run([
+            "soffice",
+            "--headless",
+            "--nologo",
+            "--nofirststartwizard",
+            "--convert-to", "pdf",
+            "--outdir", workdir,
+            input_path
+        ], check=True, timeout=60)
+    except Exception as e:
+        cleanup_dir(workdir)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    if not os.path.exists(output_path):
+        cleanup_dir(workdir)
+        raise HTTPException(status_code=500, detail="Convert succeeded but output PDF not found")
+
+    # ✅ cleanup sau khi response xong
+    background_tasks.add_task(cleanup_dir, workdir)
+
+    return FileResponse(
+        output_path,
+        media_type="application/pdf",
+        filename=os.path.basename(output_path)
+    )
