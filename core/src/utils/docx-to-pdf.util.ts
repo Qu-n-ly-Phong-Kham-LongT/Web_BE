@@ -76,6 +76,7 @@ export async function convertDocxToPdf(
   filename: string,
 ): Promise<Buffer> {
   const endpoint = process.env.CONVERT_FILE;
+  console.log(`Convert endpoint: ${endpoint}`);
   if (!endpoint) {
     throw new BaseError(500, "CONVERT_FILE chưa được cấu hình");
   }
