@@ -525,6 +525,7 @@ export class PrecriptionService {
       where: { prescriptionId },
       select: {
         status: true,
+        isDispensed: true,
         medicalRecord: { select: { clinicId: true } },
       },
     });
@@ -539,6 +540,10 @@ export class PrecriptionService {
 
     if (prescription.status === PrescriptionStatus.Cancelled) {
       throw new BaseError(400, "Toa thuốc đã hủy, không thể mở lại");
+    }
+
+    if (prescription.isDispensed) {
+      throw new BaseError(400, "Toa thuốc đã xuất, không thể mở lại")
     }
 
     return await prisma.prescription.update({
