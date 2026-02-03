@@ -111,7 +111,7 @@ pipeline {
 
                         cp ./.env.runtime ./infra/.env.runtime
 
-                        docker compose -p ${APP_NAME}-${ENVIRONMENT_NAME} -f ./infra/docker-compose.yml up -d
+                        docker compose -p ${APP_NAME}-${ENVIRONMENT_NAME} -f ./infra/docker-compose.yml up -d --force-recreate --remove-orphans
 
                         rm -f ./.env.runtime ./infra/.env.runtime
                         echo "[Deploy] Done"
