@@ -25,6 +25,8 @@ export interface PrescriptionDetailResponseDto {
   updateAt: Date;
   printedAt?: Date | null;
   printCount?: number;
+  isDispensed?: boolean;
+  dispensedAt?: Date | null;
   details: PrescriptionDetailItemResponseDto[];
 }
 
