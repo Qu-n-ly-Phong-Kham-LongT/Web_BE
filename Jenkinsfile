@@ -111,6 +111,11 @@ pipeline {
 
                         cp ./.env.runtime ./infra/.env.runtime
 
+                        echo "[Deploy] Stopping old containers if exist..."
+                        docker stop phong-kham-core-${ENVIRONMENT_NAME} phong-kham-pdf-${ENVIRONMENT_NAME} 2>/dev/null || true
+                        docker rm phong-kham-core-${ENVIRONMENT_NAME} phong-kham-pdf-${ENVIRONMENT_NAME} 2>/dev/null || true
+
+                        echo "[Deploy] Starting containers..."
                         docker compose -p ${APP_NAME}-${ENVIRONMENT_NAME} -f ./infra/docker-compose.yml up -d --force-recreate --remove-orphans
 
                         rm -f ./.env.runtime ./infra/.env.runtime
