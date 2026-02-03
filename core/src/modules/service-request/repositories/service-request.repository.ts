@@ -94,13 +94,13 @@ export class ServiceRequestRepository {
             orderingDoctorId: request.orderingDoctorId ?? null,
             diagnoses: request.diagnoses ?? Prisma.JsonNull,
             isPatientRequested: request.isPatientRequested ?? false,
-            receiveResultAtClinic: request.receiveResultAtClinic ?? false,
-            isForFollowUp: false,
-            isFollowUpTransferred: false,
-            isPrinted: false,
-            followUpDate: request.followUpDate ?? null,
-            followUpSession: request.followUpSession ?? null,
-            note: request.note ?? null,
+          receiveResultAtClinic: request.receiveResultAtClinic ?? false,
+          isForFollowUp: false,
+          isFollowUpTransferred: true,
+          isPrinted: false,
+          followUpDate: request.followUpDate ?? null,
+          followUpSession: request.followUpSession ?? null,
+          note: request.note ?? null,
             details: {
               create: request.details.map((detail) => ({
                 itemId: detail.itemId,
@@ -369,7 +369,7 @@ export class ServiceRequestRepository {
   public async findPrintStatus(requestId: string) {
     return await prisma.serviceRequest.findUnique({
       where: { requestId },
-      select: { isPrinted: true },
+      select: { isPrinted: true, isFollowUpTransferred: true },
     });
   }
 

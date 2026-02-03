@@ -771,6 +771,12 @@ export class ServiceRequestService {
         "Phiếu chỉ định đã được in, không thể chỉnh sửa.",
       );
     }
+    if (printStatus.isFollowUpTransferred) {
+      throw new BaseError(
+        400,
+        "Phiếu chỉ định đã chuyển từ lần tái khám, không thể chỉnh sửa.",
+      );
+    }
 
     const payload: CreateServiceRequestPayload & { requestId: string } = {
       requestId: requestId,
