@@ -19,17 +19,13 @@ pipeline {
                     echo "[Init] Branch = ${BR}"
 
                     def branchMap = [
-                        "product1": [
+                        "product": [
                             envName: "product",
                             credId : "env-phong-kham-product"
                         ],
-                        "staging1": [
+                        "staging": [
                             envName: "staging",
                             credId : "env-phong-kham-staging"
-                        ],
-                        "move-src": [
-                            envName: "move-src",
-                            credId : "env-phong-kham-move-src"
                         ]
                     ]
 
