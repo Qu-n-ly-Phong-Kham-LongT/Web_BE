@@ -34,7 +34,7 @@ export const CreateServiceTemplateDetailSchema =
         "any.required": "Cấu hình dịch vụ là bắt buộc",
       }),
     note: Joi.string().allow("", null).optional(),
-  }).required();
+  })
 
 export const CreateServiceTemplateRequestSchema =
   Joi.object<CreateServiceTemplateRequestDto>({
@@ -46,10 +46,6 @@ export const CreateServiceTemplateRequestSchema =
     isActive: Joi.boolean().optional(),
     details: Joi.array()
       .items(CreateServiceTemplateDetailSchema)
-      .min(1)
-      .required()
-      .messages({
-        "array.min": "Phải có ít nhất một dịch vụ trong mẫu",
-        "any.required": "Chi tiết mẫu dịch vụ là bắt buộc",
-      }),
-  }).required();
+      .min(0)
+      .required(),
+  });

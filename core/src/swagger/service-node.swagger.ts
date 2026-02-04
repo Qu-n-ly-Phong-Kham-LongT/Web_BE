@@ -148,6 +148,43 @@ const ServiceNodeSwagger = {
         404: { description: "Không tìm thấy service node" },
       },
     },
+    delete: {
+      tags: ["Service-Node (Danh mục/Dịch vụ CLS)"],
+      summary: "Xóa loại dịch vụ (TYPE)",
+      description: "Xóa mềm node TYPE. CATEGORY không được xóa.",
+      parameters: [
+        {
+          name: "nodeId",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID của node cần xóa",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xóa loại dịch vụ thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Xóa loại dịch vụ thành công",
+                  },
+                  data: { type: "null", example: null },
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Không được xóa CATEGORY hoặc node không hợp lệ" },
+        404: { description: "Không tìm thấy node" },
+      },
+    },
   },
   "/api/service-nodes/node-types": {
     get: {
@@ -202,3 +239,4 @@ const ServiceNodeSwagger = {
 };
 
 export default ServiceNodeSwagger;
+

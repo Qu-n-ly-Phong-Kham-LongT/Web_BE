@@ -8,14 +8,14 @@ import { includes } from "lodash";
 
 export class ServiceItemRepository {
   public async findByCode(code: string): Promise<ServiceItem | null> {
-    return prisma.serviceItem.findUnique({
-      where: { itemCode: code },
+    return prisma.serviceItem.findFirst({
+      where: { itemCode: code, isActive: true },
     });
   }
 
   public async findById(itemId: string) {
-    return prisma.serviceItem.findUnique({
-      where: { itemId },
+    return prisma.serviceItem.findFirst({
+      where: { itemId, isActive: true },
       include: {
         configs: true,
         category: true,
@@ -213,5 +213,41 @@ export class ServiceItemRepository {
         },
       });
     });
+  }
+
+  public async deleteServiceItem(itemId: string): Promise<void> {
+    await prisma.serviceItem.update({
+      where: { itemId },
+      data: { isActive: false },
+      include: {
+        configs: true,
+        category: true,
+        type: true,
+      },
+    });
+  }
+
+  public async deleteByNodeType(
+    typeId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.serviceItem.updateMany({
+      where: { typeId },
+      data: { isActive: false },
+    });
+  }
+
+  public async findItemIdsByTypeId(
+    typeId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    const client = tx || prisma;
+    const rows = await client.serviceItem.findMany({
+      where: { typeId },
+      select: { itemId: true },
+    });
+
+    return rows.map((r) => r.itemId);
   }
 }

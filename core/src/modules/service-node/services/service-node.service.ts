@@ -6,9 +6,15 @@ import {
   UpdateServiceNodeRequestDto,
 } from "../dtos/service-node.request.dto";
 import { createPagination } from "../../../utils/pagination.util";
+import { prisma } from "../../../config/database.config";
+import { ServiceItemRepository } from "../../service-item/repositories/service-item.request.repository";
+import { ServiceTemplateDetailRepository } from "../../service-template/repositories/service-template-detail.repository";
 
 export class ServiceNodeService {
   private repo = new ServiceNodeRepository();
+  private serviceItemRepository = new ServiceItemRepository();
+  private serviceTemplateDetailRepository =
+    new ServiceTemplateDetailRepository();
 
   public async create(dto: CreateServiceNodeRequestDto) {
     const normalizedParentId = this.normalizeParentId(dto.parentId);
@@ -50,7 +56,7 @@ export class ServiceNodeService {
   }> {
     const safePage = Math.max(page, 1);
     const safeSize = Math.max(size, 1);
-    const normalizedIsActive = isActive;
+    const normalizedIsActive = isActive ?? true;
 
     const normalizedSearch = search?.trim() || undefined;
 
@@ -126,5 +132,25 @@ export class ServiceNodeService {
     }
     return this.repo.findByParentId(categoryId);
   }
-}
 
+  public async deleteNode(nodeId: string) {
+    const existing = await this.repo.findById(nodeId);
+    if (!existing) throw new BaseError(404, "Không tìm thấy node");
+
+    if (existing.nodeType === NodeType.CATEGORY) {
+      throw new BaseError(400, "Không được xoá danh mục dịch vụ");
+    }
+
+    if (existing.nodeType !== NodeType.TYPE) {
+      throw new BaseError(400, "Loại node không hợp lệ để xoá");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const itemIds =
+        await this.serviceItemRepository.findItemIdsByTypeId(nodeId, tx);
+      await this.serviceTemplateDetailRepository.deleteByItemIds(itemIds, tx);
+      await this.serviceItemRepository.deleteByNodeType(nodeId, tx);
+      await this.repo.softDelete(nodeId, tx);
+    });
+  }
+}

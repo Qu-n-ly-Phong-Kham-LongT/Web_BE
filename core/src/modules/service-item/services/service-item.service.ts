@@ -8,10 +8,14 @@ import { BaseError } from "../../../utils/base-error.util";
 import { ServiceItemResponseDto } from "../dtos/service-item.response.dto";
 import { createPagination } from "../../../utils/pagination.util";
 import { Prisma } from "@prisma/client";
+import { ServiceTemplateDetailRepository } from "../../service-template/repositories/service-template-detail.repository";
+import { prisma } from "../../../config/database.config";
 
 export class ServiceItemService {
   private serviceNodeRepository = new ServiceNodeRepository();
   private serviceItemRepository = new ServiceItemRepository();
+  private serviceTemplateDetailRepository =
+    new ServiceTemplateDetailRepository();
 
   public async getItemById(id: string) {
     const item = await this.serviceItemRepository.findById(id);
@@ -77,10 +81,7 @@ export class ServiceItemService {
     );
   }
 
-  public async updateItem(
-    itemId: string,
-    data: UpdateServiceItemRequestDto,
-  ) {
+  public async updateItem(itemId: string, data: UpdateServiceItemRequestDto) {
     const existingItem = await this.serviceItemRepository.findById(itemId);
     if (!existingItem) {
       throw new BaseError(404, "Không tìm thấy dịch vụ CLS");
@@ -115,10 +116,7 @@ export class ServiceItemService {
           data.categoryId,
         );
         if (!categoryNode) {
-          throw new BaseError(
-            409,
-            "Danh mục dịch vụ này không tồn tại",
-          );
+          throw new BaseError(409, "Danh mục dịch vụ này không tồn tại");
         }
       }
     }
@@ -157,11 +155,12 @@ export class ServiceItemService {
       updateData.isActive = data.isActive;
     }
 
-    const updated = await this.serviceItemRepository.updateServiceItemWithConfig(
-      itemId,
-      updateData,
-      data.configs,
-    );
+    const updated =
+      await this.serviceItemRepository.updateServiceItemWithConfig(
+        itemId,
+        updateData,
+        data.configs,
+      );
 
     return this.mapToResponseDto(updated);
   }
@@ -195,5 +194,15 @@ export class ServiceItemService {
     );
 
     return this.mapToResponseDto(updated);
+  }
+
+  public async deleteServiceItem(id: string): Promise<void> {
+    const existing = await this.serviceItemRepository.findById(id);
+    if (!existing) throw new BaseError(404, "Không tìm thấy dịch vụ CLS");
+
+    await prisma.$transaction(async (tx) => {
+      await this.serviceTemplateDetailRepository.deleteByServiceItemId(id, tx);
+      await this.serviceItemRepository.deleteServiceItem(id);
+    });
   }
 }

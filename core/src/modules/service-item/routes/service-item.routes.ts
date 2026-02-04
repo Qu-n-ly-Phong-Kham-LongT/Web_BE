@@ -47,4 +47,12 @@ serviceItemRouter.put(
   controller.udpateStatus,
 );
 
+serviceItemRouter.delete(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("DELETE_ITEM", "ServiceItem"),
+  authorize([UserRoleEnum.Admin]),
+  controller.deleteServiceItem,
+);
+
 export default serviceItemRouter;

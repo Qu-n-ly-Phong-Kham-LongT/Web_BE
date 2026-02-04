@@ -2,7 +2,10 @@ import { Router } from "express";
 import { ServiceNodeController } from "../controllers/service-node.controller";
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { validateBody } from "../../../middlewares/validate";
-import { createServiceNodeSchema, updateServiceNodeSchema } from "../dtos/service-node.request.dto";
+import {
+  createServiceNodeSchema,
+  updateServiceNodeSchema,
+} from "../dtos/service-node.request.dto";
 import { UserRoleEnum } from "@prisma/client";
 import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
@@ -15,7 +18,7 @@ serviceNodeRouter.post(
   auditLogsMiddleware("CREATE_SERVICE_NODE", "ServiceNode"),
   authorize([UserRoleEnum.Manager, UserRoleEnum.Admin]),
   validateBody(createServiceNodeSchema),
-  controller.create
+  controller.create,
 );
 
 serviceNodeRouter.put(
@@ -24,25 +27,25 @@ serviceNodeRouter.put(
   auditLogsMiddleware("UPDATE_SERVICE_NODE", "ServiceNode"),
   authorize([UserRoleEnum.Manager, UserRoleEnum.Admin]),
   validateBody(updateServiceNodeSchema),
-  controller.update
+  controller.update,
 );
 
-serviceNodeRouter.get(
-  "/",
-  authenticate,
-  controller.list
-);
+serviceNodeRouter.get("/", authenticate, controller.list);
 
-serviceNodeRouter.get(
-  "/node-types",
-  authenticate,
-  controller.getNodeTypes
-);
+serviceNodeRouter.get("/node-types", authenticate, controller.getNodeTypes);
 
 serviceNodeRouter.get(
   "/categories/:categoryId/types",
   authenticate,
-  controller.listTypesByCategory
+  controller.listTypesByCategory,
+);
+
+serviceNodeRouter.delete(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("DELETE_TYPE_NODE", "ServiceNode"),
+  authorize([UserRoleEnum.Admin]),
+  controller.deleteNode,
 );
 
 export default serviceNodeRouter;

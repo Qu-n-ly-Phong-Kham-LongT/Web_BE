@@ -8,6 +8,7 @@ import { Request, Response } from "express";
 import { successResponse } from "../../../utils/response.util";
 import { ServiceItemResponseDto } from "../dtos/service-item.response.dto";
 import { InputType } from "@prisma/client";
+import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 
 export class ServiceItemController {
   private service = new ServiceItemService();
@@ -18,12 +19,7 @@ export class ServiceItemController {
   ) => {
     const data = req.body;
     const newItem = await this.service.createItem(data);
-    return successResponse(
-      res,
-      201,
-      newItem,
-      "Tạo dịch vụ CLS thành công",
-    );
+    return successResponse(res, 201, newItem, "Tạo dịch vụ CLS thành công");
   };
 
   public getById = async (
@@ -31,12 +27,7 @@ export class ServiceItemController {
     res: Response<ServiceItemResponseDto>,
   ) => {
     const result = await this.service.getItemById(req.params.id);
-    return successResponse(
-      res,
-      200,
-      result,
-      "Lấy danh sách CLS thành công",
-    );
+    return successResponse(res, 200, result, "Lấy danh sách CLS thành công");
   };
 
   public getAll = async (req: Request, res: Response) => {
@@ -92,5 +83,14 @@ export class ServiceItemController {
       req.body.isActive,
     );
     return successResponse(res, 200, result, "Cập nhật thành công");
+  };
+
+  public deleteServiceItem = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response,
+  ) => {
+    const { id } = req.params;
+    await this.service.deleteServiceItem(id);
+    return successResponse(res, 200, null, "Xoá dịch vụ CLS thành công");
   };
 }
