@@ -4,6 +4,7 @@ import { successResponse } from "../../../utils/response.util";
 import {
   ChangeUserPasswordDto,
   CreateUserRequestDto,
+  ForceUpdatePasswordDto,
   UpdateUserRequestDto,
 } from "../dtos/user.request.dto";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
@@ -13,7 +14,7 @@ export class UserController {
 
   public createUser = async (
     req: AuthenticatedRequest<{}, {}, CreateUserRequestDto>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? "";
     let createData = req.body;
@@ -24,7 +25,7 @@ export class UserController {
 
   public getUserById = async (
     req: AuthenticatedRequest<{ id: string }, {}, {}>,
-    res: Response
+    res: Response,
   ) => {
     const clinicId = req.payload?.clinicId ?? undefined;
     const result = await this.userService.getUserById(req.params.id, clinicId);
@@ -32,13 +33,13 @@ export class UserController {
       res,
       200,
       result,
-      "Lấy thông tin người dùng thành công"
+      "Lấy thông tin người dùng thành công",
     );
   };
 
   public updateUser = async (
     req: AuthenticatedRequest<{ id: string }, {}, UpdateUserRequestDto>,
-    res: Response
+    res: Response,
   ) => {
     const { id } = req.params;
     const updateData = req.body;
@@ -49,7 +50,7 @@ export class UserController {
 
   public changePassword = async (
     req: AuthenticatedRequest<{}, {}, ChangeUserPasswordDto>,
-    res: Response
+    res: Response,
   ) => {
     const userId = req.payload?.userId;
     if (!userId) {
@@ -57,7 +58,7 @@ export class UserController {
         res,
         401,
         null,
-        "Unauthorized: Người dùng chưa đăng nhập"
+        "Unauthorized: Người dùng chưa đăng nhập",
       );
     }
 
@@ -78,7 +79,7 @@ export class UserController {
       res,
       200,
       result,
-      "Lấy thông tin người dùng thành công"
+      "Lấy thông tin người dùng thành công",
     );
   };
 
@@ -88,7 +89,7 @@ export class UserController {
       res,
       200,
       result,
-      "Lấy danh sách vai trò thành công"
+      "Lấy danh sách vai trò thành công",
     );
   };
 
@@ -98,7 +99,7 @@ export class UserController {
       res,
       200,
       result,
-      "Lấy danh sách trạng thái thành công"
+      "Lấy danh sách trạng thái thành công",
     );
   };
 
@@ -107,6 +108,7 @@ export class UserController {
     const size = parseInt(req.query.size as string) || 10;
     const search = req.query.search as string | undefined;
     const role = req.query.role as string | undefined;
+    const status = req.query.status as string | undefined;
     const clinicId = req.payload?.clinicId as string | undefined;
 
     const result = await this.userService.getUsers(
@@ -114,14 +116,25 @@ export class UserController {
       size,
       search,
       role,
-      clinicId
+      clinicId,
+      status,
     );
     return successResponse(
       res,
       200,
       result.users,
       "Lấy ds người dùng thành công",
-      result.pagination
+      result.pagination,
     );
+  };
+
+  public updateUserPassword = async (
+    req: AuthenticatedRequest<{ id: string }, {}, ForceUpdatePasswordDto>,
+    res: Response,
+  ) => {
+    const clinicId = req.payload?.clinicId ?? undefined;
+    const { newPassword } = req.body;
+    await this.userService.forceUpdatePassword(req.params.id, newPassword, clinicId);
+    return successResponse(res, 200, null, "Cập nhật mật khẩu cho người dùng thành công")
   };
 }

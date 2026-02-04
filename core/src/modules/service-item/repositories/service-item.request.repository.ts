@@ -1,5 +1,8 @@
 import { Prisma, ServiceItem } from "@prisma/client";
-import { CreateServiceItemRequestDto } from "../dtos/service-item.request.dto";
+import {
+  CreateServiceItemConfigDto,
+  CreateServiceItemRequestDto,
+} from "../dtos/service-item.request.dto";
 import { prisma } from "../../../config/database.config";
 import { includes } from "lodash";
 
@@ -161,6 +164,54 @@ export class ServiceItemRepository {
       where: { itemId },
       data: { isActive },
       include: { configs: true, category: true, type: true },
+    });
+  }
+
+  public async updateServiceItemWithConfig(
+    itemId: string,
+    updateData: Prisma.ServiceItemUpdateInput,
+    configs?: CreateServiceItemConfigDto[],
+  ): Promise<ServiceItem> {
+    return await prisma.$transaction(async (tx) => {
+      await tx.serviceItem.update({
+        where: { itemId },
+        data: updateData,
+      });
+
+      if (configs !== undefined) {
+        await tx.serviceItemConfig.deleteMany({
+          where: { itemId },
+        });
+
+        if (configs.length > 0) {
+          await tx.serviceItemConfig.createMany({
+            data: configs.map((cfg) => ({
+              itemId,
+
+              configCode: cfg.configCode,
+              displayName: cfg.displayName,
+              inputType: cfg.inputType,
+              unit: cfg.unit,
+              refRange: cfg.refRange,
+
+              metaData: cfg.metaData
+                ? (cfg.metaData as Prisma.InputJsonValue)
+                : Prisma.JsonNull,
+            })),
+          });
+        }
+      }
+
+      return await tx.serviceItem.findUniqueOrThrow({
+        where: { itemId },
+        include: {
+          configs: {
+            orderBy: { displayName: "asc" },
+          },
+          category: true,
+          type: true,
+        },
+      });
     });
   }
 }

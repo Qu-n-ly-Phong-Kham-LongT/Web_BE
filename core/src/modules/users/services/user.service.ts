@@ -207,12 +207,14 @@ export class UserService {
     search?: string,
     role?: string,
     clinicId?: string,
+    status?: string,
   ) {
     if (role && !Object.values(UserRoleEnum).includes(role as UserRoleEnum)) {
       throw new BaseError(400, "Role không hợp lệ");
     }
 
     const normalizedRole = role as UserRoleEnum | undefined;
+    const normalizedStatus = status as UserStatus | undefined;
 
     const { users, totalItems } = await this.userRepository.getAllUser(
       page,
@@ -220,6 +222,7 @@ export class UserService {
       search,
       normalizedRole,
       clinicId,
+      normalizedStatus,
     );
     return {
       users: users.map((u) => ({
@@ -235,5 +238,24 @@ export class UserService {
       })),
       pagination: createPagination(page, size, totalItems),
     };
+  }
+
+  public async forceUpdatePassword(
+    userId: string,
+    newPassword: string,
+    clinicId?: string,
+  ): Promise<void> {
+    const user = await this.getUserById(userId);
+
+    if (!user) {
+      throw new BaseError(404, "Không tìm thấy người dùng");
+    }
+
+    if (clinicId && user.clinicId !== clinicId) {
+      throw new BaseError(403, "Không có quyền truy cập");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.updateUser(userId, { password: hashedPassword });
   }
 }
