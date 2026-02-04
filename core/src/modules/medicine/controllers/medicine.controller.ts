@@ -109,4 +109,15 @@ export class MedicineController {
       "Cập nhật thông tin thuốc thành công",
     );
   };
+
+  public deleteMedicine = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response,
+  ) => {
+    const { id } = req.params;
+    const clinicId = req.payload?.clinicId ?? undefined;
+
+    await this.medicineService.deleteMedicine(id, clinicId);
+    return successResponse(res, 200, null, "Xoá thuốc thành công")
+  };
 }

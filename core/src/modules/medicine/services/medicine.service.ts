@@ -6,6 +6,8 @@ import { UpdateMedicineRequestDto } from "../dtos/update-medicine.request.dto";
 import { MedicineListResponseDto } from "../dtos/medicine-list.response.dto";
 import { MedicineRepository } from "../repositories/medicine.repository";
 import { createPagination } from "../../../utils/pagination.util";
+import { prisma } from "../../../config/database.config";
+import { PrescriptionTemplateDetailRepository } from "../../prescription-template/repositories/prescription-template-detail.repository";
 
 type MedicineListOptions = {
   supplier?: string;
@@ -20,6 +22,8 @@ type MedicineListOptions = {
 
 export class MedicineService {
   private medicineRepository = new MedicineRepository();
+  private prescriptionTemplateDetailRepository =
+    new PrescriptionTemplateDetailRepository();
 
   public async createMedicine(
     data: CreateMedicineRequestDto,
@@ -188,5 +192,23 @@ export class MedicineService {
       isActive: medicine.isActive,
       createdAt: medicine.createdAt ? medicine.createdAt.toISOString() : "",
     };
+  }
+
+  public async deleteMedicine(id: string, clinicId?: string): Promise<void> {
+    const existing = await this.getMedicineById(id, clinicId);
+    if (!existing) throw new BaseError(404, "Không tìm thấy thuốc");
+
+    await prisma.$transaction(async (tx) => {
+      await this.prescriptionTemplateDetailRepository.deleteDetailsByMedicineId(
+        id,
+        tx,
+      );
+    });
+
+    await this.medicineRepository.updateMedicine(
+      id,
+      { isActive: false, deletedAt: new Date() },
+      clinicId,
+    );
   }
 }

@@ -16,7 +16,7 @@ export class PrescriptionTemplateDetailRepository {
       defaultRoute?: string | null;
       defaultTiming?: string | null;
     },
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<PrescriptionTemplateDetail> {
     const client = tx || prisma;
     return await client.prescriptionTemplateDetail.create({
@@ -40,7 +40,7 @@ export class PrescriptionTemplateDetailRepository {
       defaultRoute?: string | null;
       defaultTiming?: string | null;
     }>,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<{ count: number }> {
     const client = tx || prisma;
     return await client.prescriptionTemplateDetail.createMany({
@@ -57,7 +57,7 @@ export class PrescriptionTemplateDetailRepository {
 
   public async findTemplateDetailById(
     templateDetailId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<PrescriptionTemplateDetail | null> {
     const client = tx || prisma;
     return await client.prescriptionTemplateDetail.findUnique({
@@ -67,7 +67,7 @@ export class PrescriptionTemplateDetailRepository {
 
   public async findTemplateDetailsByTemplateId(
     templateId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<PrescriptionTemplateDetail[]> {
     const client = tx || prisma;
     return await client.prescriptionTemplateDetail.findMany({
@@ -84,7 +84,7 @@ export class PrescriptionTemplateDetailRepository {
       defaultRoute?: string | null;
       defaultTiming?: string | null;
     },
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<PrescriptionTemplateDetail> {
     const client = tx || prisma;
     const updateData: Prisma.PrescriptionTemplateDetailUpdateInput = {};
@@ -113,7 +113,7 @@ export class PrescriptionTemplateDetailRepository {
 
   public async deleteTemplateDetail(
     templateDetailId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<void> {
     const client = tx || prisma;
     await client.prescriptionTemplateDetail.delete({
@@ -123,7 +123,7 @@ export class PrescriptionTemplateDetailRepository {
 
   public async deleteTemplateDetailsByTemplateId(
     templateId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<void> {
     const client = tx || prisma;
     await client.prescriptionTemplateDetail.deleteMany({
@@ -133,11 +133,21 @@ export class PrescriptionTemplateDetailRepository {
 
   public async deleteTemplateDetailsByIds(
     templateDetailIds: string[],
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<void> {
     const client = tx || prisma;
     await client.prescriptionTemplateDetail.deleteMany({
       where: { templateDetailId: { in: templateDetailIds } },
+    });
+  }
+
+  public async deleteDetailsByMedicineId(
+    medicineId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.prescriptionTemplateDetail.deleteMany({
+      where: { medicineId },
     });
   }
 }
