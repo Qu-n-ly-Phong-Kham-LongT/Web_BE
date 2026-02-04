@@ -20,17 +20,21 @@ export class PrescriptionTemplateService {
 
   public async createPrescriptionTemplate(
     data: CreatePrescriptionTemplateRequestDto,
-    createdBy?: string
+    createdBy?: string,
   ): Promise<PrescriptionTemplateResponseDto> {
     // Business validation: Kiểm tra thuốc trùng lặp
     const medicineIds = data.details.map((detail) => detail.medicineId);
     const uniqueMedicineIds = [...new Set(medicineIds)];
     if (uniqueMedicineIds.length !== medicineIds.length) {
-      throw new BaseError(400, "Không được có thuốc trùng lặp trong cùng một mẫu đơn");
+      throw new BaseError(
+        400,
+        "Không được có thuốc trùng lặp trong cùng một mẫu đơn",
+      );
     }
 
     // Business validation: Kiểm tra tất cả thuốc tồn tại
-    const medicines = await this.medicineRepository.findMedicinesByIds(medicineIds);
+    const medicines =
+      await this.medicineRepository.findMedicinesByIds(medicineIds);
     if (medicines.length !== medicineIds.length) {
       throw new BaseError(400, "Một hoặc nhiều thuốc không tồn tại");
     }
@@ -43,14 +47,17 @@ export class PrescriptionTemplateService {
         daysToTake: data.daysToTake ?? null,
         details: data.details,
       },
-      createdBy
+      createdBy,
     );
 
     return this.mapToResponseDto(result);
   }
 
-  public async getPrescriptionTemplateById(id: string): Promise<PrescriptionTemplateResponseDto> {
-    const template = await this.templateRepository.findPrescriptionTemplateById(id);
+  public async getPrescriptionTemplateById(
+    id: string,
+  ): Promise<PrescriptionTemplateResponseDto> {
+    const template =
+      await this.templateRepository.findPrescriptionTemplateById(id);
     if (!template) {
       throw new BaseError(404, "Không tìm thấy mẫu đơn thuốc");
     }
@@ -60,13 +67,14 @@ export class PrescriptionTemplateService {
   public async getPrescriptionTemplates(
     page: number = 1,
     size: number = 10,
-    search: string | undefined
+    search: string | undefined,
   ): Promise<PrescriptionTemplateListResponseDto> {
-    const { templates, totalItems } = await this.templateRepository.findPrescriptionTemplates(
-      page,
-      size,
-      search
-    );
+    const { templates, totalItems } =
+      await this.templateRepository.findPrescriptionTemplates(
+        page,
+        size,
+        search,
+      );
 
     const pagination = createPagination(page, size, totalItems);
 
@@ -78,21 +86,25 @@ export class PrescriptionTemplateService {
 
   public async updatePrescriptionTemplate(
     id: string,
-    data: UpdatePrescriptionTemplateRequestDto
+    data: UpdatePrescriptionTemplateRequestDto,
   ): Promise<PrescriptionTemplateResponseDto> {
     // Step 1: Get existing template
-    const existingTemplate = await this.templateRepository.findPrescriptionTemplateById(id);
+    const existingTemplate =
+      await this.templateRepository.findPrescriptionTemplateById(id);
     if (!existingTemplate) {
       throw new BaseError(404, "Không tìm thấy mẫu đơn thuốc");
     }
 
     // Step 2: Business logic - Classify details if provided
     if (data.details !== undefined) {
-      const existingDetailIds = existingTemplate.details.map((d) => d.templateDetailId);
+      const existingDetailIds = existingTemplate.details.map(
+        (d) => d.templateDetailId,
+      );
 
       // Classify: update vs create
       const detailsToUpdate = data.details.filter(
-        (d) => d.templateDetailId && existingDetailIds.includes(d.templateDetailId)
+        (d) =>
+          d.templateDetailId && existingDetailIds.includes(d.templateDetailId),
       );
       const detailsToCreate = data.details.filter((d) => !d.templateDetailId);
 
@@ -100,17 +112,23 @@ export class PrescriptionTemplateService {
       const newDetailIds = data.details
         .filter((d) => d.templateDetailId)
         .map((d) => d.templateDetailId!);
-      const detailIdsToDelete = existingDetailIds.filter((id) => !newDetailIds.includes(id));
+      const detailIdsToDelete = existingDetailIds.filter(
+        (id) => !newDetailIds.includes(id),
+      );
 
       // Business validation: Check duplicate medicines
       const allMedicineIds = data.details.map((d) => d.medicineId);
       const uniqueMedicineIds = [...new Set(allMedicineIds)];
       if (uniqueMedicineIds.length !== allMedicineIds.length) {
-        throw new BaseError(400, "Không được có thuốc trùng lặp trong cùng một mẫu đơn");
+        throw new BaseError(
+          400,
+          "Không được có thuốc trùng lặp trong cùng một mẫu đơn",
+        );
       }
 
       // Business validation: Check all medicines exist
-      const medicines = await this.medicineRepository.findMedicinesByIds(allMedicineIds);
+      const medicines =
+        await this.medicineRepository.findMedicinesByIds(allMedicineIds);
       if (medicines.length !== allMedicineIds.length) {
         throw new BaseError(400, "Một hoặc nhiều thuốc không tồn tại");
       }
@@ -132,12 +150,19 @@ export class PrescriptionTemplateService {
 
         // Chỉ update nếu có ít nhất 1 field
         if (Object.keys(headerUpdateData).length > 0) {
-          await this.templateRepository.updateTemplateHeader(id, headerUpdateData, tx);
+          await this.templateRepository.updateTemplateHeader(
+            id,
+            headerUpdateData,
+            tx,
+          );
         }
 
         // 2. Delete removed details
         if (detailIdsToDelete.length > 0) {
-          await this.detailRepository.deleteTemplateDetailsByIds(detailIdsToDelete, tx);
+          await this.detailRepository.deleteTemplateDetailsByIds(
+            detailIdsToDelete,
+            tx,
+          );
         }
 
         // 3. Create new details
@@ -151,7 +176,7 @@ export class PrescriptionTemplateService {
               defaultRoute: d.defaultRoute ?? null,
               defaultTiming: d.defaultTiming ?? null,
             })),
-            tx
+            tx,
           );
         }
 
@@ -166,7 +191,7 @@ export class PrescriptionTemplateService {
               defaultRoute: detail.defaultRoute ?? null,
               defaultTiming: detail.defaultTiming ?? null,
             },
-            tx
+            tx,
           );
         }
       });
@@ -187,12 +212,16 @@ export class PrescriptionTemplateService {
 
       // Chỉ update nếu có ít nhất 1 field
       if (Object.keys(headerUpdateData).length > 0) {
-        await this.templateRepository.updateTemplateHeader(id, headerUpdateData);
+        await this.templateRepository.updateTemplateHeader(
+          id,
+          headerUpdateData,
+        );
       }
     }
 
     // Step 4: Return updated template
-    const result = await this.templateRepository.findPrescriptionTemplateById(id);
+    const result =
+      await this.templateRepository.findPrescriptionTemplateById(id);
     if (!result) {
       throw new BaseError(404, "Không tìm thấy mẫu đơn thuốc");
     }
@@ -200,7 +229,9 @@ export class PrescriptionTemplateService {
     return this.mapToResponseDto(result);
   }
 
-  private mapToResponseDto(template: PrescriptionTemplateWithDetails): PrescriptionTemplateResponseDto {
+  private mapToResponseDto(
+    template: PrescriptionTemplateWithDetails,
+  ): PrescriptionTemplateResponseDto {
     return {
       templateId: template.templateId,
       templateName: template.templateName,
@@ -208,19 +239,31 @@ export class PrescriptionTemplateService {
       daysToTake: template.daysToTake ?? null,
       createdBy: template.createdBy,
       creatorName: template.creator?.fullName ?? null,
-        details: template.details.map((detail) => ({
-          templateDetailId: detail.templateDetailId,
-          medicineId: detail.medicineId,
-          medicineName: detail.medicine?.medicineName ?? null,
-          baseUnit: detail.medicine?.baseUnit ?? null,
-          sellPrice: detail.medicine?.sellPrice
-            ? Number(detail.medicine.sellPrice)
-            : null,
-          defaultFrequency: detail.defaultFrequency,
-          defaultQuantityPerTime: detail.defaultQuantityPerTime ? Number(detail.defaultQuantityPerTime) : null,
-          defaultRoute: detail.defaultRoute,
-          defaultTiming: detail.defaultTiming,
+      details: template.details.map((detail) => ({
+        templateDetailId: detail.templateDetailId,
+        medicineId: detail.medicineId,
+        medicineName: detail.medicine?.medicineName ?? null,
+        baseUnit: detail.medicine?.baseUnit ?? null,
+        sellPrice: detail.medicine?.sellPrice
+          ? Number(detail.medicine.sellPrice)
+          : null,
+        defaultFrequency: detail.defaultFrequency,
+        defaultQuantityPerTime: detail.defaultQuantityPerTime
+          ? Number(detail.defaultQuantityPerTime)
+          : null,
+        defaultRoute: detail.defaultRoute,
+        defaultTiming: detail.defaultTiming,
       })),
     };
+  }
+
+  public async deletePrecriptionTemplate(id: string): Promise<void> {
+    const template =
+      await this.templateRepository.findPrescriptionTemplateById(id);
+    if (!template) {
+      throw new BaseError(404, "Không tìm thấy mẫu toa thuốc");
+    }
+
+    await this.templateRepository.deletePrescriptionTemplate(id);
   }
 }
