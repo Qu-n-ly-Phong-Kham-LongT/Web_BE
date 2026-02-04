@@ -140,8 +140,7 @@ const ServiceItemSwagger = {
         401: { description: "Chưa đăng nhập" },
         403: { description: "Không đủ quyền (chỉ Admin)" },
         409: {
-          description:
-            "Mã dịch vụ đã tồn tại hoặc danh mục/loại không tồn tại",
+          description: "Mã dịch vụ đã tồn tại hoặc danh mục/loại không tồn tại",
         },
       },
     },
@@ -341,6 +340,44 @@ const ServiceItemSwagger = {
         },
       },
     },
+    delete: {
+      tags: ["Service Items"],
+      summary: "Xóa dịch vụ CLS",
+      description: "Xóa mềm dịch vụ CLS theo ID",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID dịch vụ cần xóa",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xóa dịch vụ thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Xóa dịch vụ thành công",
+                  },
+                  data: { type: "object" }, // hoặc null nếu bạn trả null
+                },
+              },
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy dịch vụ",
+        },
+      },
+    },
   },
   "/api/service-items/{id}/status": {
     put: {
@@ -392,5 +429,3 @@ const ServiceItemSwagger = {
 };
 
 export default ServiceItemSwagger;
-
-

@@ -15,7 +15,7 @@ export class ServiceTemplateDetailRepository {
       note?: string | null;
       selectedConfigs?: SelectedConfigsDto[];
     },
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<ServiceTemplateDetail> {
     const client = tx || prisma;
     return await client.serviceTemplateDetail.create({
@@ -37,7 +37,7 @@ export class ServiceTemplateDetailRepository {
       note?: string | null;
       selectedConfigs?: SelectedConfigsDto[];
     }>,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<{ count: number }> {
     const client = tx || prisma;
 
@@ -58,7 +58,7 @@ export class ServiceTemplateDetailRepository {
 
   public async findTemplateDetailById(
     templateDetailId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<ServiceTemplateDetail | null> {
     const client = tx || prisma;
     return await client.serviceTemplateDetail.findUnique({
@@ -68,7 +68,7 @@ export class ServiceTemplateDetailRepository {
 
   public async findTemplateDetailsByTemplateId(
     templateId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<ServiceTemplateDetail[]> {
     const client = tx || prisma;
     return await client.serviceTemplateDetail.findMany({
@@ -83,7 +83,7 @@ export class ServiceTemplateDetailRepository {
       note?: string | null;
       selectedConfigs?: SelectedConfigsDto[] | null;
     },
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<ServiceTemplateDetail> {
     const client = tx || prisma;
     const updateData: Prisma.ServiceTemplateDetailUpdateInput = {};
@@ -109,7 +109,7 @@ export class ServiceTemplateDetailRepository {
 
   public async deleteTemplateDetail(
     templateDetailId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<void> {
     const client = tx || prisma;
     await client.serviceTemplateDetail.delete({
@@ -119,7 +119,7 @@ export class ServiceTemplateDetailRepository {
 
   public async deleteTemplateDetailsByTemplateId(
     templateId: string,
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<void> {
     const client = tx || prisma;
     await client.serviceTemplateDetail.deleteMany({
@@ -129,11 +129,65 @@ export class ServiceTemplateDetailRepository {
 
   public async deleteTemplateDetailsByIds(
     templateDetailIds: string[],
-    tx?: TransactionClient
+    tx?: TransactionClient,
   ): Promise<void> {
     const client = tx || prisma;
     await client.serviceTemplateDetail.deleteMany({
       where: { templateDetailId: { in: templateDetailIds } },
+    });
+  }
+
+  public async deleteByServiceItemId(
+    itemId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.serviceTemplateDetail.deleteMany({ where: { itemId } });
+  }
+
+  public async findTemplateIdsByItemId(
+    itemId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    const client = tx || prisma;
+    const rows = await client.serviceTemplateDetail.findMany({
+      where: { itemId },
+      select: {
+        templateId: true,
+      },
+    });
+
+    return rows.map((r) => r.templateId!).filter(Boolean);
+  }
+
+  public async countDetailsByTemplateIds(
+    templateIds: string[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ templateId: string; count: number }[]> {
+    const client = tx || prisma;
+    const rows = await client.serviceTemplateDetail.groupBy({
+      by: ["templateId"],
+      where: { templateId: { in: templateIds } },
+      _count: { templateId: true },
+    });
+
+    return rows
+      .filter((r) => r.templateId !== null)
+      .map((r) => ({
+        templateId: r.templateId as string,
+        count: r._count.templateId,
+      }));
+  }
+
+  public async deleteByItemIds(
+    itemsIds: string[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (itemsIds.length === 0) return;
+
+    const client = tx || prisma;
+    await client.serviceTemplateDetail.deleteMany({
+      where: { itemId: { in: itemsIds } },
     });
   }
 }

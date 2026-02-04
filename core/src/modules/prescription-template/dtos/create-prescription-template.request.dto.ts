@@ -40,14 +40,14 @@ export const CreatePrescriptionTemplateRequestSchema =
     }),
     description: Joi.string().optional(),
     daysToTake: Joi.number().integer().min(1).optional().messages({
-      "number.min": "Days to take must be greater than 0",
-      "number.integer": "Days to take must be an integer",
+      "number.min": "Ngày dùng phải lớn hơn 0",
+      "number.integer": "Ngày dùng phải là số nguyên dương",
     }),
     details: Joi.array()
       .items(CreatePrescriptionTemplateDetailSchema)
       .min(0)
       .required()
       .messages({
-        "any.required": "Chi tiết mẫu đơn là bắt buộc",
+        "any.required": "Chi tiết mẫu toa là bắt buộc",
       }),
   })
