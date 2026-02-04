@@ -1,6 +1,7 @@
 import {
   CreateServiceItemRequestDto,
-  UpdateServiceItemDto,
+  UpdateServiceItemRequestDto,
+  UpdateServiceItemStatusDto,
 } from "../dtos/service-item.request.dto";
 import { ServiceItemService } from "../services/service-item.service";
 import { Request, Response } from "express";
@@ -21,7 +22,7 @@ export class ServiceItemController {
       res,
       201,
       newItem,
-      "Tạo dịch vụ cận lâm sàng thành công",
+      "Tạo dịch vụ CLS thành công",
     );
   };
 
@@ -34,7 +35,7 @@ export class ServiceItemController {
       res,
       200,
       result,
-      "Lấy dịch vụ cận lâm sàng thành công",
+      "Lấy danh sách CLS thành công",
     );
   };
 
@@ -74,8 +75,16 @@ export class ServiceItemController {
     );
   };
 
+  public update = async (
+    req: Request<{ id: string }, {}, UpdateServiceItemRequestDto>,
+    res: Response,
+  ) => {
+    const result = await this.service.updateItem(req.params.id, req.body);
+    return successResponse(res, 200, result, "Cập nhật thành công");
+  };
+
   public udpateStatus = async (
-    req: Request<{ id: string }, {}, UpdateServiceItemDto>,
+    req: Request<{ id: string }, {}, UpdateServiceItemStatusDto>,
     res: Response,
   ) => {
     const result = await this.service.updateStatus(

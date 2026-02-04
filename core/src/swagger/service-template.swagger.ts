@@ -364,6 +364,35 @@ const ServiceTemplateSwagger = {
         },
       },
     },
+
+    delete: {
+      tags: ["Service Template"],
+      summary: "Xóa mẫu dịch vụ",
+      description: "Xóa mẫu dịch vụ theo ID",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID của mẫu dịch vụ cần xóa",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xóa mẫu dịch vụ thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(ServiceTemplateResponseSchema),
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy mẫu dịch vụ",
+        },
+      },
+    },
   },
 };
 
