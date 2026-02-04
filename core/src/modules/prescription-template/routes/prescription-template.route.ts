@@ -17,19 +17,19 @@ prescriptionTemplateRouter.post(
   auditLogsMiddleware("CREATE_PRESCRIPTION_TEMPLATE", "PrescriptionTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(CreatePrescriptionTemplateRequestSchema),
-  prescriptionTemplateController.createPrescriptionTemplate
+  prescriptionTemplateController.createPrescriptionTemplate,
 );
 
 prescriptionTemplateRouter.get(
   "/",
   authenticate,
-  prescriptionTemplateController.getPrescriptionTemplates
+  prescriptionTemplateController.getPrescriptionTemplates,
 );
 
 prescriptionTemplateRouter.get(
   "/:id",
   authenticate,
-  prescriptionTemplateController.getPrescriptionTemplateById
+  prescriptionTemplateController.getPrescriptionTemplateById,
 );
 
 prescriptionTemplateRouter.put(
@@ -38,9 +38,15 @@ prescriptionTemplateRouter.put(
   auditLogsMiddleware("UPDATE_PRESCRIPTION_TEMPLATE", "PrescriptionTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(UpdatePrescriptionTemplateRequestSchema),
-  prescriptionTemplateController.updatePrescriptionTemplate
+  prescriptionTemplateController.updatePrescriptionTemplate,
+);
+
+prescriptionTemplateRouter.delete(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("DELETE_PRESCRIPTION_TEMPLATE", "PrescriptionTemplate"),
+  authorize([UserRoleEnum.Admin]),
+  prescriptionTemplateController.deletePrescriptionTemplate,
 );
 
 export default prescriptionTemplateRouter;
-
-
