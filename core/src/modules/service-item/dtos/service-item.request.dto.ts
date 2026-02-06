@@ -86,7 +86,7 @@ export const updateServiceItemSchema = Joi.object<UpdateServiceItemRequestDto>({
   name: Joi.string().trim().min(5).max(255).optional(),
 
   basePrice: Joi.number().min(0).allow(null).optional().messages({
-    "number.min": "GiÃ¡ dá»‹ch vá»¥ khÃ´ng Ä‘Æ°á»£c nhá» hÆ¡n 0",
+    "number.min": "Giá dịch vụ phải từ 0",
   }),
 
   categoryId: Joi.string().uuid().allow(null).optional(),
@@ -103,9 +103,8 @@ export const createServiceItemSchema = Joi.object({
   itemCode: Joi.string().trim().min(3).max(50).required(),
   name: Joi.string().trim().min(5).max(255).required(),
 
-  basePrice: Joi.number().min(0).required().messages({
-    "number.min": "GiÃ¡ dá»‹ch vá»¥ khÃ´ng Ä‘Æ°á»£c nhá» hÆ¡n 0",
-    "any.required": "GiÃ¡ cÆ¡ báº£n lÃ  báº¯t buá»™c",
+  basePrice: Joi.number().min(0).allow(null, "").messages({
+    "number.min": "Giá dịch vụ phải từ 0",
   }),
 
   categoryId: Joi.string().uuid().allow(null).optional(),
