@@ -15,6 +15,7 @@ export class FileRepository {
     return await prisma.file.findFirst({
       where: {
         serviceRequestId: requestId,
+        type: "SERVICE_REQUEST",
       },
       orderBy: {
         createdAt: "desc",
@@ -76,22 +77,22 @@ export class FileRepository {
   }
 
   public async findByRequestIdAndType(requestId: string, type: FileType) {
-  return await prisma.file.findMany({
-    where: {
-      serviceRequestId: requestId,
-      type: type,
-    },
-  });
-}
+    return await prisma.file.findMany({
+      where: {
+        serviceRequestId: requestId,
+        type: type,
+      },
+    });
+  }
 
-public async deleteByRequestIdAndType(requestId: string, type: FileType) {
-  return await prisma.file.deleteMany({
-    where: {
-      serviceRequestId: requestId,
-      type: type,
-    },
-  });
-}
+  public async deleteByRequestIdAndType(requestId: string, type: FileType) {
+    return await prisma.file.deleteMany({
+      where: {
+        serviceRequestId: requestId,
+        type: type,
+      },
+    });
+  }
 
   public async findFilesWithPagination(params: {
     filters: any;
@@ -99,7 +100,7 @@ public async deleteByRequestIdAndType(requestId: string, type: FileType) {
     size: number;
     sort?: "asc" | "desc";
   }) {
-    const { filters, page, size, sort = 'desc' } = params;
+    const { filters, page, size, sort = "desc" } = params;
     const skip = (page - 1) * size;
 
     const [items, totalItems] = await Promise.all([

@@ -5,6 +5,7 @@ import { validateBody } from "../../../middlewares/validate";
 import {
   createServiceItemSchema,
   updateServiceItemSchema,
+  updateServiceItemStatusSchema,
 } from "../dtos/service-item.request.dto";
 import { UserRoleEnum } from "@prisma/client";
 import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
@@ -29,12 +30,29 @@ serviceItemRouter.get("/", authenticate, controller.getAll);
 serviceItemRouter.get("/:id", authenticate, controller.getById);
 
 serviceItemRouter.put(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("UPDATE_SERVICE_ITEM", "ServiceItem"),
+  authorize([UserRoleEnum.Admin]),
+  validateBody(updateServiceItemSchema),
+  controller.update,
+);
+
+serviceItemRouter.put(
   "/:id/status",
   authenticate,
   auditLogsMiddleware("UPDATE_SERVICE_ITEM_STATUS", "ServiceItem"),
   authorize([UserRoleEnum.Admin]),
-  validateBody(updateServiceItemSchema),
+  validateBody(updateServiceItemStatusSchema),
   controller.udpateStatus,
+);
+
+serviceItemRouter.delete(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("DELETE_ITEM", "ServiceItem"),
+  authorize([UserRoleEnum.Admin]),
+  controller.deleteServiceItem,
 );
 
 export default serviceItemRouter;

@@ -1,4 +1,4 @@
-import { ServiceNode, NodeType } from "@prisma/client";
+import { ServiceNode, NodeType, Prisma } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import {
   CreateServiceNodeRequestDto,
@@ -20,7 +20,7 @@ export class ServiceNodeRepository {
   }
 
   public async findById(nodeId: string): Promise<ServiceNode | null> {
-    return prisma.serviceNode.findUnique({ where: { nodeId } });
+    return prisma.serviceNode.findFirst({ where: { nodeId, isActive: true } });
   }
 
   public async findAll(
@@ -33,10 +33,11 @@ export class ServiceNodeRepository {
     const safePage = Math.max(page, 1);
     const safeSize = Math.max(size, 1);
     const skip = (safePage - 1) * safeSize;
+    const normalizedIsActive = isActive ?? true;
 
     const where = {
       nodeType: nodeType ?? undefined,
-      isActive: isActive === undefined ? undefined : isActive,
+      isActive: normalizedIsActive,
       ...(search
         ? {
             OR: [
@@ -87,8 +88,12 @@ export class ServiceNodeRepository {
     });
   }
 
-  public async softDelete(nodeId: string): Promise<ServiceNode> {
-    return prisma.serviceNode.update({
+  public async softDelete(
+    nodeId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ServiceNode> {
+    const client = tx || prisma;
+    return client.serviceNode.update({
       where: { nodeId },
       data: { isActive: false },
     });
@@ -105,6 +110,7 @@ export class ServiceNodeRepository {
     const count = await prisma.serviceNode.count({
       where: {
         code,
+        isActive: true,
         nodeId: excludeNodeId ? { not: excludeNodeId } : undefined,
       },
     });
@@ -112,8 +118,8 @@ export class ServiceNodeRepository {
   }
 
   public async findNodeById(nodeId: string): Promise<ServiceNode | null> {
-    return prisma.serviceNode.findUnique({
-      where: { nodeId: nodeId },
+    return prisma.serviceNode.findFirst({
+      where: { nodeId: nodeId, isActive: true },
     });
   }
 }

@@ -2,7 +2,10 @@ import { Router } from "express";
 import { UserRoleEnum } from "@prisma/client";
 import { UserController } from "../controllers/user.controller";
 import { validateBody, validateParams } from "../../../middlewares/validate";
-import { CreateUserRequestSchema } from "../dtos/user.request.dto";
+import {
+  CreateUserRequestSchema,
+  ForceUpdatePasswordSchema,
+} from "../dtos/user.request.dto";
 import { UpdateUserRequestSchema } from "../dtos/user.request.dto";
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
@@ -23,14 +26,14 @@ UserRouter.post(
   auditLogsMiddleware("CREATE_USER", "User"),
   authorize([UserRoleEnum.Admin]),
   validateBody(CreateUserRequestSchema),
-  userController.createUser
+  userController.createUser,
 );
 
 UserRouter.get(
   "/",
   authenticate,
   authorize([UserRoleEnum.Admin]),
-  userController.getUsers
+  userController.getUsers,
 );
 
 UserRouter.get("/me", authenticate, userController.getMyProfile);
@@ -39,21 +42,17 @@ UserRouter.put(
   "/change-password",
   authenticate,
   auditLogsMiddleware("CHANGE_PASSWORD", "User"),
-  userController.changePassword
+  userController.changePassword,
 );
 
 UserRouter.get(
   "/roles",
   authenticate,
   authorize([UserRoleEnum.Admin]),
-  userController.getUserEnum
+  userController.getUserEnum,
 );
 
-UserRouter.get(
-  "/status",
-  authenticate,
-  userController.getUserStatus
-);
+UserRouter.get("/status", authenticate, userController.getUserStatus);
 
 UserRouter.put(
   "/:id",
@@ -61,7 +60,16 @@ UserRouter.put(
   auditLogsMiddleware("UPDATE_USER", "User"),
   authorize([UserRoleEnum.Admin]),
   validateBody(UpdateUserRequestSchema),
-  userController.updateUser
+  userController.updateUser,
+);
+
+UserRouter.put(
+  "/:id/force-password",
+  authenticate,
+  auditLogsMiddleware("CHANGE_USER_PASS", "User"),
+  authorize([UserRoleEnum.Admin]),
+  validateBody(ForceUpdatePasswordSchema),
+  userController.updateUserPassword,
 );
 
 UserRouter.get(
@@ -69,7 +77,7 @@ UserRouter.get(
   authenticate,
   authorize([UserRoleEnum.Admin, UserRoleEnum.Manager]),
   validateParams(IdParamSchema),
-  userController.getUserById
+  userController.getUserById,
 );
 
 export default UserRouter;

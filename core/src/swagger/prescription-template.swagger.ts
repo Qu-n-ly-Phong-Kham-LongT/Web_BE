@@ -19,7 +19,8 @@ const PrescriptionTemplateSwagger = {
     post: {
       tags: ["Prescription Template"],
       summary: "Tạo mới mẫu đơn thuốc",
-      description: "Tạo mẫu đơn thuốc mới với danh sách thuốc và liều lượng mặc định",
+      description:
+        "Tạo mẫu đơn thuốc mới với danh sách thuốc và liều lượng mặc định",
       requestBody: {
         required: true,
         content: {
@@ -101,7 +102,8 @@ const PrescriptionTemplateSwagger = {
     get: {
       tags: ["Prescription Template"],
       summary: "Lấy thông tin mẫu đơn thuốc theo ID",
-      description: "Lấy chi tiết mẫu đơn thuốc bao gồm danh sách thuốc và liều lượng",
+      description:
+        "Lấy chi tiết mẫu đơn thuốc bao gồm danh sách thuốc và liều lượng",
       parameters: [
         {
           name: "id",
@@ -129,7 +131,8 @@ const PrescriptionTemplateSwagger = {
     put: {
       tags: ["Prescription Template"],
       summary: "Cập nhật mẫu đơn thuốc",
-      description: "Cập nhật thông tin mẫu đơn thuốc. Có thể cập nhật tên, mô tả và/hoặc danh sách thuốc. Khi cập nhật details: items có templateDetailId sẽ được update, items không có sẽ được tạo mới, items không gửi trong request sẽ bị xóa.",
+      description:
+        "Cập nhật thông tin mẫu đơn thuốc. Có thể cập nhật tên, mô tả và/hoặc danh sách thuốc. Khi cập nhật details: items có templateDetailId sẽ được update, items không có sẽ được tạo mới, items không gửi trong request sẽ bị xóa.",
       parameters: [
         {
           name: "id",
@@ -165,8 +168,35 @@ const PrescriptionTemplateSwagger = {
         },
       },
     },
+    delete: {
+      tags: ["Prescription Template"],
+      summary: "Xóa mẫu đơn thuốc",
+      description: "Xóa mẫu đơn thuốc theo ID",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID của mẫu đơn thuốc cần xóa",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xóa mẫu đơn thuốc thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(PrescriptionTemplateResponseSchema),
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy mẫu đơn thuốc",
+        },
+      },
+    },
   },
 };
 
 export default PrescriptionTemplateSwagger;
-

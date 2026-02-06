@@ -381,7 +381,7 @@ model ServiceNode {
   parent   ServiceNode?  @relation("NodeHierarchy", fields: [parentId], references: [nodeId])
   children ServiceNode[] @relation("NodeHierarchy")
 
-  code      String?   @unique
+  code      String?   
   name      String?
   note      String?
   isActive  Boolean?  @default(true)
@@ -394,7 +394,7 @@ model ServiceNode {
 
 model ServiceItem {
   itemId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  itemCode String? @unique
+  itemCode String? 
   name     String?
 
   categoryId String?      @db.Uuid
@@ -514,7 +514,7 @@ model ServiceTemplateDetail {
 
 model Medicine {
   medicineId          String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  medicineCode        String?                      @unique
+  medicineCode        String?                      
   medicineName        String?
   activeIngredient    String?
   registrationNo      String?
@@ -530,6 +530,7 @@ model Medicine {
   isActive            Boolean?                     @default(true)
   createdAt           DateTime?                    @default(now()) @db.Timestamptz
   updatedAt           DateTime?                    @updatedAt @db.Timestamptz
+  deletedAt           DateTime?                    @db.Timestamptz()
   prescriptionDetails PrescriptionDetail[]
   templateDetails     PrescriptionTemplateDetail[]
   inventoryLogs       InventoryLog[]

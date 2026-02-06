@@ -46,6 +46,7 @@ export class MedicineRepository {
     return await prisma.medicine.findFirst({
       where: {
         medicineId: id,
+        deletedAt: null,
         ...this.buildClinicFilter(clinicId),
       },
     });
@@ -70,6 +71,7 @@ export class MedicineRepository {
     const skip = (page - 1) * size;
 
     const baseWhere = {
+      deletedAt: null,
       ...this.buildClinicFilter(clinicId),
     };
 
@@ -216,8 +218,8 @@ export class MedicineRepository {
   public async findMedicineByCode(
     medicineCode: string,
   ): Promise<Medicine | null> {
-    return await prisma.medicine.findUnique({
-      where: { medicineCode: medicineCode },
+    return await prisma.medicine.findFirst({
+      where: { medicineCode: medicineCode, deletedAt: null },
     });
   }
 
@@ -239,6 +241,7 @@ export class MedicineRepository {
     return await client.medicine.findMany({
       where: {
         medicineId: { in: medicineIds },
+        deletedAt: null,
       },
       select: {
         medicineId: true,
@@ -258,6 +261,7 @@ export class MedicineRepository {
     return await tx.medicine.updateMany({
       where: {
         medicineId: medicineId,
+        deletedAt: null,
         totalQuantity: { gte: quantity },
       },
       data: { totalQuantity: { decrement: quantity } },
@@ -270,7 +274,7 @@ export class MedicineRepository {
     tx: Prisma.TransactionClient,
   ) {
     return await tx.medicine.update({
-      where: { medicineId },
+      where: { medicineId, deletedAt: null },
       data: { totalQuantity: { decrement: quantity } },
     });
   }
@@ -306,7 +310,7 @@ export class MedicineRepository {
     tx: Prisma.TransactionClient,
   ) {
     return await tx.medicine.update({
-      where: { medicineId },
+      where: { medicineId, deletedAt: null },
       data: { totalQuantity: 0 },
     });
   }

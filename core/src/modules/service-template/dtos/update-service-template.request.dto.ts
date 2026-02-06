@@ -32,7 +32,7 @@ export const UpdateServiceTemplateDetailSchema = Joi.object<UpdateServiceTemplat
     "array.min": "Phải chọn ít nhất một cấu hình cho dịch vụ",
   }),
   note: Joi.string().allow("", null).optional(),
-}).required();
+})
 
 export const UpdateServiceTemplateRequestSchema = Joi.object<UpdateServiceTemplateRequestDto>({
   templateName: Joi.string().optional().messages({
@@ -40,8 +40,6 @@ export const UpdateServiceTemplateRequestSchema = Joi.object<UpdateServiceTempla
   }),
   description: Joi.string().optional(),
   isActive: Joi.boolean().optional(),
-  details: Joi.array().items(UpdateServiceTemplateDetailSchema).min(1).optional().messages({
-    "array.min": "Phải có ít nhất một dịch vụ trong mẫu",
-  }),
-}).required();
+  details: Joi.array().items(UpdateServiceTemplateDetailSchema).min(0).required()
+})
 

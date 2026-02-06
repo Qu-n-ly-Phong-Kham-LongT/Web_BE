@@ -2,6 +2,7 @@ import { joiToSwagger } from "../utils/joi-swagger.util";
 import {
   createServiceItemSchema,
   updateServiceItemSchema,
+  updateServiceItemStatusSchema,
 } from "../modules/service-item/dtos/service-item.request.dto";
 import { InputType, NodeType } from "@prisma/client";
 
@@ -139,8 +140,7 @@ const ServiceItemSwagger = {
         401: { description: "Chưa đăng nhập" },
         403: { description: "Không đủ quyền (chỉ Admin)" },
         409: {
-          description:
-            "Mã dịch vụ đã tồn tại hoặc danh mục/loại không tồn tại",
+          description: "Mã dịch vụ đã tồn tại hoặc danh mục/loại không tồn tại",
         },
       },
     },
@@ -291,6 +291,93 @@ const ServiceItemSwagger = {
         404: { description: "Không tìm thấy dịch vụ cận lâm sàng" },
       },
     },
+    put: {
+      tags: ["Service Items"],
+      summary: "Cập nhật dịch vụ CLS",
+      description: "Chỉ admin mới được update",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID dịch vụ CLS",
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: joiToSwagger(updateServiceItemSchema),
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Cập nhật dịch vụ CLS thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  data: serviceItemResponseSchema,
+                  pagination: { type: "object", nullable: true },
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Dữ liệu không hợp lệ" },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không có quyền" },
+        404: { description: "Không tìm thấy dịch vụ CLS" },
+        409: {
+          description:
+            "Mã dịch vụ CLS hoặc mã danh mục/loại dịch vụ CLS không tồn tại",
+        },
+      },
+    },
+    delete: {
+      tags: ["Service Items"],
+      summary: "Xóa dịch vụ CLS",
+      description: "Xóa mềm dịch vụ CLS theo ID",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID dịch vụ cần xóa",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xóa dịch vụ thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Xóa dịch vụ thành công",
+                  },
+                  data: { type: "object" }, // hoặc null nếu bạn trả null
+                },
+              },
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy dịch vụ",
+        },
+      },
+    },
   },
   "/api/service-items/{id}/status": {
     put: {
@@ -311,7 +398,7 @@ const ServiceItemSwagger = {
         required: true,
         content: {
           "application/json": {
-            schema: joiToSwagger(updateServiceItemSchema),
+            schema: joiToSwagger(updateServiceItemStatusSchema),
           },
         },
       },
@@ -342,5 +429,3 @@ const ServiceItemSwagger = {
 };
 
 export default ServiceItemSwagger;
-
-

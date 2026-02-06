@@ -17,25 +17,25 @@ serviceTemplateRouter.post(
   auditLogsMiddleware("CREATE_SERVICE_TEMPLATE", "ServiceTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(CreateServiceTemplateRequestSchema),
-  serviceTemplateController.createServiceTemplate
+  serviceTemplateController.createServiceTemplate,
 );
 
 serviceTemplateRouter.get(
   "/",
   authenticate,
-  serviceTemplateController.getServiceTemplates
+  serviceTemplateController.getServiceTemplates,
 );
 
 serviceTemplateRouter.get(
   "/active-items",
   authenticate,
-  serviceTemplateController.getServiceTemplatesForDoctor
+  serviceTemplateController.getServiceTemplatesForDoctor,
 );
 
 serviceTemplateRouter.get(
   "/:id",
   authenticate,
-  serviceTemplateController.getServiceTemplateById
+  serviceTemplateController.getServiceTemplateById,
 );
 
 serviceTemplateRouter.put(
@@ -44,8 +44,15 @@ serviceTemplateRouter.put(
   auditLogsMiddleware("UPDATE_SERVICE_TEMPLATE", "ServiceTemplate"),
   authorize([UserRoleEnum.Admin]),
   validateBody(UpdateServiceTemplateRequestSchema),
-  serviceTemplateController.updateServiceTemplate
+  serviceTemplateController.updateServiceTemplate,
+);
+
+serviceTemplateRouter.delete(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("DELETE_SERVICE_TEMPLATE", "ServiceTemplate"),
+  authorize([UserRoleEnum.Admin]),
+  serviceTemplateController.deleteServiceTemplate,
 );
 
 export default serviceTemplateRouter;
-

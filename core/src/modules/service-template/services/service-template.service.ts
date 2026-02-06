@@ -448,5 +448,15 @@ export class ServiceTemplateService {
       }),
     };
   }
+
+  public async deleteServiceTemplate(id: string): Promise<void> {
+    const template = await this.templateRepository.findServiceTemplateById(id);
+
+    if (!template) {
+      throw new BaseError(404, "Không tìm thấy mẫu chỉ định")
+    }
+
+    await this.templateRepository.deleteServiceTemplate(id);
+  }
 }
 

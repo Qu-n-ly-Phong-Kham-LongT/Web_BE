@@ -1,4 +1,4 @@
-import { UserRoleEnum } from "@prisma/client";
+import { UserRoleEnum, UserStatus } from "@prisma/client";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import {
   CreateUserRequestSchema,
@@ -50,6 +50,12 @@ const UserSwagger = {
           in: "query",
           required: false,
           schema: { type: "string", enum: Object.values(UserRoleEnum) },
+        },
+        {
+          name: "status",
+          in: "query",
+          required: false,
+          schema: { type: "string", enum: Object.values(UserStatus) },
         },
       ],
       responses: {
@@ -159,6 +165,40 @@ const UserSwagger = {
         400: { description: "Validation error" },
         401: { description: "Unauthorized" },
         403: { description: "Forbidden" },
+      },
+    },
+  },
+
+  "/api/users/{id}/force-password": {
+    put: {
+      summary: "Admin đổi password người dùng",
+      tags: ["Users"],
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: { newPassword: { type: "string" } },
+              required: ["newPassword"],
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Cập nhật mật khẩu người dùng thành công" },
+        401: { description: "Unauthorized" },
+        403: { description: "Forbidden" },
+        404: { description: "Không tìm thấy người dùng" },
       },
     },
   },

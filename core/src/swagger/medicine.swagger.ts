@@ -52,7 +52,8 @@ const MedicineSwagger = {
           in: "query",
           required: false,
           schema: { type: "string" },
-          description: "Tìm kiếm theo tên thuốc, mã thuốc, hoạt chất hoặc nhà cung cấp",
+          description:
+            "Tìm kiếm theo tên thuốc, mã thuốc, hoạt chất hoặc nhà cung cấp",
         },
         {
           name: "supplier",
@@ -185,8 +186,45 @@ const MedicineSwagger = {
         },
       },
     },
+    delete: {
+      tags: ["Medicine"],
+      summary: "Xóa thuốc",
+      description: "Xóa thuốc theo ID",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string", format: "uuid" },
+          description: "ID của thuốc cần xóa",
+        },
+      ],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Xóa thuốc thành công",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Xóa thuốc thành công",
+                  },
+                  data: { type: "null", example: null },
+                },
+              },
+            },
+          },
+        },
+        404: {
+          description: "Không tìm thấy thuốc",
+        },
+      },
+    },
   },
 };
 
 export default MedicineSwagger;
-

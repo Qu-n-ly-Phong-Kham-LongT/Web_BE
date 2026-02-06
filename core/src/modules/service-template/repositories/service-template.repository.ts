@@ -195,5 +195,6 @@ export class ServiceTemplateRepository {
       where: { templateId: id },
     });
   }
+
 }
 

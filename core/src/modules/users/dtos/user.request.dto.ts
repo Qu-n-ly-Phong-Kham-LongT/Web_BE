@@ -23,10 +23,18 @@ export interface UpdateUserRequestDto {
   roles?: UserRoleEnum[];
 }
 
+export interface ForceUpdatePasswordDto {
+  newPassword: string;
+}
+
+export const ForceUpdatePasswordSchema = Joi.object<ForceUpdatePasswordDto>({
+  newPassword: Joi.string().min(6).max(100).required(),
+}).options({ abortEarly: false, stripUnknown: true });
+
 const roleEnumValues = Object.values(UserRoleEnum);
 const normalizeRole = (value: string, helpers: CustomHelpers) => {
   const match = roleEnumValues.find(
-    (r) => r.toLowerCase() === String(value).toLowerCase()
+    (r) => r.toLowerCase() === String(value).toLowerCase(),
   );
   if (!match) {
     return helpers.error("any.only", { valids: roleEnumValues });

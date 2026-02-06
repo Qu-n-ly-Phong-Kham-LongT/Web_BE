@@ -1,4 +1,4 @@
-import { Prisma, User, UserRoleEnum } from "@prisma/client";
+import { Prisma, User, UserRoleEnum, UserStatus } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 
 export type UserWithRoles = Prisma.UserGetPayload<{
@@ -29,7 +29,7 @@ export class UserRepository {
 
   public async createUser(
     createData: Prisma.UserUncheckedCreateInput,
-    roles: UserRoleEnum[]
+    roles: UserRoleEnum[],
   ): Promise<UserWithRoles> {
     return await prisma.user.create({
       data: {
@@ -58,7 +58,7 @@ export class UserRepository {
 
   public async updateUser(
     id: string,
-    updateData: Prisma.UserUncheckedUpdateInput
+    updateData: Prisma.UserUncheckedUpdateInput,
   ): Promise<User> {
     return await prisma.user.update({
       where: { userId: id },
@@ -69,7 +69,7 @@ export class UserRepository {
   public async findUserById(
     id: string,
     clinicId?: string,
-    tx?: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient,
   ) {
     const client = tx ?? prisma;
     return await client.user.findFirst({
@@ -93,14 +93,14 @@ export class UserRepository {
     size: number = 10,
     search?: string,
     role?: UserRoleEnum,
-    clinicId?: string
+    clinicId?: string,
+    status?: UserStatus,
   ): Promise<{ users: UserWithRoles[]; totalItems: number }> {
     const skip = (page - 1) * size;
     const where: Prisma.UserWhereInput = {
       ...(clinicId ? { clinicId } : {}),
-      ...(role
-        ? { roles: { some: { role: { roleName: role } } } }
-        : {}),
+      ...(role ? { roles: { some: { role: { roleName: role } } } } : {}),
+      ...(status ? { status } : {}),
       ...(search
         ? {
             OR: [

@@ -7,6 +7,7 @@ import {
   UpdateServiceNodeRequestDto,
 } from "../dtos/service-node.request.dto";
 import { BaseError } from "../../../utils/base-error.util";
+import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
 
 export class ServiceNodeController {
   private service = new ServiceNodeService();
@@ -44,26 +45,50 @@ export class ServiceNodeController {
       size,
       nodeType,
       isActive,
-      search
+      search,
     );
     return successResponse(
       res,
       200,
       nodes,
       "Lấy danh sách thành công",
-      pagination
+      pagination,
     );
   };
 
   public getNodeTypes = async (_req: Request, res: Response) => {
     const types = this.service.getNodeTypes();
-    return successResponse(res, 200, types, "Lấy danh sách Danh mục/Loại CLS thành công");
+    return successResponse(
+      res,
+      200,
+      types,
+      "Lấy danh sách Danh mục/Loại CLS thành công",
+    );
   };
 
-  public listTypesByCategory = async (req: Request<{ categoryId: string }>, res: Response) => {
+  public listTypesByCategory = async (
+    req: Request<{ categoryId: string }>,
+    res: Response,
+  ) => {
     const categoryId = req.params.categoryId;
     const nodes = await this.service.listTypesByCategory(categoryId);
-    return successResponse(res, 200, nodes, "Lấy danh sách loại dịch vụ thành công theo danh mục thành công");
-  }
+    return successResponse(
+      res,
+      200,
+      nodes,
+      "Lấy danh sách loại dịch vụ thành công theo danh mục thành công",
+    );
+  };
+
+  public deleteNode = async (
+    req: AuthenticatedRequest<{ id: string }>,
+    res: Response,
+  ) => {
+    const { id } = req.params;
+    await this.service.deleteNode(id);
+    return successResponse(res, 200, null, "Xoá loại dịch vụ thành công");
+  };
 }
+
+
 

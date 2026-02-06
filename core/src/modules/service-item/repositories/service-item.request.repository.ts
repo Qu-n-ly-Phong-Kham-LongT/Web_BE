@@ -1,18 +1,21 @@
 import { Prisma, ServiceItem } from "@prisma/client";
-import { CreateServiceItemRequestDto } from "../dtos/service-item.request.dto";
+import {
+  CreateServiceItemConfigDto,
+  CreateServiceItemRequestDto,
+} from "../dtos/service-item.request.dto";
 import { prisma } from "../../../config/database.config";
 import { includes } from "lodash";
 
 export class ServiceItemRepository {
   public async findByCode(code: string): Promise<ServiceItem | null> {
-    return prisma.serviceItem.findUnique({
-      where: { itemCode: code },
+    return prisma.serviceItem.findFirst({
+      where: { itemCode: code, isActive: true },
     });
   }
 
   public async findById(itemId: string) {
-    return prisma.serviceItem.findUnique({
-      where: { itemId },
+    return prisma.serviceItem.findFirst({
+      where: { itemId, isActive: true },
       include: {
         configs: true,
         category: true,
@@ -162,5 +165,89 @@ export class ServiceItemRepository {
       data: { isActive },
       include: { configs: true, category: true, type: true },
     });
+  }
+
+  public async updateServiceItemWithConfig(
+    itemId: string,
+    updateData: Prisma.ServiceItemUpdateInput,
+    configs?: CreateServiceItemConfigDto[],
+  ): Promise<ServiceItem> {
+    return await prisma.$transaction(async (tx) => {
+      await tx.serviceItem.update({
+        where: { itemId },
+        data: updateData,
+      });
+
+      if (configs !== undefined) {
+        await tx.serviceItemConfig.deleteMany({
+          where: { itemId },
+        });
+
+        if (configs.length > 0) {
+          await tx.serviceItemConfig.createMany({
+            data: configs.map((cfg) => ({
+              itemId,
+
+              configCode: cfg.configCode,
+              displayName: cfg.displayName,
+              inputType: cfg.inputType,
+              unit: cfg.unit,
+              refRange: cfg.refRange,
+
+              metaData: cfg.metaData
+                ? (cfg.metaData as Prisma.InputJsonValue)
+                : Prisma.JsonNull,
+            })),
+          });
+        }
+      }
+
+      return await tx.serviceItem.findUniqueOrThrow({
+        where: { itemId },
+        include: {
+          configs: {
+            orderBy: { displayName: "asc" },
+          },
+          category: true,
+          type: true,
+        },
+      });
+    });
+  }
+
+  public async deleteServiceItem(itemId: string): Promise<void> {
+    await prisma.serviceItem.update({
+      where: { itemId },
+      data: { isActive: false },
+      include: {
+        configs: true,
+        category: true,
+        type: true,
+      },
+    });
+  }
+
+  public async deleteByNodeType(
+    typeId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = tx || prisma;
+    await client.serviceItem.updateMany({
+      where: { typeId },
+      data: { isActive: false },
+    });
+  }
+
+  public async findItemIdsByTypeId(
+    typeId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    const client = tx || prisma;
+    const rows = await client.serviceItem.findMany({
+      where: { typeId },
+      select: { itemId: true },
+    });
+
+    return rows.map((r) => r.itemId);
   }
 }
