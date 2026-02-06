@@ -21,21 +21,25 @@ pipeline {
                     def branchMap = [
                         "product": [
                             envName: "product",
-                            credId : "env-phong-kham-product"
+                            credId : "env-phong-kham-product",
+                            corePort: "30000"
                         ],
                         "staging": [
                             envName: "staging",
-                            credId : "env-phong-kham-staging"
+                            credId : "env-phong-kham-staging",
+                            corePort: "30001"
                         ]
                     ]
 
                     env.ENVIRONMENT_NAME = branchMap[BR].envName
                     env.ENV_CRED_ID      = branchMap[BR].credId
+                    env.CORE_PORT        = branchMap[BR].corePort
 
                     env.CORE_IMAGE_TAG = "${APP_NAME}-core:${ENVIRONMENT_NAME}-${BUILD_NUMBER}"
                     env.PDF_IMAGE_TAG  = "${APP_NAME}-pdf:${ENVIRONMENT_NAME}-stable"
 
                     echo "[Init] ENVIRONMENT = ${ENVIRONMENT_NAME}"
+                    echo "[Init] CORE_PORT  = ${CORE_PORT}"
                     echo "[Init] CORE_IMAGE = ${CORE_IMAGE_TAG}"
                     echo "[Init] PDF_IMAGE  = ${PDF_IMAGE_TAG}"
                 }
@@ -90,7 +94,7 @@ pipeline {
                     sh """
                         set -e
                         cp "\$ENV_FILE" ./.env.runtime
-                        docker run --rm --env-file ./.env.runtime ${CORE_IMAGE_TAG} npx prisma migrate deploy
+                        docker run --rm --network at-net --env-file ./.env.runtime ${CORE_IMAGE_TAG} npx prisma migrate deploy
                         rm -f ./.env.runtime
                     """
                 }
