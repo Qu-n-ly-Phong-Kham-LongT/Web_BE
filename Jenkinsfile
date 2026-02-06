@@ -120,6 +120,7 @@ pipeline {
                         docker rm phong-kham-core-${ENVIRONMENT_NAME} phong-kham-pdf-${ENVIRONMENT_NAME} 2>/dev/null || true
 
                         echo "[Deploy] Starting containers..."
+                        export PORT=\$(grep '^PORT=' ./.env.runtime | cut -d '=' -f2)
                         docker compose -p ${APP_NAME}-${ENVIRONMENT_NAME} -f ./infra/docker-compose.yml up -d --force-recreate --remove-orphans
 
                         rm -f ./.env.runtime ./infra/.env.runtime
