@@ -19,6 +19,21 @@ export interface CreateServiceRequestDetailDto {
   note?: string;
 }
 
+export interface BasicServiceRequestWithDateDto {
+  recordId: string;
+  orderingDoctorId: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export const BasicServiceRequestWithDateSchema =
+  Joi.object<BasicServiceRequestWithDateDto>({
+    recordId: Joi.string().uuid().required(),
+    orderingDoctorId: Joi.string().uuid().required(),
+    createdAt: Joi.date().required(),
+    updatedAt: Joi.date().optional(),
+  }).options({ abortEarly: false });
+
 export interface CreateServiceRequestDto {
   recordId: string;
   orderingDoctorId?: string;

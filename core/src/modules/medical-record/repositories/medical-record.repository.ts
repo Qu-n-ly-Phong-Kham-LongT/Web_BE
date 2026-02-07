@@ -15,7 +15,9 @@ export class MedicalRecordRepository {
     tx?: Prisma.TransactionClient,
   ): Promise<MedicalRecord | null> {
     const client = tx ?? prisma;
-    return await client.medicalRecord.findUnique({ where: { recordId } });
+    return await client.medicalRecord.findUnique({
+      where: { recordId, isDeleted: false },
+    });
   }
 
   public async findExistingRecord(
@@ -28,6 +30,7 @@ export class MedicalRecordRepository {
       where: {
         patientId,
         clinicId,
+        isDeleted: false,
         createdAt: {
           gte: start,
           lte: end,
@@ -48,6 +51,7 @@ export class MedicalRecordRepository {
     const { skip, take, search, clinicId, doctorId, patientId } = params;
 
     const where: Prisma.MedicalRecordWhereInput = {
+      isDeleted: false,
       AND: [
         search
           ? {
@@ -117,12 +121,20 @@ export class MedicalRecordRepository {
   ) {
     return await prisma.medicalRecord.findMany({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId } : {}),
         createdAt: { gte: from, lt: to },
       },
       select: {
         consultationFee: true,
       },
+    });
+  }
+
+  public async delete(recordId: string): Promise<void> {
+    await prisma.medicalRecord.update({
+      where: { recordId },
+      data: { isDeleted: true },
     });
   }
 }

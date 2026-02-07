@@ -254,6 +254,7 @@ export class SharedRepository {
   ): Promise<FullMedicalRecordDto[]> {
     const where: Prisma.MedicalRecordWhereInput = {
       patientId,
+      isDeleted: false,
       ...(clinicId ? { clinicId } : {}),
     };
 

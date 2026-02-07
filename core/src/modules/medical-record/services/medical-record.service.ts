@@ -1,5 +1,8 @@
 import { MedicalRecordRepository } from "../repositories/medical-record.repository";
-import { BasicMedicalRecordRequestDto } from "../dtos/medical-record.request.dto";
+import {
+  BasicMedicalRecordRequestDto,
+  BasicMedicalRecordWithDateDto,
+} from "../dtos/medical-record.request.dto";
 import { MedicalRecord, Prisma } from "@prisma/client";
 import { UserRepository } from "../../users/repositories/user.repository";
 import { BaseError } from "../../../utils/base-error.util";
@@ -31,7 +34,7 @@ export class MedicalRecordService {
   private medicineRepository = new MedicineRepository();
 
   public async createBasicMedicalRecord(
-    createData: BasicMedicalRecordRequestDto
+    createData: BasicMedicalRecordRequestDto,
   ): Promise<{
     record: MedicalRecord;
     examinationId: string;
@@ -44,19 +47,22 @@ export class MedicalRecordService {
     const [doctor, patient, clinic] = await Promise.all([
       this.userRepository.findUserById(createData.doctorId || ""),
       this.patientRepository.findPatientById(createData.patientId || ""),
-      this.clinicRepository.findClinicById(createData.clinicId ?? ''),
+      this.clinicRepository.findClinicById(createData.clinicId ?? ""),
     ]);
     if (!doctor) throw new BaseError(404, "Không tìm thấy bác sĩ.");
     if (!patient) throw new BaseError(404, "Bệnh nhân không tồn tại");
     if (!clinic) throw new BaseError(404, "Phòng khám không tồn tại");
 
     if (doctor.clinicId !== createData.clinicId) {
-      throw new BaseError(403, "Bác sĩ không có quyền tạo bệnh án của phòng khám khác.");
+      throw new BaseError(
+        403,
+        "Bác sĩ không có quyền tạo bệnh án của phòng khám khác.",
+      );
     }
 
     const { startUtc, endUtc } = getUtcDayRangeForTimeZone(
       new Date(),
-      "Asia/Ho_Chi_Minh"
+      "Asia/Ho_Chi_Minh",
     );
 
     const record = await this.medicalRecordRepository.createRecord({
@@ -67,7 +73,8 @@ export class MedicalRecordService {
     });
 
     let examinationId: string;
-    const existingExam = await this.clinicalExaminationRepository.findByRecordId(record.recordId);
+    const existingExam =
+      await this.clinicalExaminationRepository.findByRecordId(record.recordId);
     if (existingExam) {
       examinationId = existingExam.examId;
     } else {
@@ -79,7 +86,10 @@ export class MedicalRecordService {
       examinationId = exam.examId;
     }
 
-    const storedAllergies = await this.patientRepository.findAllergiesByPatientId(createData.patientId || "");
+    const storedAllergies =
+      await this.patientRepository.findAllergiesByPatientId(
+        createData.patientId || "",
+      );
     const allergies: PatientAllergyResponseDto[] = storedAllergies.map((a) => {
       const data = (a.data as any) || [];
       const items = Array.isArray(data) ? data : [data];
@@ -95,9 +105,9 @@ export class MedicalRecordService {
 
     const transferredServiceRequests =
       await this.serviceRequestRepository.transferFollowUpRequestsToRecord(
-      createData.patientId || "",
-      record.recordId,
-    );
+        createData.patientId || "",
+        record.recordId,
+      );
 
     return { record, examinationId, allergies, transferredServiceRequests };
   }
@@ -106,7 +116,7 @@ export class MedicalRecordService {
     patientId: string,
     clinicId?: string,
     fromDate?: Date,
-    toDate?: Date
+    toDate?: Date,
   ): Promise<FullMedicalRecordDto[]> {
     const patient = await this.patientRepository.findPatientById(patientId);
     if (!patient) {
@@ -117,14 +127,14 @@ export class MedicalRecordService {
       patientId,
       clinicId,
       fromDate,
-      toDate
+      toDate,
     );
   }
 
   public async importLegacyMedicalRecord(
     payload: LegacyMedicalRecordImportRequestDto,
     doctorId: string,
-    clinicId: string
+    clinicId: string,
   ): Promise<{
     recordId: string;
     examId?: string;
@@ -141,21 +151,24 @@ export class MedicalRecordService {
     if (!patient) throw new BaseError(404, "Bệnh nhân không tồn tại");
     if (!clinic) throw new BaseError(404, "Phòng khám không tồn tại");
     if (doctor.clinicId !== clinicId) {
-      throw new BaseError(403, "Bác sĩ không có quyền tạo bệnh án của phòng khám khác.");
+      throw new BaseError(
+        403,
+        "Bác sĩ không có quyền tạo bệnh án của phòng khám khác.",
+      );
     }
 
     const recordCreatedAt = this.parseDateOrThrow(
       payload.createdAt,
-      "Ngày tạo bệnh án không hợp lệ"
+      "Ngày tạo bệnh án không hợp lệ",
     );
     const recordUpdatedAt = this.parseDateOrThrow(
       payload.updatedAt,
-      "Ngày cập nhật bệnh án không hợp lệ"
+      "Ngày cập nhật bệnh án không hợp lệ",
     );
 
     const { startUtc, endUtc } = getUtcDayRangeForTimeZone(
       recordCreatedAt,
-      "Asia/Ho_Chi_Minh"
+      "Asia/Ho_Chi_Minh",
     );
 
     const result = await prisma.$transaction(async (tx) => {
@@ -167,18 +180,25 @@ export class MedicalRecordService {
         if (existingRecord.clinicId && existingRecord.clinicId !== clinicId) {
           throw new BaseError(403, "Bệnh án không thuộc phòng khám");
         }
-        if (existingRecord.patientId && existingRecord.patientId !== payload.patientId) {
+        if (
+          existingRecord.patientId &&
+          existingRecord.patientId !== payload.patientId
+        ) {
           throw new BaseError(400, "recordId không khớp với bệnh nhân");
         }
       } else {
-        const existingByDate = await this.medicalRecordRepository.findExistingRecord(
-          payload.patientId || "",
-          clinicId ?? "",
-          startUtc,
-          endUtc
-        );
+        const existingByDate =
+          await this.medicalRecordRepository.findExistingRecord(
+            payload.patientId || "",
+            clinicId ?? "",
+            startUtc,
+            endUtc,
+          );
         if (existingByDate) {
-          throw new BaseError(409, "Ngày hôm nay đã có bệnh án, hãy kiểm tra lại");
+          throw new BaseError(
+            409,
+            "Ngày hôm nay đã có bệnh án, hãy kiểm tra lại",
+          );
         }
       }
 
@@ -223,11 +243,11 @@ export class MedicalRecordService {
       if (payload.clinicalExamination) {
         const examCreatedAt = this.parseDateOrThrow(
           payload.clinicalExamination.examinedAt,
-          "Ngày khám lâm sàng không hợp lệ"
+          "Ngày khám lâm sàng không hợp lệ",
         );
         const examUpdatedAt = this.parseDateOrThrow(
           payload.clinicalExamination.updatedAt,
-          "Ngày cập nhật khám lâm sàng không hợp lệ"
+          "Ngày cập nhật khám lâm sàng không hợp lệ",
         );
         const existingExam = await tx.clinicalExamination.findUnique({
           where: { recordId: record.recordId },
@@ -238,13 +258,17 @@ export class MedicalRecordService {
               data: {
                 examinedBy: doctorId,
                 userId: doctorId,
-                reasonForVisit: payload.clinicalExamination.reasonForVisit ?? null,
-                medicalHistory: payload.clinicalExamination.medicalHistory ?? null,
-                pastMedicalHistory: payload.clinicalExamination.pastMedicalHistory ?? null,
+                reasonForVisit:
+                  payload.clinicalExamination.reasonForVisit ?? null,
+                medicalHistory:
+                  payload.clinicalExamination.medicalHistory ?? null,
+                pastMedicalHistory:
+                  payload.clinicalExamination.pastMedicalHistory ?? null,
                 clinicalExamination:
                   payload.clinicalExamination.clinicalExamination ?? null,
                 heartRate: payload.clinicalExamination.heartRate ?? null,
-                bloodPressure: payload.clinicalExamination.bloodPressure ?? null,
+                bloodPressure:
+                  payload.clinicalExamination.bloodPressure ?? null,
                 temperature: payload.clinicalExamination.temperature ?? null,
                 height: payload.clinicalExamination.height ?? null,
                 weight: payload.clinicalExamination.weight ?? null,
@@ -259,8 +283,10 @@ export class MedicalRecordService {
                   payload.clinicalExamination.pregnancyWeeks ?? null,
                 hasPoorAppetite:
                   payload.clinicalExamination.hasPoorAppetite ?? false,
-                hasWeightLoss: payload.clinicalExamination.hasWeightLoss ?? false,
-                clinicalNotes: payload.clinicalExamination.clinicalNotes ?? null,
+                hasWeightLoss:
+                  payload.clinicalExamination.hasWeightLoss ?? false,
+                clinicalNotes:
+                  payload.clinicalExamination.clinicalNotes ?? null,
                 examinedAt: examCreatedAt,
               },
             })
@@ -269,13 +295,17 @@ export class MedicalRecordService {
                 recordId: record.recordId,
                 examinedBy: doctorId,
                 userId: doctorId,
-                reasonForVisit: payload.clinicalExamination.reasonForVisit ?? null,
-                medicalHistory: payload.clinicalExamination.medicalHistory ?? null,
-                pastMedicalHistory: payload.clinicalExamination.pastMedicalHistory ?? null,
+                reasonForVisit:
+                  payload.clinicalExamination.reasonForVisit ?? null,
+                medicalHistory:
+                  payload.clinicalExamination.medicalHistory ?? null,
+                pastMedicalHistory:
+                  payload.clinicalExamination.pastMedicalHistory ?? null,
                 clinicalExamination:
                   payload.clinicalExamination.clinicalExamination ?? null,
                 heartRate: payload.clinicalExamination.heartRate ?? null,
-                bloodPressure: payload.clinicalExamination.bloodPressure ?? null,
+                bloodPressure:
+                  payload.clinicalExamination.bloodPressure ?? null,
                 temperature: payload.clinicalExamination.temperature ?? null,
                 height: payload.clinicalExamination.height ?? null,
                 weight: payload.clinicalExamination.weight ?? null,
@@ -290,8 +320,10 @@ export class MedicalRecordService {
                   payload.clinicalExamination.pregnancyWeeks ?? null,
                 hasPoorAppetite:
                   payload.clinicalExamination.hasPoorAppetite ?? false,
-                hasWeightLoss: payload.clinicalExamination.hasWeightLoss ?? false,
-                clinicalNotes: payload.clinicalExamination.clinicalNotes ?? null,
+                hasWeightLoss:
+                  payload.clinicalExamination.hasWeightLoss ?? false,
+                clinicalNotes:
+                  payload.clinicalExamination.clinicalNotes ?? null,
                 examinedAt: examCreatedAt,
                 updatedAt: examUpdatedAt,
               },
@@ -305,7 +337,7 @@ export class MedicalRecordService {
           await this.patientRepository.upsertAllergies(
             record.patientId ?? "",
             payload.clinicalExamination.allergies,
-            tx
+            tx,
           );
         }
       }
@@ -316,7 +348,7 @@ export class MedicalRecordService {
           if (!request.details || request.details.length === 0) {
             throw new BaseError(
               400,
-              "Phiếu chỉ định phải có ít nhất 1 dịch vụ cận lâm sàng"
+              "Phiếu chỉ định phải có ít nhất 1 dịch vụ cận lâm sàng",
             );
           }
 
@@ -324,15 +356,12 @@ export class MedicalRecordService {
           const orderingDoctor = await this.userRepository.findUserById(
             orderingDoctorId,
             undefined,
-            tx
+            tx,
           );
           if (!orderingDoctor) {
             throw new BaseError(404, "Không tìm thấy bác sĩ chỉ định");
           }
-          if (
-            orderingDoctor.clinicId &&
-            orderingDoctor.clinicId !== clinicId
-          ) {
+          if (orderingDoctor.clinicId && orderingDoctor.clinicId !== clinicId) {
             throw new BaseError(403, "Bác sĩ không thuộc phòng khám hiện tại");
           }
 
@@ -341,19 +370,19 @@ export class MedicalRecordService {
           if (uniqueItemIds.length !== itemIds.length) {
             throw new BaseError(
               400,
-              "Không được chọn trùng lặp dịch vụ trong cùng một phiếu"
+              "Không được chọn trùng lặp dịch vụ trong cùng một phiếu",
             );
           }
 
           const items =
             await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
               uniqueItemIds,
-              tx
+              tx,
             );
           if (items.length !== uniqueItemIds.length) {
             throw new BaseError(
               400,
-              "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động"
+              "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động",
             );
           }
 
@@ -375,11 +404,13 @@ export class MedicalRecordService {
             for (const config of item.configs) {
               const optionsMap = new Map<string, number>();
               const metaOptions = Array.isArray(
-                (config.metaData as { options?: unknown })?.options
+                (config.metaData as { options?: unknown })?.options,
               )
-                ? ((config.metaData as {
-                    options?: { value?: string; surcharge?: number }[];
-                  }).options ?? [])
+                ? ((
+                    config.metaData as {
+                      options?: { value?: string; surcharge?: number }[];
+                    }
+                  ).options ?? [])
                 : [];
               for (const option of metaOptions) {
                 if (typeof option?.value !== "string") {
@@ -399,7 +430,10 @@ export class MedicalRecordService {
             const basePrice = item.basePrice
               ? Number(item.basePrice.toString())
               : 0;
-            itemConfigMap.set(item.itemId, { basePrice, configs: configMetaMap });
+            itemConfigMap.set(item.itemId, {
+              basePrice,
+              configs: configMetaMap,
+            });
           }
 
           const detailsToCreate: {
@@ -410,7 +444,10 @@ export class MedicalRecordService {
           for (const detail of request.details) {
             const itemMeta = itemConfigMap.get(detail.itemId);
             if (!itemMeta) {
-              throw new BaseError(400, "Dịch vụ không hợp lệ cho phiếu chỉ định");
+              throw new BaseError(
+                400,
+                "Dịch vụ không hợp lệ cho phiếu chỉ định",
+              );
             }
 
             const selectedConfigs = detail.selectedConfigs ?? [];
@@ -419,7 +456,7 @@ export class MedicalRecordService {
             if (uniqueConfigIds.length !== configIds.length) {
               throw new BaseError(
                 400,
-                "Không được chọn trùng lặp cấu hình cận lâm sàng"
+                "Không được chọn trùng lặp cấu hình cận lâm sàng",
               );
             }
 
@@ -436,22 +473,28 @@ export class MedicalRecordService {
               if (!configMeta) {
                 throw new BaseError(
                   400,
-                  "Cấu hình không thuộc dịch vụ đã chọn"
+                  "Cấu hình không thuộc dịch vụ đã chọn",
                 );
               }
 
               let configSurcharge = 0;
               if (configMeta.options.size > 0) {
-                if (!config.selectedValues || config.selectedValues.length === 0) {
+                if (
+                  !config.selectedValues ||
+                  config.selectedValues.length === 0
+                ) {
                   throw new BaseError(
                     400,
-                    "Giá trị chọn của cấu hình không hợp lệ"
+                    "Giá trị chọn của cấu hình không hợp lệ",
                   );
                 }
                 for (const selectedValue of config.selectedValues) {
                   const optionSurcharge = configMeta.options.get(selectedValue);
                   if (optionSurcharge === undefined) {
-                    throw new BaseError(400, "Giá trị chọn không thuộc cấu hình");
+                    throw new BaseError(
+                      400,
+                      "Giá trị chọn không thuộc cấu hình",
+                    );
                   }
                   configSurcharge += optionSurcharge;
                 }
@@ -480,11 +523,11 @@ export class MedicalRecordService {
 
           const requestCreatedAt = this.parseDateOrThrow(
             request.createdAt,
-            "Ngày tạo phiếu chỉ định không hợp lệ"
+            "Ngày tạo phiếu chỉ định không hợp lệ",
           );
           const requestUpdatedAt = this.parseDateOrThrow(
             request.updatedAt,
-            "Ngày cập nhật phiếu chỉ định không hợp lệ"
+            "Ngày cập nhật phiếu chỉ định không hợp lệ",
           );
           const existingRequest = await tx.serviceRequest.findUnique({
             where: { requestId: request.requestId },
@@ -567,17 +610,21 @@ export class MedicalRecordService {
             const detailByItemId = new Map(
               detailRows
                 .filter((d) => d.itemId)
-                .map((d) => [d.itemId as string, d])
+                .map((d) => [d.itemId as string, d]),
             );
 
-            const resultsToCreate: Prisma.ServiceResultUncheckedCreateInput[] = [];
+            const resultsToCreate: Prisma.ServiceResultUncheckedCreateInput[] =
+              [];
             for (const detail of request.details) {
               const detailRow = detailByItemId.get(detail.itemId);
               if (!detailRow || !detailRow.serviceItem) {
-                throw new BaseError(400, "Dịch vụ không hợp lệ để nhập kết quả");
+                throw new BaseError(
+                  400,
+                  "Dịch vụ không hợp lệ để nhập kết quả",
+                );
               }
               const configMap = new Map(
-                detailRow.serviceItem.configs.map((cfg) => [cfg.configId, cfg])
+                detailRow.serviceItem.configs.map((cfg) => [cfg.configId, cfg]),
               );
 
               const results = detail.results ?? [];
@@ -595,12 +642,12 @@ export class MedicalRecordService {
 
                 const resultUpdatedAt = this.parseDateOrThrow(
                   result.updatedAt,
-                  "Ngày cập nhật kết quả không hợp lệ"
+                  "Ngày cập nhật kết quả không hợp lệ",
                 );
                 const executedAt = result.executedAt
                   ? this.parseDateOrThrow(
                       result.executedAt,
-                      "Ngày thực hiện kết quả không hợp lệ"
+                      "Ngày thực hiện kết quả không hợp lệ",
                     )
                   : null;
 
@@ -616,7 +663,9 @@ export class MedicalRecordService {
                     null,
                   valueString: result.valueString ?? null,
                   valueNumber:
-                    result.valueNumber !== undefined ? result.valueNumber : null,
+                    result.valueNumber !== undefined
+                      ? result.valueNumber
+                      : null,
                   unit: result.unit ?? config.unit ?? null,
                   executedAt: executedAt ?? undefined,
                   updatedAt: resultUpdatedAt,
@@ -647,14 +696,17 @@ export class MedicalRecordService {
           uniqueMedicineIds.length > 0
             ? await this.medicineRepository.findMedicinesByIds(
                 uniqueMedicineIds,
-                tx
+                tx,
               )
             : [];
 
         if (medicines.length !== uniqueMedicineIds.length) {
           const found = new Set(medicines.map((m) => m.medicineId));
           const missing = uniqueMedicineIds.filter((id) => !found.has(id));
-          throw new BaseError(400, `Thuốc không tồn tại: ${missing.join(", ")}`);
+          throw new BaseError(
+            400,
+            `Thuốc không tồn tại: ${missing.join(", ")}`,
+          );
         }
 
         const medicineMap = new Map(medicines.map((m) => [m.medicineId, m]));
@@ -673,7 +725,9 @@ export class MedicalRecordService {
             throw new BaseError(400, "Số lượng thuốc không hợp lệ");
           }
 
-          let appliedPrice = medicine.sellPrice ? Number(medicine.sellPrice) : 0;
+          let appliedPrice = medicine.sellPrice
+            ? Number(medicine.sellPrice)
+            : 0;
           if (item.isInsuranceCovered) {
             if (!medicine.isInsuranceCovered) {
               throw new BaseError(400, "Thuốc này không được BHYT hỗ trợ");
@@ -707,11 +761,11 @@ export class MedicalRecordService {
           payload.treatmentNote ?? payload.doctorAdvice ?? null;
         const prescriptionCreatedAt = this.parseDateOrThrow(
           payload.prescription.createdAt,
-          "Ngày tạo toa thuốc không hợp lệ"
+          "Ngày tạo toa thuốc không hợp lệ",
         );
         const prescriptionUpdatedAt = this.parseDateOrThrow(
           payload.prescription.updatedAt,
-          "Ngày cập nhật toa thuốc không hợp lệ"
+          "Ngày cập nhật toa thuốc không hợp lệ",
         );
         const existingPrescription = await tx.prescription.findUnique({
           where: { recordId: record.recordId },
@@ -757,7 +811,7 @@ export class MedicalRecordService {
         if (payload.followUp.appointmentDate) {
           appointmentDate = this.parseDateOrThrow(
             payload.followUp.appointmentDate,
-            "Ngày hẹn không hợp lệ"
+            "Ngày hẹn không hợp lệ",
           );
         }
 
@@ -786,7 +840,7 @@ export class MedicalRecordService {
     });
 
     const fullRecord = await this.sharedRepository.getFullMedicalRecord(
-      result.recordId
+      result.recordId,
     );
     if (!fullRecord) {
       throw new BaseError(400, "Khong tim thay benh an sau khi nhap");
@@ -810,5 +864,127 @@ export class MedicalRecordService {
       throw new BaseError(400, message);
     }
     return date;
+  }
+
+  public async createBasicMedicalRecordWithDate(
+    createData: BasicMedicalRecordRequestDto & {
+      createdAt: Date | string;
+      updatedAt?: Date | string;
+    },
+  ): Promise<{
+    record: MedicalRecord;
+    examinationId: string;
+    allergies: PatientAllergyResponseDto[];
+    transferredServiceRequests: {
+      transferred: number;
+      requests: ServiceRequestWithDetails[];
+    };
+  }> {
+    const [doctor, patient, clinic] = await Promise.all([
+      this.userRepository.findUserById(createData.doctorId || ""),
+      this.patientRepository.findPatientById(createData.patientId || ""),
+      this.clinicRepository.findClinicById(createData.clinicId || ""),
+    ]);
+
+    if (!doctor) throw new BaseError(404, "Không tìm thấy bác sĩ");
+    if (!patient) throw new BaseError(404, "Không tìm thấy bệnh nhân");
+    if (!clinic) throw new BaseError(404, "Không tìm thấy phòng khám");
+
+    if (doctor.clinicId !== createData.clinicId) {
+      throw new BaseError(403, "Không có quyền truy cập phòng khám khác");
+    }
+
+    const createdAt = new Date(createData.createdAt);
+    if (Number.isNaN(createdAt.getTime())) {
+      throw new BaseError(400, "createdAt khong hop le");
+    }
+    const updatedAt = createData.updatedAt
+      ? new Date(createData.updatedAt)
+      : createdAt;
+    if (Number.isNaN(updatedAt.getTime())) {
+      throw new BaseError(400, "updatedAt khong hop le");
+    }
+
+    const { startUtc, endUtc } = getUtcDayRangeForTimeZone(
+      createdAt,
+      "Asia/Ho_Chi_Minh",
+    );
+
+    const existingRecord =
+      await this.medicalRecordRepository.findExistingRecord(
+        createData.patientId || "",
+        createData.clinicId ?? "",
+        startUtc,
+        endUtc,
+      );
+
+    if (existingRecord) {
+      throw new BaseError(
+        409,
+        "Bệnh nhân đã có bệnh án trong ngày, hãy kiểm tra lại",
+      );
+    }
+
+    const record = await this.medicalRecordRepository.createRecord({
+      patientId: createData.patientId,
+      doctorId: createData.doctorId,
+      clinicId: createData.clinicId,
+      consultationFee: createData.consultationFee ?? 0,
+      createdAt,
+      updatedAt,
+    });
+
+    await prisma.$executeRaw`UPDATE "MedicalRecord" SET "createdAt" = ${createdAt}, "updatedAt" = ${updatedAt} WHERE "recordId" = ${record.recordId}`;
+    let examinationId: string;
+    const existingExam =
+      await this.clinicalExaminationRepository.findByRecordId(record.recordId);
+    if (existingExam) {
+      examinationId = existingExam.examId;
+    } else {
+      const exam = await this.clinicalExaminationRepository.createExamination({
+        recordId: record.recordId,
+        examinedBy: createData.doctorId,
+        userId: createData.doctorId,
+      });
+      examinationId = exam.examId;
+    }
+
+    const storedAllergies =
+      await this.patientRepository.findAllergiesByPatientId(
+        createData.patientId || "",
+      );
+    const allergies: PatientAllergyResponseDto[] = storedAllergies.map((a) => {
+      const data = (a.data as any) || [];
+      const items = Array.isArray(data) ? data : [data];
+      return {
+        allergyID: a.allergyId,
+        patientID: a.patientId,
+        data: items.map((item: any) => ({
+          drug: item?.drug ?? null,
+          reaction: item?.reaction ?? null,
+        })),
+      };
+    });
+
+    const transferredServiceRequests =
+      await this.serviceRequestRepository.transferFollowUpRequestsToRecord(
+        createData.patientId || "",
+        record.recordId,
+      );
+
+    return { record, examinationId, allergies, transferredServiceRequests };
+  }
+
+  public async delete(recordId: string, clinicId?: string) {
+    const record = await this.medicalRecordRepository.findById(recordId);
+    if (!record) {
+      throw new BaseError(404, "Không tìm thấy bệnh án");
+    }
+
+    if (clinicId && clinicId !== record.clinicId) {
+      throw new BaseError(403, "Bệnh án không thuộc phòng khám");
+    }
+
+    return await this.medicalRecordRepository.delete(recordId);
   }
 }

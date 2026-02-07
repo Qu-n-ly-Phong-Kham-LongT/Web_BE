@@ -1,7 +1,10 @@
 import { Response } from "express";
 import { successResponse } from "../../../utils/response.util";
 import { AuthenticatedRequest } from "../../../middlewares/auth.middleware";
-import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
+import {
+  BasicServiceRequestWithDateDto,
+  CreateServiceRequestDto,
+} from "../dtos/service-request.request.dto";
 import { ServiceRequestService } from "../services/service-request.service";
 
 export class ServiceRequestController {
@@ -92,5 +95,26 @@ export class ServiceRequestController {
       ? "Đã thêm phiếu in vào hàng đợi"
       : "Lấy file phiếu chỉ định thành công";
     return successResponse(res, statusCode, result, messages);
+  };
+
+  public createRawRequestWithDate = async (
+    req: AuthenticatedRequest<{}, {}, BasicServiceRequestWithDateDto>,
+    res: Response,
+  ) => {
+    const doctorId =
+      req.body.orderingDoctorId || req.payload?.userId || "";
+    const result = await this.serviceRequestService.createRequestWithDate(
+      req.body.recordId,
+      doctorId,
+      req.body.createdAt,
+      req.body.updatedAt,
+    );
+
+    return successResponse(
+      res,
+      200,
+      result,
+      "Khởi tạo phiếu chỉ định thành công",
+    );
   };
 }
