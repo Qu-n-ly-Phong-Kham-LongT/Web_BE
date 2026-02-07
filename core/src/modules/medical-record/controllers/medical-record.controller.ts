@@ -6,6 +6,7 @@ import {
   BasicMedicalRecordRequestDto,
 } from "../dtos/medical-record.request.dto";
 import { MedicalRecordService } from "../services/medical-record.service";
+import { LegacyMedicalRecordImportRequestDto } from "../dtos/legacy-medical-record.request.dto";
 
 export class MedicalRecordController {
   private medicalRecordService = new MedicalRecordService();
@@ -67,4 +68,29 @@ export class MedicalRecordController {
       "Lấy danh sách bệnh án thành công"
     );
   };
+  public importLegacyMedicalRecord = async (
+    req: AuthenticatedRequest<{}, {}, LegacyMedicalRecordImportRequestDto>,
+    res: Response
+  ) => {
+    const clinicId = req.payload?.clinicId;
+    const doctorId = req.payload?.userId;
+    if (!clinicId || !doctorId) {
+      return res.status(403).json({ message: "Khong co quyen thuc hien" });
+    }
+
+    const result = await this.medicalRecordService.importLegacyMedicalRecord(
+      req.body,
+      doctorId,
+      clinicId
+    );
+
+    return successResponse(
+      res,
+      201,
+      result,
+      "Nhap benh an cu thanh cong"
+    );
+  };
 }
+
+

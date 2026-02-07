@@ -3,6 +3,7 @@ import { MedicalRecordController } from "../controllers/medical-record.controlle
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { validateBody } from "../../../middlewares/validate";
 import { BasicMedicalRecordCreateBodySchema } from "../dtos/medical-record.request.dto";
+import { legacyMedicalRecordImportSchema } from "../dtos/legacy-medical-record.request.dto";
 import { UserRoleEnum } from "@prisma/client";
 import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
@@ -16,6 +17,15 @@ medicalRecordRouter.post(
   authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin]),
   validateBody(BasicMedicalRecordCreateBodySchema),
   medicalRecordController.createMedicalRecord
+);
+
+medicalRecordRouter.post(
+  "/import-legacy",
+  authenticate,
+  auditLogsMiddleware("IMPORT_LEGACY_MEDICAL_RECORD", "MedicalRecord"),
+  authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin]),
+  validateBody(legacyMedicalRecordImportSchema),
+  medicalRecordController.importLegacyMedicalRecord
 );
 
 medicalRecordRouter.get(

@@ -1,5 +1,6 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { BasicMedicalRecordCreateBodySchema } from "../modules/medical-record/dtos/medical-record.request.dto";
+import { legacyMedicalRecordImportSchema } from "../modules/medical-record/dtos/legacy-medical-record.request.dto";
 
 const MedicalRecordSwagger = {
   "/api/medical-records": {
@@ -75,6 +76,48 @@ const MedicalRecordSwagger = {
       },
     },
   },
+  "/api/medical-records/import-legacy": {
+    post: {
+      tags: ["Core Businesses"],
+      summary: "Nhap benh an cu (backdate createdAt/updatedAt)",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: joiToSwagger(legacyMedicalRecordImportSchema),
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: "Nhap benh an cu thanh cong",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  recordId: { type: "string", format: "uuid" },
+                  examId: { type: "string", format: "uuid", nullable: true },
+                  serviceRequestIds: {
+                    type: "array",
+                    items: { type: "string", format: "uuid" },
+                  },
+                  prescriptionId: { type: "string", format: "uuid", nullable: true },
+                  fullRecord: { $ref: "#/components/schemas/FullMedicalRecordDto" },
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Du lieu khong hop le" },
+        401: { description: "Chua dang nhap" },
+        403: { description: "Khong du quyen" },
+        404: { description: "Khong tim thay bac si / benh nhan / phong kham" },
+        409: { description: "Trung benh an theo ngay" },
+      },
+    },
+  },
   "/api/medical-records/patient/{patientId}": {
     get: {
       tags: ["Core Businesses"],
@@ -143,3 +186,5 @@ const MedicalRecordSwagger = {
 };
 
 export default MedicalRecordSwagger;
+
+
