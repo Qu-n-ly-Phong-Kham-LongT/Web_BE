@@ -79,7 +79,7 @@ const MedicalRecordSwagger = {
   "/api/medical-records/import-legacy": {
     post: {
       tags: ["Core Businesses"],
-      summary: "Nhap benh an cu (backdate createdAt/updatedAt)",
+      summary: "Nhập bệnh án cũ (upsert)",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -91,7 +91,7 @@ const MedicalRecordSwagger = {
       },
       responses: {
         201: {
-          description: "Nhap benh an cu thanh cong",
+          description: "Nhập/Cập nhật bệnh án thành công",
           content: {
             "application/json": {
               schema: {
@@ -110,11 +110,11 @@ const MedicalRecordSwagger = {
             },
           },
         },
-        400: { description: "Du lieu khong hop le" },
-        401: { description: "Chua dang nhap" },
-        403: { description: "Khong du quyen" },
-        404: { description: "Khong tim thay bac si / benh nhan / phong kham" },
-        409: { description: "Trung benh an theo ngay" },
+        400: { description: "Dữ liệu không hợp lệ" },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không đủ quyền" },
+        404: { description: "Không tìm thấy" },
+        409: { description: "Trùng bệnh án theo ngày" },
       },
     },
   },
@@ -186,5 +186,3 @@ const MedicalRecordSwagger = {
 };
 
 export default MedicalRecordSwagger;
-
-

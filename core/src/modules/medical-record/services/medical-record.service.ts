@@ -59,19 +59,6 @@ export class MedicalRecordService {
       "Asia/Ho_Chi_Minh"
     );
 
-    const existingRecord = await this.medicalRecordRepository.findExistingRecord(
-      createData.patientId || "",
-      createData.clinicId ?? "",
-      startUtc,
-      endUtc
-    );
-    if (existingRecord) {
-      throw new BaseError(
-        409,
-        "Hôm nay BN đã có bệnh án, hãy tiếp tục với bệnh án cũ."
-      );
-    }
-
     const record = await this.medicalRecordRepository.createRecord({
       patientId: createData.patientId,
       doctorId: createData.doctorId,
@@ -171,37 +158,67 @@ export class MedicalRecordService {
       "Asia/Ho_Chi_Minh"
     );
 
-    const existingRecord = await this.medicalRecordRepository.findExistingRecord(
-      payload.patientId || "",
-      clinicId ?? "",
-      startUtc,
-      endUtc
-    );
-    if (existingRecord) {
-      throw new BaseError(
-        409,
-        "Ngày bệnh án này đã có bệnh án, hãy kiểm tra lại."
-      );
-    }
-
     const result = await prisma.$transaction(async (tx) => {
-      const record = await tx.medicalRecord.create({
-        data: {
-          patientId: payload.patientId,
-          doctorId: doctorId,
-          clinicId: clinicId,
-          consultationFee: payload.consultationFee ?? 0,
-          evidenceBasedDiagnosis: payload.evidenceBasedDiagnosis ?? false,
-          diagnoses: payload.diagnoses
-            ? (payload.diagnoses as unknown as Prisma.InputJsonValue)
-            : undefined,
-          doctorAdvice: payload.doctorAdvice ?? null,
-          treatmentNote: payload.treatmentNote ?? null,
-          createdAt: recordCreatedAt,
-          updatedAt: recordUpdatedAt,
-        },
+      const existingRecord = await tx.medicalRecord.findUnique({
+        where: { recordId: payload.recordId },
       });
 
+      if (existingRecord) {
+        if (existingRecord.clinicId && existingRecord.clinicId !== clinicId) {
+          throw new BaseError(403, "Bệnh án không thuộc phòng khám");
+        }
+        if (existingRecord.patientId && existingRecord.patientId !== payload.patientId) {
+          throw new BaseError(400, "recordId không khớp với bệnh nhân");
+        }
+      } else {
+        const existingByDate = await this.medicalRecordRepository.findExistingRecord(
+          payload.patientId || "",
+          clinicId ?? "",
+          startUtc,
+          endUtc
+        );
+        if (existingByDate) {
+          throw new BaseError(409, "Ngày hôm nay đã có bệnh án, hãy kiểm tra lại");
+        }
+      }
+
+      const record = existingRecord
+        ? await tx.medicalRecord.update({
+            where: { recordId: payload.recordId },
+            data: {
+              patientId: payload.patientId,
+              doctorId: doctorId,
+              clinicId: clinicId,
+              consultationFee: payload.consultationFee ?? 0,
+              evidenceBasedDiagnosis: payload.evidenceBasedDiagnosis ?? false,
+              diagnoses: payload.diagnoses
+                ? (payload.diagnoses as unknown as Prisma.InputJsonValue)
+                : undefined,
+              doctorAdvice: payload.doctorAdvice ?? null,
+              treatmentNote: payload.treatmentNote ?? null,
+            },
+          })
+        : await tx.medicalRecord.create({
+            data: {
+              recordId: payload.recordId,
+              patientId: payload.patientId,
+              doctorId: doctorId,
+              clinicId: clinicId,
+              consultationFee: payload.consultationFee ?? 0,
+              evidenceBasedDiagnosis: payload.evidenceBasedDiagnosis ?? false,
+              diagnoses: payload.diagnoses
+                ? (payload.diagnoses as unknown as Prisma.InputJsonValue)
+                : undefined,
+              doctorAdvice: payload.doctorAdvice ?? null,
+              treatmentNote: payload.treatmentNote ?? null,
+              createdAt: recordCreatedAt,
+              updatedAt: recordUpdatedAt,
+            },
+          });
+
+      if (existingRecord) {
+        await tx.$executeRaw`UPDATE "MedicalRecord" SET "createdAt" = ${recordCreatedAt}, "updatedAt" = ${recordUpdatedAt} WHERE "recordId" = ${record.recordId}`;
+      }
       let examId: string | undefined;
       if (payload.clinicalExamination) {
         const examCreatedAt = this.parseDateOrThrow(
@@ -212,38 +229,76 @@ export class MedicalRecordService {
           payload.clinicalExamination.updatedAt,
           "Ngày cập nhật khám lâm sàng không hợp lệ"
         );
-        const exam = await tx.clinicalExamination.create({
-          data: {
-            recordId: record.recordId,
-            examinedBy: doctorId,
-            userId: doctorId,
-            reasonForVisit: payload.clinicalExamination.reasonForVisit ?? null,
-            medicalHistory: payload.clinicalExamination.medicalHistory ?? null,
-            pastMedicalHistory: payload.clinicalExamination.pastMedicalHistory ?? null,
-            clinicalExamination:
-              payload.clinicalExamination.clinicalExamination ?? null,
-            heartRate: payload.clinicalExamination.heartRate ?? null,
-            bloodPressure: payload.clinicalExamination.bloodPressure ?? null,
-            temperature: payload.clinicalExamination.temperature ?? null,
-            height: payload.clinicalExamination.height ?? null,
-            weight: payload.clinicalExamination.weight ?? null,
-            bmi: payload.clinicalExamination.bmi ?? null,
-            hasHealthInsurance:
-              payload.clinicalExamination.hasHealthInsurance ?? false,
-            isBreastfeeding:
-              payload.clinicalExamination.isBreastfeeding ?? false,
-            pregnancyStatus:
-              payload.clinicalExamination.pregnancyStatus ?? null,
-            pregnancyWeeks:
-              payload.clinicalExamination.pregnancyWeeks ?? null,
-            hasPoorAppetite:
-              payload.clinicalExamination.hasPoorAppetite ?? undefined,
-            hasWeightLoss: payload.clinicalExamination.hasWeightLoss ?? undefined,
-            clinicalNotes: payload.clinicalExamination.clinicalNotes ?? null,
-            examinedAt: examCreatedAt,
-            updatedAt: examUpdatedAt,
-          },
+        const existingExam = await tx.clinicalExamination.findUnique({
+          where: { recordId: record.recordId },
         });
+        const exam = existingExam
+          ? await tx.clinicalExamination.update({
+              where: { recordId: record.recordId },
+              data: {
+                examinedBy: doctorId,
+                userId: doctorId,
+                reasonForVisit: payload.clinicalExamination.reasonForVisit ?? null,
+                medicalHistory: payload.clinicalExamination.medicalHistory ?? null,
+                pastMedicalHistory: payload.clinicalExamination.pastMedicalHistory ?? null,
+                clinicalExamination:
+                  payload.clinicalExamination.clinicalExamination ?? null,
+                heartRate: payload.clinicalExamination.heartRate ?? null,
+                bloodPressure: payload.clinicalExamination.bloodPressure ?? null,
+                temperature: payload.clinicalExamination.temperature ?? null,
+                height: payload.clinicalExamination.height ?? null,
+                weight: payload.clinicalExamination.weight ?? null,
+                bmi: payload.clinicalExamination.bmi ?? null,
+                hasHealthInsurance:
+                  payload.clinicalExamination.hasHealthInsurance ?? false,
+                isBreastfeeding:
+                  payload.clinicalExamination.isBreastfeeding ?? false,
+                pregnancyStatus:
+                  payload.clinicalExamination.pregnancyStatus ?? null,
+                pregnancyWeeks:
+                  payload.clinicalExamination.pregnancyWeeks ?? null,
+                hasPoorAppetite:
+                  payload.clinicalExamination.hasPoorAppetite ?? false,
+                hasWeightLoss: payload.clinicalExamination.hasWeightLoss ?? false,
+                clinicalNotes: payload.clinicalExamination.clinicalNotes ?? null,
+                examinedAt: examCreatedAt,
+              },
+            })
+          : await tx.clinicalExamination.create({
+              data: {
+                recordId: record.recordId,
+                examinedBy: doctorId,
+                userId: doctorId,
+                reasonForVisit: payload.clinicalExamination.reasonForVisit ?? null,
+                medicalHistory: payload.clinicalExamination.medicalHistory ?? null,
+                pastMedicalHistory: payload.clinicalExamination.pastMedicalHistory ?? null,
+                clinicalExamination:
+                  payload.clinicalExamination.clinicalExamination ?? null,
+                heartRate: payload.clinicalExamination.heartRate ?? null,
+                bloodPressure: payload.clinicalExamination.bloodPressure ?? null,
+                temperature: payload.clinicalExamination.temperature ?? null,
+                height: payload.clinicalExamination.height ?? null,
+                weight: payload.clinicalExamination.weight ?? null,
+                bmi: payload.clinicalExamination.bmi ?? null,
+                hasHealthInsurance:
+                  payload.clinicalExamination.hasHealthInsurance ?? false,
+                isBreastfeeding:
+                  payload.clinicalExamination.isBreastfeeding ?? false,
+                pregnancyStatus:
+                  payload.clinicalExamination.pregnancyStatus ?? null,
+                pregnancyWeeks:
+                  payload.clinicalExamination.pregnancyWeeks ?? null,
+                hasPoorAppetite:
+                  payload.clinicalExamination.hasPoorAppetite ?? false,
+                hasWeightLoss: payload.clinicalExamination.hasWeightLoss ?? false,
+                clinicalNotes: payload.clinicalExamination.clinicalNotes ?? null,
+                examinedAt: examCreatedAt,
+                updatedAt: examUpdatedAt,
+              },
+            });
+        if (existingExam) {
+          await tx.$executeRaw`UPDATE "ClinicalExamination" SET "updatedAt" = ${examUpdatedAt}, "examinedAt" = ${examCreatedAt} WHERE "recordId" = ${record.recordId}`;
+        }
         examId = exam.examId;
 
         if (payload.clinicalExamination.allergies?.length) {
@@ -431,28 +486,70 @@ export class MedicalRecordService {
             request.updatedAt,
             "Ngày cập nhật phiếu chỉ định không hợp lệ"
           );
-
-          const createdRequest = await tx.serviceRequest.create({
-            data: {
-              recordId: record.recordId,
-              orderingDoctorId: orderingDoctorId,
-              diagnoses: request.diagnoses
-                ? (request.diagnoses as unknown as Prisma.InputJsonValue)
-                : Prisma.JsonNull,
-              isPatientRequested: request.isPatientRequested ?? false,
-              receiveResultAtClinic: request.receiveResultAtClinic ?? false,
-              isForFollowUp: request.isForFollowUp ?? false,
-              isFollowUpTransferred: false,
-              isPrinted: request.isPrinted ?? false,
-              followUpDate: request.followUpDate
-                ? new Date(request.followUpDate)
-                : null,
-              followUpSession: request.followUpSession ?? null,
-              note: request.note ?? null,
-              createdAt: requestCreatedAt,
-              updatedAt: requestUpdatedAt,
-            },
+          const existingRequest = await tx.serviceRequest.findUnique({
+            where: { requestId: request.requestId },
           });
+          if (
+            existingRequest &&
+            existingRequest.recordId &&
+            existingRequest.recordId !== record.recordId
+          ) {
+            throw new BaseError(400, "requestId không thuộc bệnh án này");
+          }
+
+          const createdRequest = existingRequest
+            ? await tx.serviceRequest.update({
+                where: { requestId: request.requestId },
+                data: {
+                  recordId: record.recordId,
+                  orderingDoctorId: orderingDoctorId,
+                  diagnoses: request.diagnoses
+                    ? (request.diagnoses as unknown as Prisma.InputJsonValue)
+                    : Prisma.JsonNull,
+                  isPatientRequested: request.isPatientRequested ?? false,
+                  receiveResultAtClinic: request.receiveResultAtClinic ?? false,
+                  isForFollowUp: request.isForFollowUp ?? false,
+                  isFollowUpTransferred: false,
+                  isPrinted: request.isPrinted ?? false,
+                  followUpDate: request.followUpDate
+                    ? new Date(request.followUpDate)
+                    : null,
+                  followUpSession: request.followUpSession ?? null,
+                  note: request.note ?? null,
+                },
+              })
+            : await tx.serviceRequest.create({
+                data: {
+                  requestId: request.requestId,
+                  recordId: record.recordId,
+                  orderingDoctorId: orderingDoctorId,
+                  diagnoses: request.diagnoses
+                    ? (request.diagnoses as unknown as Prisma.InputJsonValue)
+                    : Prisma.JsonNull,
+                  isPatientRequested: request.isPatientRequested ?? false,
+                  receiveResultAtClinic: request.receiveResultAtClinic ?? false,
+                  isForFollowUp: request.isForFollowUp ?? false,
+                  isFollowUpTransferred: false,
+                  isPrinted: request.isPrinted ?? false,
+                  followUpDate: request.followUpDate
+                    ? new Date(request.followUpDate)
+                    : null,
+                  followUpSession: request.followUpSession ?? null,
+                  note: request.note ?? null,
+                  createdAt: requestCreatedAt,
+                  updatedAt: requestUpdatedAt,
+                },
+              });
+
+          if (existingRequest) {
+            await tx.$executeRaw`UPDATE "ServiceRequest" SET "createdAt" = ${requestCreatedAt}, "updatedAt" = ${requestUpdatedAt} WHERE "requestId" = ${createdRequest.requestId}`;
+            await tx.serviceResult.deleteMany({
+              where: { requestId: createdRequest.requestId },
+            });
+            await tx.serviceRequestDetail.deleteMany({
+              where: { requestId: createdRequest.requestId },
+            });
+          }
 
           await tx.serviceRequestDetail.createMany({
             data: detailsToCreate.map((detail) => ({
@@ -461,7 +558,6 @@ export class MedicalRecordService {
               selectedOptions: detail.selectedOptions ?? Prisma.JsonNull,
             })),
           });
-
           if (request.details.some((d) => d.results && d.results.length > 0)) {
             const detailRows = await tx.serviceRequestDetail.findMany({
               where: { requestId: createdRequest.requestId },
@@ -617,18 +713,35 @@ export class MedicalRecordService {
           payload.prescription.updatedAt,
           "Ngày cập nhật toa thuốc không hợp lệ"
         );
-
-        const prescription = await tx.prescription.create({
-          data: {
-            recordId: record.recordId,
-            totalPrice: new Prisma.Decimal(totalPrice),
-            note: prescriptionNote,
-            createdAt: prescriptionCreatedAt,
-            updatedAt: prescriptionUpdatedAt,
-          },
+        const existingPrescription = await tx.prescription.findUnique({
+          where: { recordId: record.recordId },
         });
+
+        const prescription = existingPrescription
+          ? await tx.prescription.update({
+              where: { recordId: record.recordId },
+              data: {
+                totalPrice: new Prisma.Decimal(totalPrice),
+                note: prescriptionNote,
+              },
+            })
+          : await tx.prescription.create({
+              data: {
+                recordId: record.recordId,
+                totalPrice: new Prisma.Decimal(totalPrice),
+                note: prescriptionNote,
+                createdAt: prescriptionCreatedAt,
+                updatedAt: prescriptionUpdatedAt,
+              },
+            });
         prescriptionId = prescription.prescriptionId;
 
+        if (existingPrescription) {
+          await tx.$executeRaw`UPDATE "Prescription" SET "createdAt" = ${prescriptionCreatedAt}, "updatedAt" = ${prescriptionUpdatedAt} WHERE "prescriptionId" = ${prescription.prescriptionId}`;
+          await tx.prescriptionDetail.deleteMany({
+            where: { prescriptionId: prescription.prescriptionId },
+          });
+        }
         if (detailsToCreate.length > 0) {
           await tx.prescriptionDetail.createMany({
             data: detailsToCreate.map((detail) => ({
