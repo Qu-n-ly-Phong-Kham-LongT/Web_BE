@@ -37,4 +37,3 @@ RUN chown -R nodeuser:nodegrp /app
 USER nodeuser
 
 CMD ["node", "dist/server.js"]
-
