@@ -49,7 +49,9 @@ export interface ServiceRequestPrintData {
   clinicAddress: string;
   clinicPhones: string[];
   clinicPhonesText: string;
+  clinic: string;
   doctorName: string;
+  isForFollowUp: boolean;
   followUpDate: string;
   followUpSession: string;
 }

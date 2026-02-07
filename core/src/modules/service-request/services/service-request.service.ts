@@ -199,11 +199,6 @@ export class ServiceRequestService {
       if (!record) {
         throw new BaseError(404, "Không tìm thấy bệnh án");
       }
-
-      if (clinicId && record.clinicId && record.clinicId !== clinicId) {
-        throw new BaseError(403, "Bệnh án này không thuộc phòng khám hiện tại");
-      }
-
       const orderingDoctorId = data.orderingDoctorId ?? "";
       const orderingDoctor = await this.userRepository.findUserById(
         orderingDoctorId,
@@ -448,6 +443,27 @@ export class ServiceRequestService {
       }
       return date.toLocaleDateString("vi-VN");
     };
+
+    const formatHyphenLines = (value: unknown) => {
+      const text = toStringValue(value).replace(/\r\n/g, "\n").trim();
+      if (!text) {
+        return "";
+      }
+      if (text.includes("\n-") || text.startsWith("- ")) {
+        return text;
+      }
+      if (text.includes(" - ")) {
+        const parts = text
+          .split(" - ")
+          .map((part) => part.trim())
+          .filter(Boolean);
+        if (parts.length > 1) {
+          return parts.map((part) => `${part}`).join("\n");
+        }
+      }
+      return text;
+    };
+
     const formatDateLong = (value?: string | Date | null) => {
       if (!value) {
         return "";
@@ -604,20 +620,29 @@ export class ServiceRequestService {
       });
     });
     const note = toStringValue(rawData.note);
-    const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
+    const clinicName = formatHyphenLines(
+      rawData.medicalRecord?.clinic?.clinicName,
+    );
+    const clinic = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
     const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
     const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
     const clinicPhonesText =
       clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
     const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
-    const followUpDate = rawData.isForFollowUp
-      ? formatDate(rawData.followUpDate ?? null)
-      : "";
-    const followUpSession = rawData.isForFollowUp
-      ? toSessionLabel(
-          rawData.followUpSession ? String(rawData.followUpSession) : null,
-        )
-      : "";
+    const followUpDateValue = rawData.isForFollowUp
+      ? (rawData.followUpDate ??
+        rawData.medicalRecord?.followUp?.appointmentDate ??
+        null)
+      : null;
+    const followUpSessionValue = rawData.isForFollowUp
+      ? (rawData.followUpSession ??
+        rawData.medicalRecord?.followUp?.session ??
+        null)
+      : null;
+    const followUpDate = formatDate(followUpDateValue);
+    const followUpSession = toSessionLabel(
+      followUpSessionValue ? String(followUpSessionValue) : null,
+    );
     return {
       requestCode,
       barcode,
@@ -644,7 +669,9 @@ export class ServiceRequestService {
       clinicAddress,
       clinicPhones,
       clinicPhonesText,
+      clinic,
       doctorName,
+      isForFollowUp: !!rawData.isForFollowUp,
       followUpDate,
       followUpSession,
     };
@@ -842,4 +869,42 @@ export class ServiceRequestService {
       enqueued: true,
     };
   }
+
+  public async createRequestWithDate(
+    recordId: string,
+    doctorId: string,
+    createdAt: Date | string,
+    updatedAt?: Date | string,
+  ) {
+    const record = await this.medicalRecordRepository.findById(recordId);
+    if (!record) throw new BaseError(404, "Không tìm thấy bệnh án");
+    if (!doctorId) {
+      throw new BaseError(403, "Thiếu thông tin bác sĩ chỉ định");
+    }
+    const doctor = await this.userRepository.findUserById(doctorId);
+    if (!doctor) {
+      throw new BaseError(404, "Không tìm thấy bác sĩ");
+    }
+    const created = new Date(createdAt);
+    if (Number.isNaN(created.getTime())) {
+      throw new BaseError(400, "Thời gian tạo không hợp lệ");
+    }
+    const updated = updatedAt ? new Date(updatedAt) : created;
+    if (Number.isNaN(updated.getTime())) {
+      throw new BaseError(400, "Thời gian cập nhật không hợp lệ");
+    }
+
+    const request = await this.serviceRequestRepository.createShell(
+      recordId,
+      doctorId,
+    );
+
+    await prisma.$executeRaw`UPDATE "ServiceRequest" SET "createdAt" = ${created}, "updatedAt" = ${updated} WHERE "requestId" = ${request.requestId}`;
+
+    return request;
+  }
 }
+
+
+
+

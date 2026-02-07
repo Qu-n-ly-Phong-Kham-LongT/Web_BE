@@ -254,6 +254,7 @@ export class SharedRepository {
   ): Promise<FullMedicalRecordDto[]> {
     const where: Prisma.MedicalRecordWhereInput = {
       patientId,
+      isDeleted: false,
       ...(clinicId ? { clinicId } : {}),
     };
 
@@ -627,6 +628,25 @@ export class SharedRepository {
     };
     const toStringValue = (value: unknown) =>
       value === null || value === undefined ? "" : String(value);
+    const formatHyphenLines = (value: unknown) => {
+      const text = toStringValue(value).replace(/\r\n/g, "\n").trim();
+      if (!text) {
+        return "";
+      }
+      if (text.includes("\n-") || text.startsWith("- ")) {
+        return text;
+      }
+      if (text.includes(" - ")) {
+        const parts = text
+          .split(" - ")
+          .map((part) => part.trim())
+          .filter(Boolean);
+        if (parts.length > 1) {
+          return parts.map((part) => `${part}`).join("\n");
+        }
+      }
+      return text;
+    };
     const toBoolString = (value?: boolean | null) => {
       if (value === null || value === undefined) {
         return "";
@@ -793,7 +813,7 @@ export class SharedRepository {
       patientId: toStringValue(medicalRecord.patientId),
       doctorId: toStringValue(medicalRecord.doctorId),
       clinicId: toStringValue(medicalRecord.clinicId),
-      clinicName: toStringValue(dto.clinic?.clinicName),
+      clinicName: formatHyphenLines(dto.clinic?.clinicName),
       clinicAddress: toStringValue(dto.clinic?.address),
       clinicPhones,
       doctorName,

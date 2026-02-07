@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { Session } from "@prisma/client";
+import { BaseError } from "../../../utils/base-error.util";
 
 export interface CreateServiceRequestDetailPayload {
   itemId: string;
@@ -94,13 +95,13 @@ export class ServiceRequestRepository {
             orderingDoctorId: request.orderingDoctorId ?? null,
             diagnoses: request.diagnoses ?? Prisma.JsonNull,
             isPatientRequested: request.isPatientRequested ?? false,
-          receiveResultAtClinic: request.receiveResultAtClinic ?? false,
-          isForFollowUp: false,
-          isFollowUpTransferred: true,
-          isPrinted: false,
-          followUpDate: request.followUpDate ?? null,
-          followUpSession: request.followUpSession ?? null,
-          note: request.note ?? null,
+            receiveResultAtClinic: request.receiveResultAtClinic ?? false,
+            isForFollowUp: false,
+            isFollowUpTransferred: true,
+            isPrinted: false,
+            followUpDate: request.followUpDate ?? null,
+            followUpSession: request.followUpSession ?? null,
+            note: request.note ?? null,
             details: {
               create: request.details.map((detail) => ({
                 itemId: detail.itemId,
@@ -284,6 +285,7 @@ export class ServiceRequestRepository {
             patient: true,
             clinic: true,
             doctor: true,
+            followUp: true,
           },
         },
         orderingDoctor: true,
