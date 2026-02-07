@@ -199,11 +199,6 @@ export class ServiceRequestService {
       if (!record) {
         throw new BaseError(404, "Không tìm thấy bệnh án");
       }
-
-      if (clinicId && record.clinicId && record.clinicId !== clinicId) {
-        throw new BaseError(403, "Bệnh án này không thuộc phòng khám hiện tại");
-      }
-
       const orderingDoctorId = data.orderingDoctorId ?? "";
       const orderingDoctor = await this.userRepository.findUserById(
         orderingDoctorId,
@@ -625,7 +620,9 @@ export class ServiceRequestService {
       });
     });
     const note = toStringValue(rawData.note);
-    const clinicName = formatHyphenLines(rawData.medicalRecord?.clinic?.clinicName);
+    const clinicName = formatHyphenLines(
+      rawData.medicalRecord?.clinic?.clinicName,
+    );
     const clinic = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
     const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
     const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
@@ -633,14 +630,14 @@ export class ServiceRequestService {
       clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
     const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
     const followUpDateValue = rawData.isForFollowUp
-      ? rawData.followUpDate ??
+      ? (rawData.followUpDate ??
         rawData.medicalRecord?.followUp?.appointmentDate ??
-        null
+        null)
       : null;
     const followUpSessionValue = rawData.isForFollowUp
-      ? rawData.followUpSession ??
+      ? (rawData.followUpSession ??
         rawData.medicalRecord?.followUp?.session ??
-        null
+        null)
       : null;
     const followUpDate = formatDate(followUpDateValue);
     const followUpSession = toSessionLabel(
@@ -872,4 +869,42 @@ export class ServiceRequestService {
       enqueued: true,
     };
   }
+
+  public async createRequestWithDate(
+    recordId: string,
+    doctorId: string,
+    createdAt: Date | string,
+    updatedAt?: Date | string,
+  ) {
+    const record = await this.medicalRecordRepository.findById(recordId);
+    if (!record) throw new BaseError(404, "Không tìm thấy bệnh án");
+    if (!doctorId) {
+      throw new BaseError(403, "Thiếu thông tin bác sĩ chỉ định");
+    }
+    const doctor = await this.userRepository.findUserById(doctorId);
+    if (!doctor) {
+      throw new BaseError(404, "Không tìm thấy bác sĩ");
+    }
+    const created = new Date(createdAt);
+    if (Number.isNaN(created.getTime())) {
+      throw new BaseError(400, "Thời gian tạo không hợp lệ");
+    }
+    const updated = updatedAt ? new Date(updatedAt) : created;
+    if (Number.isNaN(updated.getTime())) {
+      throw new BaseError(400, "Thời gian cập nhật không hợp lệ");
+    }
+
+    const request = await this.serviceRequestRepository.createShell(
+      recordId,
+      doctorId,
+    );
+
+    await prisma.$executeRaw`UPDATE "ServiceRequest" SET "createdAt" = ${created}, "updatedAt" = ${updated} WHERE "requestId" = ${request.requestId}`;
+
+    return request;
+  }
 }
+
+
+
+

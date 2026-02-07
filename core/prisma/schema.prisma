@@ -274,6 +274,7 @@ model MedicalRecord {
   consultationFee        Decimal?             @default(0) @db.Decimal(18, 0)
   createdAt              DateTime?            @default(now()) @db.Timestamptz
   updatedAt              DateTime?            @updatedAt @db.Timestamptz
+  isDeleted              Boolean?             @default(false)
   clinicalExamination    ClinicalExamination?
   prescription           Prescription?
   followUp               FollowUp?
@@ -381,7 +382,7 @@ model ServiceNode {
   parent   ServiceNode?  @relation("NodeHierarchy", fields: [parentId], references: [nodeId])
   children ServiceNode[] @relation("NodeHierarchy")
 
-  code      String?   
+  code      String?
   name      String?
   note      String?
   isActive  Boolean?  @default(true)
@@ -394,7 +395,7 @@ model ServiceNode {
 
 model ServiceItem {
   itemId   String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  itemCode String? 
+  itemCode String?
   name     String?
 
   categoryId String?      @db.Uuid
@@ -514,7 +515,7 @@ model ServiceTemplateDetail {
 
 model Medicine {
   medicineId          String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  medicineCode        String?                      
+  medicineCode        String?
   medicineName        String?
   activeIngredient    String?
   registrationNo      String?

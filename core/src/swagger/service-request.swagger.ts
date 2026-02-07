@@ -1,5 +1,8 @@
 import { joiToSwagger } from "../utils/joi-swagger.util";
-import { createServiceRequestSchema } from "../modules/service-request/dtos/service-request.request.dto";
+import {
+  createServiceRequestSchema,
+  BasicServiceRequestWithDateSchema,
+} from "../modules/service-request/dtos/service-request.request.dto";
 import {
   ServiceRequestResponseSchema,
   ServiceRequestFullResponseSchema,
@@ -40,6 +43,35 @@ const ServiceRequestSwagger = {
             },
           },
         },
+      },
+    },
+  },
+  "/api/service-requests/raw": {
+    post: {
+      tags: ["Core Businesses"],
+      summary: "Tạo phiếu CLS có ngày tạo",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: joiToSwagger(BasicServiceRequestWithDateSchema),
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: "Tạo phiếu CLS thành công",
+          content: {
+            "application/json": {
+              schema: joiToSwagger(ServiceRequestResponseSchema),
+            },
+          },
+        },
+        400: { description: "Dữ liệu không hợp lệ" },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không đủ quyền" },
+        404: { description: "Không tìm thấy bệnh án" },
       },
     },
   },

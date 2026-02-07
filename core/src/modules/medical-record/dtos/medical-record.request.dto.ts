@@ -30,20 +30,39 @@ export interface BasicMedicalRecordRequestDto {
   consultationFee?: number;
 }
 
+export interface BasicMedicalRecordWithDateDto {
+  patientId?: string | "";
+  consultationFee?: string | "";
+  createdAt: string | Date;
+  updatedAt?: string | Date;
+}
+
 export interface BasicMedicalRecordCreateBodyDto {
   patientId: string;
   consultationFee?: number;
 }
 
-export const DiagnosisItemSchema = Joi.object({
-  code: Joi.string()
-    .uppercase()
-    .pattern(ICD10_REGEX)
-    .required()
-    .messages({
-      "string.pattern.base": "Mã bệnh không đúng định dạng ICD-10 (VD: K29, A33.11)",
-      "any.required": "Mã bệnh là bắt buộc",
+export const BasicMedicalRecordWithDateBodySchema =
+  Joi.object<BasicMedicalRecordWithDateDto>({
+    patientId: Joi.string().required().messages({
+      "any.required": "Mã bệnh nhân là bắt buộc",
     }),
+    consultationFee: Joi.number().min(0).default(0).optional().messages({
+      "number.min": "Tiền khám không được âm",
+    }),
+    createdAt: Joi.date().required().messages({
+      "date.base": "createdAt không hợp lệ",
+      "any.required": "createdAt là bắt buộc",
+    }),
+    updatedAt: Joi.date().optional(),
+  }).options({ abortEarly: false });
+
+export const DiagnosisItemSchema = Joi.object({
+  code: Joi.string().uppercase().pattern(ICD10_REGEX).required().messages({
+    "string.pattern.base":
+      "Mã bệnh không đúng định dạng ICD-10 (VD: K29, A33.11)",
+    "any.required": "Mã bệnh là bắt buộc",
+  }),
 
   description: Joi.string().required().messages({
     "any.required": "Tên bệnh là bắt buộc",
@@ -89,11 +108,12 @@ export const RecordRequestSchema = Joi.object<RecordRequestDto>({
   consultationFee: Joi.number().min(0).default(0),
 }).options({ abortEarly: false });
 
-export const BasicMedicalRecordCreateBodySchema = Joi.object<BasicMedicalRecordCreateBodyDto>({
-  patientId: stringRequiredSchema.messages({
-    "any.required": "Mã bệnh nhân là bắt buộc",
-  }),
-  consultationFee: Joi.number().min(0).default(0).optional().messages({
-    "number.min": "Tiền khám không được âm",
-  }),
-}).options({ abortEarly: false });
+export const BasicMedicalRecordCreateBodySchema =
+  Joi.object<BasicMedicalRecordCreateBodyDto>({
+    patientId: stringRequiredSchema.messages({
+      "any.required": "Mã bệnh nhân là bắt buộc",
+    }),
+    consultationFee: Joi.number().min(0).default(0).optional().messages({
+      "number.min": "Tiền khám không được âm",
+    }),
+  }).options({ abortEarly: false });

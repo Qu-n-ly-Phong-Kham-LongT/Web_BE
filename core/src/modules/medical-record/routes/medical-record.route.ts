@@ -2,7 +2,10 @@ import { Router } from "express";
 import { MedicalRecordController } from "../controllers/medical-record.controller";
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { validateBody } from "../../../middlewares/validate";
-import { BasicMedicalRecordCreateBodySchema } from "../dtos/medical-record.request.dto";
+import {
+  BasicMedicalRecordCreateBodySchema,
+  BasicMedicalRecordWithDateBodySchema,
+} from "../dtos/medical-record.request.dto";
 import { legacyMedicalRecordImportSchema } from "../dtos/legacy-medical-record.request.dto";
 import { UserRoleEnum } from "@prisma/client";
 import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
@@ -16,7 +19,7 @@ medicalRecordRouter.post(
   auditLogsMiddleware("CREATE_MEDICAL_RECORD", "MedicalRecord"),
   authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin]),
   validateBody(BasicMedicalRecordCreateBodySchema),
-  medicalRecordController.createMedicalRecord
+  medicalRecordController.createMedicalRecord,
 );
 
 medicalRecordRouter.post(
@@ -25,14 +28,29 @@ medicalRecordRouter.post(
   auditLogsMiddleware("IMPORT_LEGACY_MEDICAL_RECORD", "MedicalRecord"),
   authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin]),
   validateBody(legacyMedicalRecordImportSchema),
-  medicalRecordController.importLegacyMedicalRecord
+  medicalRecordController.importLegacyMedicalRecord,
+);
+
+medicalRecordRouter.post(
+  "/old",
+  authenticate,
+  auditLogsMiddleware("CREATE_OLD_MEDICAL_RECORD", "MedicalRecord"),
+  validateBody(BasicMedicalRecordWithDateBodySchema),
+  medicalRecordController.createMedicalRecordWithDate,
 );
 
 medicalRecordRouter.get(
   "/patient/:patientId",
   authenticate,
   authorize([UserRoleEnum.Doctor, UserRoleEnum.Admin]),
-  medicalRecordController.getMedicalRecordsByPatientId
+  medicalRecordController.getMedicalRecordsByPatientId,
 );
 
+medicalRecordRouter.put(
+  "/:id",
+  authenticate,
+  auditLogsMiddleware("DELETE_MEDICAL_RECORD", "MedicalRecord"),
+  authorize([UserRoleEnum.Admin]),
+  medicalRecordController.deleteMedicalRecord,
+);
 export default medicalRecordRouter;
