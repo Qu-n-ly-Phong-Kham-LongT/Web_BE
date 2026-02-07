@@ -284,6 +284,7 @@ export class ServiceRequestRepository {
             patient: true,
             clinic: true,
             doctor: true,
+            followUp: true
           },
         },
         orderingDoctor: true,

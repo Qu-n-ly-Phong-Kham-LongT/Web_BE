@@ -448,6 +448,27 @@ export class ServiceRequestService {
       }
       return date.toLocaleDateString("vi-VN");
     };
+
+    const formatHyphenLines = (value: unknown) => {
+      const text = toStringValue(value).replace(/\r\n/g, "\n").trim();
+      if (!text) {
+        return "";
+      }
+      if (text.includes("\n-") || text.startsWith("- ")) {
+        return text;
+      }
+      if (text.includes(" - ")) {
+        const parts = text
+          .split(" - ")
+          .map((part) => part.trim())
+          .filter(Boolean);
+        if (parts.length > 1) {
+          return parts.map((part) => `${part}`).join("\n");
+        }
+      }
+      return text;
+    };
+
     const formatDateLong = (value?: string | Date | null) => {
       if (!value) {
         return "";
@@ -604,20 +625,27 @@ export class ServiceRequestService {
       });
     });
     const note = toStringValue(rawData.note);
-    const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
+    const clinicName = formatHyphenLines(rawData.medicalRecord?.clinic?.clinicName);
+    const clinic = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
     const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
     const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
     const clinicPhonesText =
       clinicPhones.length > 0 ? clinicPhones.join(" - ") : "";
     const doctorName = toStringValue(rawData.medicalRecord?.doctor?.fullName);
-    const followUpDate = rawData.isForFollowUp
-      ? formatDate(rawData.followUpDate ?? null)
-      : "";
-    const followUpSession = rawData.isForFollowUp
-      ? toSessionLabel(
-          rawData.followUpSession ? String(rawData.followUpSession) : null,
-        )
-      : "";
+    const followUpDateValue = rawData.isForFollowUp
+      ? rawData.followUpDate ??
+        rawData.medicalRecord?.followUp?.appointmentDate ??
+        null
+      : null;
+    const followUpSessionValue = rawData.isForFollowUp
+      ? rawData.followUpSession ??
+        rawData.medicalRecord?.followUp?.session ??
+        null
+      : null;
+    const followUpDate = formatDate(followUpDateValue);
+    const followUpSession = toSessionLabel(
+      followUpSessionValue ? String(followUpSessionValue) : null,
+    );
     return {
       requestCode,
       barcode,
@@ -644,7 +672,9 @@ export class ServiceRequestService {
       clinicAddress,
       clinicPhones,
       clinicPhonesText,
+      clinic,
       doctorName,
+      isForFollowUp: !!rawData.isForFollowUp,
       followUpDate,
       followUpSession,
     };

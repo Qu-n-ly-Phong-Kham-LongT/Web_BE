@@ -238,6 +238,27 @@ export class PrecriptionService {
       }
       return date.toLocaleDateString("vi-VN");
     };
+
+    const formatHyphenLines = (value: unknown) => {
+      const text = toStringValue(value).replace(/\r\n/g, "\n").trim();
+      if (!text) {
+        return "";
+      }
+      if (text.includes("\n-") || text.startsWith("- ")) {
+        return text;
+      }
+      if (text.includes(" - ")) {
+        const parts = text
+          .split(" - ")
+          .map((part) => part.trim())
+          .filter(Boolean);
+        if (parts.length > 1) {
+          return parts.map((part) => `${part}`).join("\n");
+        }
+      }
+      return text;
+    };
+
     const formatDateLong = (value?: string | Date | null) => {
       if (!value) {
         return "";
@@ -300,7 +321,7 @@ export class PrecriptionService {
     const createDate = formatDateLong(rawData.createdAt);
     const note = toStringValue(rawData.note);
     const printCount = rawData.printCount;
-    const clinicName = toStringValue(rawData.medicalRecord?.clinic?.clinicName);
+    const clinicName = formatHyphenLines(rawData.medicalRecord?.clinic?.clinicName);
     const clinicAddress = toStringValue(rawData.medicalRecord?.clinic?.address);
     const clinicPhones = rawData.medicalRecord?.clinic?.phones ?? [];
     const clinicPhonesText =
