@@ -51,6 +51,7 @@ export interface LegacyServiceRequestDetailDto {
 }
 
 export interface LegacyServiceRequestDto {
+  requestId: string;
   orderingDoctorId?: string;
   diagnoses?: MedicalDiagnosisDto;
   isPatientRequested?: boolean;
@@ -72,6 +73,7 @@ export interface LegacyPrescriptionDto {
 }
 
 export interface LegacyMedicalRecordImportRequestDto {
+  recordId: string;
   patientId: string;
   consultationFee?: number;
   evidenceBasedDiagnosis?: boolean;
@@ -129,6 +131,7 @@ const legacyServiceRequestDetailSchema = Joi.object({
 });
 
 const legacyServiceRequestSchema = Joi.object({
+  requestId: Joi.string().uuid().required(),
   orderingDoctorId: Joi.string().optional(),
   diagnoses: DiagnosisSchema.optional(),
   isPatientRequested: Joi.boolean().optional(),
@@ -186,6 +189,7 @@ const followUpSchema = Joi.object({
 });
 
 export const legacyMedicalRecordImportSchema = Joi.object<LegacyMedicalRecordImportRequestDto>({
+  recordId: Joi.string().uuid().required(),
   patientId: Joi.string().required(),
   consultationFee: Joi.number().min(0).optional(),
   evidenceBasedDiagnosis: Joi.boolean().optional(),
