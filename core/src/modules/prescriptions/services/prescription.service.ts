@@ -862,13 +862,14 @@ export class PrecriptionService {
         for (const detail of data.details) {
           const required = Math.round(Number(detail.quantity));
           const available = detail.medicine?.totalQuantity ?? 0;
+          const shortage = Math.max(0, required - available);
           if (required > available) {
             insufficientMedicines.push({
               medicineId: detail.medicineId ?? "",
               medicineName: detail.medicine?.medicineName ?? "",
               required,
               available,
-              shortage: required - available,
+              shortage,
             });
           }
         }
