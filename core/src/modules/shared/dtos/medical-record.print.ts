@@ -101,6 +101,7 @@ export interface MedicalRecordPrintDto {
   treatmentNote: string;
   consultationFee: string;
   recordCreatedAt: string;
+  recordCreatedAtFooter: string;
   recordUpdatedAt: string;
   patientCode: string;
   fullName: string;

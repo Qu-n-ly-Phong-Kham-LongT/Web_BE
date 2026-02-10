@@ -829,6 +829,7 @@ export class SharedRepository {
       treatmentNote: toStringValue(medicalRecord.treatmentNote),
       consultationFee: toStringValue(medicalRecord.consultationFee),
       recordCreatedAt: formatDate(medicalRecord.createdAt),
+      recordCreatedAtFooter: formatDateLong(medicalRecord.createdAt),
       recordUpdatedAt: formatDate(medicalRecord.updatedAt),
       patientCode: toStringValue(patient?.patientCode),
       fullName: toStringValue(patient?.fullName),

@@ -40,6 +40,161 @@ export class ServiceRequestService {
   private serviceItemRepository = new ServiceItemRepository();
   private fileService = new FileService();
 
+  private async buildServiceRequestDetails(
+    details: CreateServiceRequestDto["details"],
+    tx: Prisma.TransactionClient,
+  ): Promise<CreateServiceRequestPayload["details"]> {
+    if (!details || details.length === 0) {
+      throw new BaseError(
+        400,
+        "Phiếu chỉ định phải có ít nhất 1 dịch vụ CLS",
+      );
+    }
+
+    const itemIds = details.map((detail) => detail.itemId);
+    const uniqueItemIds = [...new Set(itemIds)];
+    if (uniqueItemIds.length !== itemIds.length) {
+      throw new BaseError(
+        400,
+        "Không được chọn trùng lặp dịch vụ trong cùng một phiếu.",
+      );
+    }
+
+    const items =
+      await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
+        uniqueItemIds,
+        tx,
+      );
+
+    if (items.length !== uniqueItemIds.length) {
+      throw new BaseError(
+        400,
+        "Dịch vụ không tồn tại hoặc đang ngừng hoạt động.",
+      );
+    }
+
+    const itemConfigMap = new Map<
+      string,
+      {
+        basePrice: number;
+        configs: Map<
+          string,
+          { configCode: string | null; options: Map<string, number> }
+        >;
+      }
+    >();
+    for (const item of items) {
+      const configMetaMap = new Map<
+        string,
+        { configCode: string | null; options: Map<string, number> }
+      >();
+      for (const config of item.configs) {
+        const optionsMap = new Map<string, number>();
+        const metaOptions = Array.isArray(
+          (config.metaData as { options?: unknown })?.options,
+        )
+          ? ((config.metaData as {
+              options?: { value?: string; surcharge?: number }[];
+            }).options ?? [])
+          : [];
+        for (const option of metaOptions) {
+          if (typeof option?.value !== "string") {
+            continue;
+          }
+          const surcharge = Number(option?.surcharge ?? 0);
+          if (!Number.isFinite(surcharge)) {
+            continue;
+          }
+          optionsMap.set(option.value, surcharge);
+        }
+        configMetaMap.set(config.configId, {
+          configCode: config.configCode ?? null,
+          options: optionsMap,
+        });
+      }
+      const basePrice = item.basePrice ? Number(item.basePrice.toString()) : 0;
+      itemConfigMap.set(item.itemId, { basePrice, configs: configMetaMap });
+    }
+
+    const detailsToCreate: CreateServiceRequestPayload["details"] = [];
+
+    for (const detail of details) {
+      const itemMeta = itemConfigMap.get(detail.itemId);
+      if (!itemMeta) {
+        throw new BaseError(
+          400,
+          "Dịch vụ không hợp lệ cho phiếu chỉ định.",
+        );
+      }
+
+      const selectedConfigs = detail.selectedConfigs ?? [];
+      const configIds = selectedConfigs.map((cfg) => cfg.configId);
+      const uniqueConfigIds = [...new Set(configIds)];
+      if (uniqueConfigIds.length !== configIds.length) {
+        throw new BaseError(
+          400,
+          "Không được chọn trùng lặp cấu hình cận lâm sàng.",
+        );
+      }
+
+      const normalizedSelectedConfigs: {
+        configId: string;
+        configCode: string | null;
+        selectedValues: string[];
+        totalSurcharge: number;
+      }[] = [];
+      let totalSurcharge = 0;
+
+      for (const config of selectedConfigs) {
+        const configMeta = itemMeta.configs.get(config.configId);
+        if (!configMeta) {
+          throw new BaseError(
+            400,
+            "Cấu hình không thuộc dịch vụ đã chọn.",
+          );
+        }
+
+        let configSurcharge = 0;
+        if (configMeta.options.size > 0) {
+          if (!config.selectedValues || config.selectedValues.length === 0) {
+            throw new BaseError(
+              400,
+              "Giá trị chọn của cấu hình không hợp lệ.",
+            );
+          }
+          for (const selectedValue of config.selectedValues) {
+            const optionSurcharge = configMeta.options.get(selectedValue);
+            if (optionSurcharge === undefined) {
+              throw new BaseError(400, "Giá trị đã chọn không thuộc cấu hình");
+            }
+            configSurcharge += optionSurcharge;
+          }
+        }
+
+        totalSurcharge += configSurcharge;
+        normalizedSelectedConfigs.push({
+          configId: config.configId,
+          configCode: configMeta.configCode ?? null,
+          selectedValues: config.selectedValues ?? [],
+          totalSurcharge: configSurcharge,
+        });
+      }
+      const basePrice = itemMeta.basePrice;
+      const totalCharge = basePrice + totalSurcharge;
+      detailsToCreate.push({
+        itemId: detail.itemId,
+        selectedOptions: {
+          basePrice,
+          totalSurcharge,
+          totalCharge,
+          selectedConfigs: normalizedSelectedConfigs,
+        },
+      });
+    }
+
+    return detailsToCreate;
+  }
+
   public async getRequestById(
     requestId: string,
     clinicId?: string,
@@ -225,148 +380,10 @@ export class ServiceRequestService {
         throw new BaseError(400, "Bệnh án và bác sĩ không cùng phòng khám");
       }
 
-      const itemIds = data.details.map((detail) => detail.itemId);
-      const uniqueItemIds = [...new Set(itemIds)];
-      if (uniqueItemIds.length !== itemIds.length) {
-        throw new BaseError(
-          400,
-          "Không được chọn trùng lặp dịch vụ trong cùng một phiếu",
-        );
-      }
-
-      const items =
-        await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
-          uniqueItemIds,
-          tx,
-        );
-
-      if (items.length !== uniqueItemIds.length) {
-        throw new BaseError(
-          400,
-          "Một hoặc nhiều dịch vụ không tồn tại hoặc đang ngừng hoạt động",
-        );
-      }
-
-      const itemConfigMap = new Map<
-        string,
-        {
-          basePrice: number;
-          configs: Map<
-            string,
-            { configCode: string | null; options: Map<string, number> }
-          >;
-        }
-      >();
-      for (const item of items) {
-        const configMetaMap = new Map<
-          string,
-          { configCode: string | null; options: Map<string, number> }
-        >();
-        for (const config of item.configs) {
-          const optionsMap = new Map<string, number>();
-          const metaOptions = Array.isArray(
-            (config.metaData as { options?: unknown })?.options,
-          )
-            ? ((
-                config.metaData as {
-                  options?: { value?: string; surcharge?: number }[];
-                }
-              ).options ?? [])
-            : [];
-          for (const option of metaOptions) {
-            if (typeof option?.value !== "string") {
-              continue;
-            }
-            const surcharge = Number(option?.surcharge ?? 0);
-            if (!Number.isFinite(surcharge)) {
-              continue;
-            }
-            optionsMap.set(option.value, surcharge);
-          }
-          configMetaMap.set(config.configId, {
-            configCode: config.configCode ?? null,
-            options: optionsMap,
-          });
-        }
-        const basePrice = item.basePrice
-          ? Number(item.basePrice.toString())
-          : 0;
-        itemConfigMap.set(item.itemId, { basePrice, configs: configMetaMap });
-      }
-
-      const detailsToCreate: CreateServiceRequestPayload["details"] = [];
-
-      for (const detail of data.details) {
-        // if (!detail.selectedConfigs || detail.selectedConfigs.length === 0) {
-        //   throw new BaseError(400, "Chưa chọn cấu hình cho dịch vụ cận lâm sàng");
-        // }
-
-        const itemMeta = itemConfigMap.get(detail.itemId);
-        if (!itemMeta) {
-          throw new BaseError(400, "Dịch vụ không hợp lệ cho phiếu chỉ định");
-        }
-
-        const selectedConfigs = detail.selectedConfigs ?? [];
-        const configIds = selectedConfigs.map((cfg) => cfg.configId);
-        const uniqueConfigIds = [...new Set(configIds)];
-        if (uniqueConfigIds.length !== configIds.length) {
-          throw new BaseError(
-            400,
-            "Không được chọn trùng lặp cấu hình cận lâm sàng",
-          );
-        }
-
-        const normalizedSelectedConfigs: {
-          configId: string;
-          configCode: string | null;
-          selectedValues: string[];
-          totalSurcharge: number;
-        }[] = [];
-        let totalSurcharge = 0;
-
-        for (const config of selectedConfigs) {
-          const configMeta = itemMeta.configs.get(config.configId);
-          if (!configMeta) {
-            throw new BaseError(400, "Cấu hình không thuộc dịch vụ đã chọn");
-          }
-
-          let configSurcharge = 0;
-          if (configMeta.options.size > 0) {
-            if (!config.selectedValues || config.selectedValues.length === 0) {
-              throw new BaseError(
-                400,
-                "Giá trị chọn của cấu hình không hợp lệ",
-              );
-            }
-            for (const selectedValue of config.selectedValues) {
-              const optionSurcharge = configMeta.options.get(selectedValue);
-              if (optionSurcharge === undefined) {
-                throw new BaseError(400, "Gia tri chon khong thuoc cau hinh");
-              }
-              configSurcharge += optionSurcharge;
-            }
-          }
-
-          totalSurcharge += configSurcharge;
-          normalizedSelectedConfigs.push({
-            configId: config.configId,
-            configCode: configMeta.configCode ?? null,
-            selectedValues: config.selectedValues ?? [],
-            totalSurcharge: configSurcharge,
-          });
-        }
-        const basePrice = itemMeta.basePrice;
-        const totalCharge = basePrice + totalSurcharge;
-        detailsToCreate.push({
-          itemId: detail.itemId,
-          selectedOptions: {
-            basePrice,
-            totalSurcharge,
-            totalCharge,
-            selectedConfigs: normalizedSelectedConfigs,
-          },
-        });
-      }
+      const detailsToCreate = await this.buildServiceRequestDetails(
+        data.details,
+        tx,
+      );
 
       return await this.serviceRequestRepository.create(
         {
@@ -787,49 +804,51 @@ export class ServiceRequestService {
     requestId: string,
     dto: CreateServiceRequestDto,
   ) {
-    const printStatus =
-      await this.serviceRequestRepository.findPrintStatus(requestId);
-    if (!printStatus) {
-      throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
-    }
-    if (printStatus.isPrinted) {
-      throw new BaseError(
-        400,
-        "Phiếu chỉ định đã được in, không thể chỉnh sửa.",
-      );
-    }
-    if (printStatus.isFollowUpTransferred) {
-      throw new BaseError(
-        400,
-        "Phiếu chỉ định đã chuyển từ lần tái khám, không thể chỉnh sửa.",
-      );
-    }
+    return await prisma.$transaction(async (tx) => {
+      const printStatus = await tx.serviceRequest.findUnique({
+        where: { requestId },
+        select: { isPrinted: true, isFollowUpTransferred: true },
+      });
+      if (!printStatus) {
+        throw new BaseError(404, "Kh??ng t??m th???y phi???u ch??? ?????nh");
+      }
+      if (printStatus.isPrinted) {
+        throw new BaseError(
+          400,
+          "Phi???u ch??? ?????nh ???? ???????c in, kh??ng th??? ch???nh s???a.",
+        );
+      }
+      if (printStatus.isFollowUpTransferred) {
+        throw new BaseError(
+          400,
+          "Phi???u ch??? ?????nh ???? chuy???n t??? l???n t??i kh??m, kh??ng th??? ch???nh s???a.",
+        );
+      }
 
-    const payload: CreateServiceRequestPayload & { requestId: string } = {
-      requestId: requestId,
-      recordId: dto.recordId,
-      orderingDoctorId: dto.orderingDoctorId,
-      diagnoses: dto.diagnoses as any,
-      isPatientRequested: dto.isPatientRequested,
-      receiveResultAtClinic: dto.receiveResultAtClinic,
-      isForFollowUp: dto.isForFollowUp,
-      isFollowUpTransferred: false,
-      followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
-      followUpSession: dto.followUpSession ?? null,
-      isPrinted: dto.isPrinted,
-      note: dto.note,
-      details: dto.details.map((d) => ({
-        itemId: d.itemId,
-        selectedOptions: d.selectedConfigs as any,
-      })),
-    };
+      const detailsToUpdate = await this.buildServiceRequestDetails(
+        dto.details,
+        tx,
+      );
 
-    if (payload.isPrinted) {
-      await this.serviceRequestRepository.updatePrintedSatus(requestId, true);
-    }
-    return await this.serviceRequestRepository.upsert(payload);
+      const payload: CreateServiceRequestPayload & { requestId: string } = {
+        requestId: requestId,
+        recordId: dto.recordId,
+        orderingDoctorId: dto.orderingDoctorId,
+        diagnoses: dto.diagnoses as any,
+        isPatientRequested: dto.isPatientRequested,
+        receiveResultAtClinic: dto.receiveResultAtClinic,
+        isForFollowUp: dto.isForFollowUp,
+        isFollowUpTransferred: false,
+        followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
+        followUpSession: dto.followUpSession ?? null,
+        isPrinted: dto.isPrinted,
+        note: dto.note,
+        details: detailsToUpdate,
+      };
+
+      return await this.serviceRequestRepository.upsert(payload, tx);
+    });
   }
-
   public async printOrGet(
     requestId: string,
     clinicId?: string,
