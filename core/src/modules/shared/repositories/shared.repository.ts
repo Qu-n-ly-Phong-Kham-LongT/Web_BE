@@ -635,7 +635,7 @@ export class SharedRepository {
       if (!day || !month || !year) {
         return "";
       }
-      return `Ng??y ${day} th??ng ${month} n??m ${year}`;
+      return `Ngày ${day} tháng ${month} năm ${year}`;
     };
     const toStringValue = (value: unknown) =>
       value === null || value === undefined ? "" : String(value);

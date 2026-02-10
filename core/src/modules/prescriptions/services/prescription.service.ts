@@ -281,7 +281,7 @@ export class PrecriptionService {
       if (!day || !month || !year) {
         return "";
       }
-      return `Ng??y ${day} th??ng ${month} n??m ${year}`;
+      return `Ngày ${day} tháng ${month} năm ${year}`;
     };
 
     const toBoolString = (value?: boolean | null) => {
