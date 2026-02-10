@@ -26,7 +26,7 @@ const serviceItemConfigSchema = {
       type: "string",
       format: "uuid",
       description:
-        "ID c?u h?nh. Khi c?p nh?t, g?i configId ?? update; b? tr?ng s? t?o m?i.",
+        "ID cấu hình. Khi cập nhật, gửi configId để update; bị trùng sẽ tạo mới.",
     },
     itemId: { type: "string", format: "uuid", nullable: true },
     configCode: { type: "string", nullable: true },
