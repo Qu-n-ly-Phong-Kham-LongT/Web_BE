@@ -611,7 +611,9 @@ export class SharedRepository {
       if (Number.isNaN(date.getTime())) {
         return "";
       }
-      return date.toLocaleDateString("vi-VN");
+      return new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
     };
     const formatDateLong = (value?: string | Date | null) => {
       if (!value) {
@@ -621,10 +623,19 @@ export class SharedRepository {
       if (Number.isNaN(date.getTime())) {
         return "";
       }
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `Ngày ${day} tháng ${month} năm ${year}`;
+      const parts = new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).formatToParts(date);
+      const day = parts.find((p) => p.type === "day")?.value ?? "";
+      const month = parts.find((p) => p.type === "month")?.value ?? "";
+      const year = parts.find((p) => p.type === "year")?.value ?? "";
+      if (!day || !month || !year) {
+        return "";
+      }
+      return `Ng??y ${day} th??ng ${month} n??m ${year}`;
     };
     const toStringValue = (value: unknown) =>
       value === null || value === undefined ? "" : String(value);
