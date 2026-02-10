@@ -5,6 +5,7 @@ import {
 } from "../dtos/service-item.request.dto";
 import { prisma } from "../../../config/database.config";
 import { includes } from "lodash";
+import { BaseError } from "../../../utils/base-error.util";
 
 export class ServiceItemRepository {
   public async findByCode(code: string): Promise<ServiceItem | null> {
@@ -179,26 +180,55 @@ export class ServiceItemRepository {
       });
 
       if (configs !== undefined) {
-        await tx.serviceItemConfig.deleteMany({
+        const existingConfigs = await tx.serviceItemConfig.findMany({
           where: { itemId },
+          select: { configId: true },
         });
+        const existingIds = new Set(existingConfigs.map((c) => c.configId));
 
-        if (configs.length > 0) {
-          await tx.serviceItemConfig.createMany({
-            data: configs.map((cfg) => ({
-              itemId,
+        const incomingIds = new Set(
+          configs.map((cfg) => cfg.configId).filter(Boolean) as string[],
+        );
 
-              configCode: cfg.configCode,
-              displayName: cfg.displayName,
-              inputType: cfg.inputType,
-              unit: cfg.unit,
-              refRange: cfg.refRange,
+        const idsToDelete = existingConfigs
+          .filter((cfg) => !incomingIds.has(cfg.configId))
+          .map((cfg) => cfg.configId);
 
-              metaData: cfg.metaData
-                ? (cfg.metaData as Prisma.InputJsonValue)
-                : Prisma.JsonNull,
-            })),
+        if (idsToDelete.length > 0) {
+          await tx.serviceItemConfig.deleteMany({
+            where: { configId: { in: idsToDelete } },
           });
+        }
+
+        for (const cfg of configs) {
+          const payload = {
+            itemId,
+            configCode: cfg.configCode,
+            displayName: cfg.displayName,
+            inputType: cfg.inputType,
+            unit: cfg.unit,
+            refRange: cfg.refRange,
+            metaData: cfg.metaData
+              ? (cfg.metaData as Prisma.InputJsonValue)
+              : Prisma.JsonNull,
+          };
+
+          if (cfg.configId) {
+            if (!existingIds.has(cfg.configId)) {
+              throw new BaseError(
+                400,
+                "Cấu hình không thuộc dịch vụ cần cập nhật",
+              );
+            }
+            await tx.serviceItemConfig.update({
+              where: { configId: cfg.configId },
+              data: payload,
+            });
+          } else {
+            await tx.serviceItemConfig.create({
+              data: payload,
+            });
+          }
         }
       }
 
