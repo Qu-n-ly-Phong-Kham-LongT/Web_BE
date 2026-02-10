@@ -111,6 +111,7 @@ export class PrescriptionRepository {
                 baseUnit: true,
                 insurancePrice: true,
                 sellPrice: true,
+                deletedAt: true,
               },
             },
           },

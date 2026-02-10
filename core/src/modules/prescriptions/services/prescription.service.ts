@@ -843,6 +843,21 @@ export class PrecriptionService {
         throw new BaseError(403, "Không có quyền truy cập toa thuốc.");
       }
 
+      const dispenseDetails = data.details.filter((d) => !d.medicine?.deletedAt);
+      if (dispenseDetails.length !== data.details.length) {
+        const deletedMedicineIds = data.details
+          .filter((d) => d.medicine?.deletedAt)
+          .map((d) => d.medicineId ?? "")
+          .filter(Boolean);
+
+        await tx.prescriptionDetail.deleteMany({
+          where: {
+            prescriptionId,
+            medicineId: { in: deletedMedicineIds },
+          },
+        });
+      }
+
       if (data.status !== PrescriptionStatus.Issued) {
         throw new BaseError(400, "Chỉ được xuất khi toa đã in (Issued)");
       }
@@ -859,16 +874,17 @@ export class PrecriptionService {
           available: number;
           shortage: number;
         }> = [];
-        for (const detail of data.details) {
+        for (const detail of dispenseDetails) {
           const required = Math.round(Number(detail.quantity));
           const available = detail.medicine?.totalQuantity ?? 0;
+          const shortage = Math.max(0, required - available);
           if (required > available) {
             insufficientMedicines.push({
               medicineId: detail.medicineId ?? "",
               medicineName: detail.medicine?.medicineName ?? "",
               required,
               available,
-              shortage: required - available,
+              shortage,
             });
           }
         }
@@ -880,7 +896,7 @@ export class PrecriptionService {
         }
       }
 
-      for (const detail of data.details) {
+      for (const detail of dispenseDetails) {
         const required = Math.round(Number(detail.quantity ?? 0));
         if (!detail.medicineId || required <= 0) continue;
 
@@ -918,7 +934,7 @@ export class PrecriptionService {
       }
 
       let totalPrice = 0;
-      for (const d of data.details) {
+      for (const d of dispenseDetails) {
         const qty = Number(d.quantity ?? 0);
         const unitPrice =
           d.appliedExportPrice !== null && d.appliedExportPrice !== undefined
@@ -937,7 +953,7 @@ export class PrecriptionService {
       );
 
       await this.prescriptionRepository.createInventoryLogs(
-        data.details.map((d) => {
+        dispenseDetails.map((d) => {
           const required = Math.round(Number(d.quantity ?? 0));
           const available = d.medicine?.totalQuantity ?? 0;
           return {
