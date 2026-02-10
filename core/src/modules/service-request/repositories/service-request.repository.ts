@@ -315,9 +315,10 @@ export class ServiceRequestRepository {
 
   public async upsert(
     payload: CreateServiceRequestPayload & { requestId: string },
+    tx?: Prisma.TransactionClient,
   ): Promise<ServiceRequestWithDetails> {
-    return await prisma.$transaction(async (tx) => {
-      await tx.serviceRequest.update({
+    const run = async (client: Prisma.TransactionClient) => {
+      await client.serviceRequest.update({
         where: { requestId: payload.requestId },
         data: {
           orderingDoctorId: payload.orderingDoctorId,
@@ -335,7 +336,7 @@ export class ServiceRequestRepository {
       });
 
       if (payload.diagnoses !== undefined) {
-        await tx.medicalRecord.update({
+        await client.medicalRecord.update({
           where: { recordId: payload.recordId },
           data: {
             diagnoses: payload.diagnoses ?? Prisma.JsonNull,
@@ -343,21 +344,67 @@ export class ServiceRequestRepository {
         });
       }
 
-      await tx.serviceRequestDetail.deleteMany({
+      const existingDetails = await client.serviceRequestDetail.findMany({
         where: { requestId: payload.requestId },
+        select: { requestDetailId: true, itemId: true },
       });
 
-      if (payload.details && payload.details.length > 0) {
-        await tx.serviceRequestDetail.createMany({
-          data: payload.details.map((detail) => ({
-            requestId: payload.requestId,
-            itemId: detail.itemId,
-            selectedOptions: detail.selectedOptions ?? Prisma.JsonNull,
-          })),
+      const incomingDetails = payload.details ?? [];
+      if (incomingDetails.length === 0) {
+        await client.serviceResult.deleteMany({
+          where: { requestId: payload.requestId },
         });
-      }
+        await client.serviceRequestDetail.deleteMany({
+          where: { requestId: payload.requestId },
+        });
+      } else {
+        const existingByItemId = new Map(
+          existingDetails
+            .filter((detail) => detail.itemId)
+            .map((detail) => [detail.itemId, detail.requestDetailId]),
+        );
 
-      return await tx.serviceRequest.findUniqueOrThrow({
+        const incomingItemIds = new Set(incomingDetails.map((d) => d.itemId));
+
+        const detailIdsToDelete = existingDetails
+          .filter(
+            (detail) => detail.itemId && !incomingItemIds.has(detail.itemId),
+          )
+          .map((detail) => detail.requestDetailId);
+
+        if (detailIdsToDelete.length > 0) {
+          await client.serviceResult.deleteMany({
+            where: {
+              requestId: payload.requestId,
+              detailId: { in: detailIdsToDelete },
+            },
+          });
+          await client.serviceRequestDetail.deleteMany({
+            where: { requestDetailId: { in: detailIdsToDelete } },
+          });
+        }
+
+        for (const detail of incomingDetails) {
+          const existingId = existingByItemId.get(detail.itemId);
+          if (existingId) {
+            await client.serviceRequestDetail.update({
+              where: { requestDetailId: existingId },
+              data: {
+                selectedOptions: detail.selectedOptions ?? Prisma.JsonNull,
+              },
+            });
+          } else {
+            await client.serviceRequestDetail.create({
+              data: {
+                requestId: payload.requestId,
+                itemId: detail.itemId,
+                selectedOptions: detail.selectedOptions ?? Prisma.JsonNull,
+              },
+            });
+          }
+        }
+      }
+      return await client.serviceRequest.findUniqueOrThrow({
         where: { requestId: payload.requestId },
         include: {
           details: {
@@ -365,7 +412,15 @@ export class ServiceRequestRepository {
           },
         },
       });
-    });
+    };
+
+    if (tx) {
+      return await run(tx);
+    }
+
+    return await prisma.$transaction(async (transactionClient) =>
+      run(transactionClient),
+    );
   }
 
   public async findPrintStatus(requestId: string) {

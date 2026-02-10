@@ -22,7 +22,12 @@ const serviceNodeRefSchema = {
 const serviceItemConfigSchema = {
   type: "object",
   properties: {
-    configId: { type: "string", format: "uuid" },
+    configId: {
+      type: "string",
+      format: "uuid",
+      description:
+        "ID c?u h?nh. Khi c?p nh?t, g?i configId ?? update; b? tr?ng s? t?o m?i.",
+    },
     itemId: { type: "string", format: "uuid", nullable: true },
     configCode: { type: "string", nullable: true },
     displayName: { type: "string", nullable: true },
@@ -294,7 +299,8 @@ const ServiceItemSwagger = {
     put: {
       tags: ["Service Items"],
       summary: "Cập nhật dịch vụ CLS",
-      description: "Chỉ admin mới được update",
+      description:
+        "Chỉ admin mới được update",
       security: [{ bearerAuth: [] }],
       parameters: [
         {

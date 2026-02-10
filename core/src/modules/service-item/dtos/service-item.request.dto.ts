@@ -2,6 +2,7 @@ import { InputType } from "@prisma/client";
 import Joi from "joi";
 
 export interface CreateServiceItemConfigDto {
+  configId?: string;
   configCode: string;
   displayName?: string | "";
   inputType: InputType;
@@ -55,6 +56,7 @@ export const updateServiceItemStatusSchema = Joi.object<UpdateServiceItemStatusD
 }).options({ abortEarly: false, stripUnknown: true });
 
 const createServiceConfigSchema = Joi.object({
+  configId: Joi.string().uuid().optional(),
   configCode: Joi.string().trim().min(2).max(50).required(),
   displayName: Joi.string().trim().max(200).allow(null, "").required(),
   inputType: Joi.string()
