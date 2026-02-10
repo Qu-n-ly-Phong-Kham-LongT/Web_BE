@@ -458,7 +458,9 @@ export class ServiceRequestService {
       if (Number.isNaN(date.getTime())) {
         return "";
       }
-      return date.toLocaleDateString("vi-VN");
+      return new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
     };
 
     const formatHyphenLines = (value: unknown) => {
@@ -489,9 +491,18 @@ export class ServiceRequestService {
       if (Number.isNaN(date.getTime())) {
         return "";
       }
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
+      const parts = new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).formatToParts(date);
+      const day = parts.find((p) => p.type === "day")?.value ?? "";
+      const month = parts.find((p) => p.type === "month")?.value ?? "";
+      const year = parts.find((p) => p.type === "year")?.value ?? "";
+      if (!day || !month || !year) {
+        return "";
+      }
       return `Ngày ${day} tháng ${month} năm ${year}`;
     };
     const toSessionLabel = (value?: string | null) => {
@@ -923,7 +934,6 @@ export class ServiceRequestService {
     return request;
   }
 }
-
 
 
 
