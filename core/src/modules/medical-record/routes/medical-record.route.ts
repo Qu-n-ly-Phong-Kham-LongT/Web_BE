@@ -46,7 +46,7 @@ medicalRecordRouter.get(
   medicalRecordController.getMedicalRecordsByPatientId,
 );
 
-medicalRecordRouter.put(
+medicalRecordRouter.delete(
   "/:id",
   authenticate,
   auditLogsMiddleware("DELETE_MEDICAL_RECORD", "MedicalRecord"),
