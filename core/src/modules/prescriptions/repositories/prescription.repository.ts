@@ -6,6 +6,7 @@ export class PrescriptionRepository {
     recordId: string,
     totalPrice: number,
     note: string | null,
+    createdAt: Date | null,
     tx: Prisma.TransactionClient,
   ) {
     return await tx.prescription.upsert({
@@ -18,6 +19,7 @@ export class PrescriptionRepository {
         recordId,
         totalPrice: new Prisma.Decimal(totalPrice),
         note: note ?? null,
+        ...(createdAt ? { createdAt } : {}),
       },
     });
   }
