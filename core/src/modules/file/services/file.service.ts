@@ -64,6 +64,23 @@ export class FileService {
       throw new BaseError(400, "Chỉ bắt buộc điền 1 loại id bản ghi cần lưu");
     }
 
+    if (type === FileType.SERVICE_RESULT) {
+      const hasServiceRequest = !!serviceRequestId;
+      const hasMedicalRecord = !!medicalRecordId;
+
+      if (hasServiceRequest === hasMedicalRecord) {
+        throw new BaseError(
+          400,
+          "SERVICE_RESULT chỉ được gắn serviceRequestId hoặc medicalRecordId (không được cả hai)",
+        );
+      }
+      if (!serviceRequestId && !medicalRecordId) {
+        throw new BaseError(
+          400,
+          "Kết quả cần liên kết với bệnh án hoặc phiếu chỉ định",
+        );
+      }
+    }
     const relativePath = path
       .join("/uploads", type, req.file.filename)
       .replace(/\\/g, "/");
@@ -140,9 +157,9 @@ export class FileService {
       .replace(/\\/g, "/");
     const fullPath = resolvePublicPath(relativePath);
 
-    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
-    if (existing?.relativePath) {
-      await this.deleteByRelativePath(existing.relativePath);
+    const existing = await this.fileRepository.findMedicalRecordFiles(recordId);
+    for (const file of existing) {
+      if (file.relativePath) await this.deleteByRelativePath(file.relativePath);
     }
 
     await fs.promises.mkdir(path.dirname(fullPath), { recursive: true });
@@ -164,6 +181,12 @@ export class FileService {
     }
 
     return this.mapFileResponse(file);
+  }
+
+  public async findResultFilesByMedicalRecordId(recordId: string) {
+    const files =
+      await this.fileRepository.findResultFilesByMedicalRecordId(recordId);
+    return files.map((f) => this.mapFileResponse(f));
   }
 
   public async findByRecordId(recordId: string) {
@@ -302,13 +325,17 @@ export class FileService {
         if (id) filters.medicalRecordId = id;
         break;
       case FileType.SERVICE_REQUEST:
+        if (!id)
+          throw new BaseError(400, `Type ${type} yêu cầu ID Service Request`);
+        filters.serviceRequestId = id;
+        break;
       case FileType.SERVICE_RESULT:
         if (!id)
           throw new BaseError(
             400,
-            `Type ${type} yêu cầu truyền ID của Service Request`,
+            `Kết quả cần truyền Id của phiếu chỉ định OR bệnh án`,
           );
-        filters.serviceRequestId = id;
+        filters.OR = [{ serviceRequestId: id }, { medicalRecordId: id }];
         break;
       case FileType.PRESCRIPTION:
         if (!id) throw new BaseError(400, "Yêu cầu Prescription ID");

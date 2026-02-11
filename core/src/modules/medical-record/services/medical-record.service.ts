@@ -896,13 +896,13 @@ export class MedicalRecordService {
 
     const createdAt = new Date(createData.createdAt);
     if (Number.isNaN(createdAt.getTime())) {
-      throw new BaseError(400, "createdAt khong hop le");
+      throw new BaseError(400, "createdAt không hợp lệ");
     }
     const updatedAt = createData.updatedAt
       ? new Date(createData.updatedAt)
       : createdAt;
     if (Number.isNaN(updatedAt.getTime())) {
-      throw new BaseError(400, "updatedAt khong hop le");
+      throw new BaseError(400, "updatedAt không hợp lệ");
     }
 
     const { startUtc, endUtc } = getUtcDayRangeForTimeZone(
