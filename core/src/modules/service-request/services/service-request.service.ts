@@ -821,19 +821,7 @@ export class ServiceRequestService {
         select: { isPrinted: true, isFollowUpTransferred: true },
       });
       if (!printStatus) {
-        throw new BaseError(404, "Kh??ng t??m th???y phi???u ch??? ?????nh");
-      }
-      if (printStatus.isPrinted) {
-        throw new BaseError(
-          400,
-          "Phi???u ch??? ?????nh ???? ???????c in, kh??ng th??? ch???nh s???a.",
-        );
-      }
-      if (printStatus.isFollowUpTransferred) {
-        throw new BaseError(
-          400,
-          "Phi???u ch??? ?????nh ???? chuy???n t??? l???n t??i kh??m, kh??ng th??? ch???nh s???a.",
-        );
+        throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
       }
 
       const detailsToUpdate = await this.buildServiceRequestDetails(
@@ -852,7 +840,7 @@ export class ServiceRequestService {
         isFollowUpTransferred: false,
         followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
         followUpSession: dto.followUpSession ?? null,
-        isPrinted: dto.isPrinted,
+        isPrinted: false,
         note: dto.note,
         details: detailsToUpdate,
       };

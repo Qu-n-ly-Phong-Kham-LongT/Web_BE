@@ -4,10 +4,42 @@ import { UploadFileRequestDto } from "../dtos/upload-file.request.dto";
 
 export class FileRepository {
   public async findByMedicalRecordId(recordId: string) {
-    return await prisma.file.findUnique({
+    return await prisma.file.findFirst({
       where: {
         medicalRecordId: recordId,
+        type: FileType.MEDICAL_RECORD,
       },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  public async findMedicalRecordFiles(recordId: string) {
+    return await prisma.file.findMany({
+      where: {
+        medicalRecordId: recordId,
+        type: FileType.MEDICAL_RECORD,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  public async findResultFilesByMedicalRecordId(recordId: string) {
+    return await prisma.file.findMany({
+      where: {
+        medicalRecordId: recordId,
+        type: FileType.SERVICE_RESULT,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  public async findResultFilesByServiceRequestId(requestId: string) {
+    return await prisma.file.findMany({
+      where: {
+        type: FileType.SERVICE_RESULT,
+        serviceRequestId: requestId,
+      },
+      orderBy: { createdAt: "desc" },
     });
   }
 
