@@ -43,6 +43,7 @@ export class ServiceRequestService {
   private async buildServiceRequestDetails(
     details: CreateServiceRequestDto["details"],
     tx: Prisma.TransactionClient,
+    allowInactiveItemIds?: Set<string>,
   ): Promise<CreateServiceRequestPayload["details"]> {
     if (!details || details.length === 0) {
       throw new BaseError(
@@ -60,16 +61,26 @@ export class ServiceRequestService {
       );
     }
 
-    const items =
-      await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
-        uniqueItemIds,
-        tx,
-      );
+    const items = await this.serviceItemRepository.findItemsWithConfigsByIds(
+      uniqueItemIds,
+      tx,
+    );
 
     if (items.length !== uniqueItemIds.length) {
       throw new BaseError(
         400,
         "Dịch vụ không tồn tại hoặc đang ngừng hoạt động.",
+      );
+    }
+
+    const allowInactive = allowInactiveItemIds ?? new Set<string>();
+    const hasInactiveNotAllowed = items.some(
+      (item) => item.isActive === false && !allowInactive.has(item.itemId),
+    );
+    if (hasInactiveNotAllowed) {
+      throw new BaseError(
+        400,
+        "Dịch vụ không tồn tại hoặc đang ngừng hoạt động..",
       );
     }
 
@@ -824,9 +835,20 @@ export class ServiceRequestService {
         throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
       }
 
+      const existingDetails = await tx.serviceRequestDetail.findMany({
+        where: { requestId },
+        select: { itemId: true },
+      });
+      const allowInactiveItemIds = new Set(
+        existingDetails
+          .map((detail) => detail.itemId)
+          .filter((itemId): itemId is string => !!itemId),
+      );
+
       const detailsToUpdate = await this.buildServiceRequestDetails(
         dto.details,
         tx,
+        allowInactiveItemIds,
       );
 
       const payload: CreateServiceRequestPayload & { requestId: string } = {
