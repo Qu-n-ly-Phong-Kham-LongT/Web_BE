@@ -209,25 +209,26 @@ model UserRole {
 }
 
 model Patient {
-  patientId       String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  patientCode     String?           @unique
-  fullName        String?
-  gender          Gender?
-  dob             DateTime?         @db.Timestamptz
-  patientCategory PatientCategory?  @default(DichVu)
-  phone           String?           @unique
-  email           String?
-  identityCard    String?           @unique
-  insuranceNumber String?           @unique
-  occupation      String?
-  address         String?
-  createdAt       DateTime?         @default(now()) @db.Timestamptz
-  updatedAt       DateTime?         @updatedAt @db.Timestamptz
-  relatives       PatientRelative[]
-  medicalRecords  MedicalRecord[]
-  allergies       PatientAllergy[]
-  clinic          Clinic?           @relation(fields: [clinicId], references: [clinicId])
-  clinicId        String?           @db.Uuid
+  patientId              String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  patientCode            String?                 @unique
+  fullName               String?
+  gender                 Gender?
+  dob                    DateTime?               @db.Timestamptz
+  patientCategory        PatientCategory?        @default(DichVu)
+  phone                  String?                 @unique
+  email                  String?
+  identityCard           String?                 @unique
+  insuranceNumber        String?                 @unique
+  occupation             String?
+  address                String?
+  createdAt              DateTime?               @default(now()) @db.Timestamptz
+  updatedAt              DateTime?               @updatedAt @db.Timestamptz
+  relatives              PatientRelative[]
+  medicalRecords         MedicalRecord[]
+  allergies              PatientAllergy[]
+  clinic                 Clinic?                 @relation(fields: [clinicId], references: [clinicId])
+  clinicId               String?                 @db.Uuid
+  medicalRecordSequences MedicalRecordSequence[]
 }
 
 model PatientSequence {
@@ -281,12 +282,17 @@ model MedicalRecord {
   serviceRequests        ServiceRequest[]
   clinic                 Clinic?              @relation(fields: [clinicId], references: [clinicId])
   clinicId               String?              @db.Uuid
-  file                   File?                @relation()
+  file                   File[]
 }
 
 model MedicalRecordSequence {
-  monthKey   String @id @db.VarChar(4)
+  patientId  String @db.Uuid
+  monthKey   String @db.VarChar(4)
   currentVal Int    @default(0)
+
+  patient Patient @relation(fields: [patientId], references: [patientId], onDelete: Cascade)
+
+  @@id([patientId, monthKey])
 }
 
 model ClinicalExamination {
@@ -590,7 +596,7 @@ model File {
   size      Int
   createdAt DateTime @default(now()) @db.Timestamptz
 
-  medicalRecordId String?        @unique @db.Uuid
+  medicalRecordId String?        @db.Uuid
   medicalRecord   MedicalRecord? @relation(fields: [medicalRecordId], references: [recordId])
 
   prescriptionId String?       @unique @db.Uuid

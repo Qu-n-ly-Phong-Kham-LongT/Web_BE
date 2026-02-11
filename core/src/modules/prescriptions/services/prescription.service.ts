@@ -188,6 +188,7 @@ export class PrecriptionService {
         payload.recordId,
         totalPrice,
         prescriptionNote,
+        record?.createdAt ?? null,
         tx,
       );
 

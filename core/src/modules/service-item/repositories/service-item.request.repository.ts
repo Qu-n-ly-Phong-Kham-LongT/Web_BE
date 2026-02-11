@@ -133,8 +133,10 @@ export class ServiceItemRepository {
 
   public async findItemsWithConfigsByIds(
     itemIds: string[],
+    tx?: Prisma.TransactionClient,
   ): Promise<Prisma.ServiceItemGetPayload<{ include: { configs: true } }>[]> {
-    return await prisma.serviceItem.findMany({
+    const client = tx ?? prisma;
+    return await client.serviceItem.findMany({
       where: {
         itemId: { in: itemIds },
       },

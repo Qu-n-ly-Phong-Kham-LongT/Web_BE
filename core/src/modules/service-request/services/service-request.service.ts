@@ -43,6 +43,7 @@ export class ServiceRequestService {
   private async buildServiceRequestDetails(
     details: CreateServiceRequestDto["details"],
     tx: Prisma.TransactionClient,
+    allowInactiveItemIds?: Set<string>,
   ): Promise<CreateServiceRequestPayload["details"]> {
     if (!details || details.length === 0) {
       throw new BaseError(
@@ -60,16 +61,26 @@ export class ServiceRequestService {
       );
     }
 
-    const items =
-      await this.serviceItemRepository.findActiveItemsWithConfigsByIds(
-        uniqueItemIds,
-        tx,
-      );
+    const items = await this.serviceItemRepository.findItemsWithConfigsByIds(
+      uniqueItemIds,
+      tx,
+    );
 
     if (items.length !== uniqueItemIds.length) {
       throw new BaseError(
         400,
         "Dịch vụ không tồn tại hoặc đang ngừng hoạt động.",
+      );
+    }
+
+    const allowInactive = allowInactiveItemIds ?? new Set<string>();
+    const hasInactiveNotAllowed = items.some(
+      (item) => item.isActive === false && !allowInactive.has(item.itemId),
+    );
+    if (hasInactiveNotAllowed) {
+      throw new BaseError(
+        400,
+        "Dịch vụ không tồn tại hoặc đang ngừng hoạt động..",
       );
     }
 
@@ -821,24 +832,23 @@ export class ServiceRequestService {
         select: { isPrinted: true, isFollowUpTransferred: true },
       });
       if (!printStatus) {
-        throw new BaseError(404, "Kh??ng t??m th???y phi???u ch??? ?????nh");
+        throw new BaseError(404, "Không tìm thấy phiếu chỉ định");
       }
-      if (printStatus.isPrinted) {
-        throw new BaseError(
-          400,
-          "Phi???u ch??? ?????nh ???? ???????c in, kh??ng th??? ch???nh s???a.",
-        );
-      }
-      if (printStatus.isFollowUpTransferred) {
-        throw new BaseError(
-          400,
-          "Phi???u ch??? ?????nh ???? chuy???n t??? l???n t??i kh??m, kh??ng th??? ch???nh s???a.",
-        );
-      }
+
+      const existingDetails = await tx.serviceRequestDetail.findMany({
+        where: { requestId },
+        select: { itemId: true },
+      });
+      const allowInactiveItemIds = new Set(
+        existingDetails
+          .map((detail) => detail.itemId)
+          .filter((itemId): itemId is string => !!itemId),
+      );
 
       const detailsToUpdate = await this.buildServiceRequestDetails(
         dto.details,
         tx,
+        allowInactiveItemIds,
       );
 
       const payload: CreateServiceRequestPayload & { requestId: string } = {
@@ -852,7 +862,7 @@ export class ServiceRequestService {
         isFollowUpTransferred: false,
         followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
         followUpSession: dto.followUpSession ?? null,
-        isPrinted: dto.isPrinted,
+        isPrinted: false,
         note: dto.note,
         details: detailsToUpdate,
       };
