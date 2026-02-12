@@ -401,6 +401,7 @@ export class PatientRepository {
 
         medicalRecords: {
           where: {
+            isDeleted: false,
             ...(clinicId ? { clinicId: clinicId } : {}),
             createdAt: { gte: start, lte: end },
           },
