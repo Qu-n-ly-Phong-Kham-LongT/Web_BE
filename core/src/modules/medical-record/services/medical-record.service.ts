@@ -65,6 +65,21 @@ export class MedicalRecordService {
       "Asia/Ho_Chi_Minh",
     );
 
+    const existingRecord =
+      await this.medicalRecordRepository.findExistingRecord(
+        createData.patientId || "",
+        createData.clinicId ?? "",
+        startUtc,
+        endUtc,
+      );
+
+    if (existingRecord) {
+      throw new BaseError(
+        409,
+        "Bệnh nhân đã có bệnh án hôm nay, vui lòng tiếp tục với bệnh án hiện tại",
+      );
+    }
+
     const record = await this.medicalRecordRepository.createRecord({
       patientId: createData.patientId,
       doctorId: createData.doctorId,
