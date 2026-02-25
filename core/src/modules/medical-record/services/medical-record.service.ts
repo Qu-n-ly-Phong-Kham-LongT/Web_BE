@@ -1000,6 +1000,31 @@ export class MedicalRecordService {
       throw new BaseError(403, "Bệnh án không thuộc phòng khám");
     }
 
-    return await this.medicalRecordRepository.delete(recordId);
+    await prisma.$transaction(async (tx) => {
+      await tx.medicalRecord.update({
+        where: { recordId },
+        data: { isDeleted: true },
+      });
+
+      if (!record.patientId) {
+        return;
+      }
+
+      const remainingRecord = await tx.medicalRecord.findFirst({
+        where: {
+          patientId: record.patientId,
+          isDeleted: false,
+        },
+        select: { recordId: true },
+      });
+
+      if (!remainingRecord) {
+        await tx.patient.update({
+          where: { patientId: record.patientId },
+          data: { isDeleted: true },
+        });
+      }
+    });
   }
 }
+

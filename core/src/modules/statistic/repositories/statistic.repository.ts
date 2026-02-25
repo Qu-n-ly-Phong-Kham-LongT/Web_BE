@@ -4,6 +4,7 @@ export class StatisticRepository {
   public async countRecords(from: Date, to: Date, clinicId?: string) {
     return await prisma.medicalRecord.count({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId } : {}),
         createdAt: { gte: from, lt: to },
       },
@@ -13,6 +14,7 @@ export class StatisticRepository {
   public async recordsInRange(from: Date, to: Date, clinicId?: string) {
     return await prisma.medicalRecord.findMany({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId } : {}),
         createdAt: { gte: from, lt: to },
       },
@@ -27,6 +29,7 @@ export class StatisticRepository {
   ) {
     return await prisma.patient.count({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId } : {}),
         createdAt: { gte: from, lt: to },
         medicalRecords: { none: {} },
@@ -41,6 +44,7 @@ export class StatisticRepository {
   ) {
     return await prisma.patient.findMany({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId } : {}),
         createdAt: { gte: from, lt: to },
         medicalRecords: { none: {} },
@@ -66,6 +70,7 @@ export class StatisticRepository {
     const [records, newPatients] = await Promise.all([
       prisma.medicalRecord.findMany({
         where: {
+          isDeleted: false,
           ...(clinicId ? { clinicId } : {}),
           createdAt: { gte: startOfDay, lt: endOfDay },
         },
@@ -85,6 +90,7 @@ export class StatisticRepository {
 
       prisma.patient.findMany({
         where: {
+          isDeleted: false,
           ...(clinicId ? { clinicId } : {}),
           createdAt: { gte: startOfDay, lt: endOfDay },
           medicalRecords: { none: {} },
@@ -110,7 +116,10 @@ export class StatisticRepository {
   ) {
     return await prisma.prescription.findMany({
       where: {
-        ...(clinicId ? { medicalRecord: { clinicId } } : {}),
+        medicalRecord: {
+          isDeleted: false,
+          ...(clinicId ? { clinicId } : {}),
+        },
         isDispensed: true,
         dispensedAt: { gte: from, lt: to },
       },
@@ -140,6 +149,7 @@ export class StatisticRepository {
   ) {
     return await prisma.medicalRecord.findMany({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId } : {}),
         createdAt: { gte: from, lt: to },
       },
@@ -156,7 +166,10 @@ export class StatisticRepository {
   ) {
     return await prisma.prescription.findMany({
       where: {
-        ...(clinicId ? { medicalRecord: { clinicId } } : {}),
+        medicalRecord: {
+          isDeleted: false,
+          ...(clinicId ? { clinicId } : {}),
+        },
         isDispensed: true,
         dispensedAt: { gte: from, lt: to },
       },
