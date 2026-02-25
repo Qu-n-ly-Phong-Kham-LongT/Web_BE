@@ -24,8 +24,8 @@ export async function generatePatientCode(clinicCode: string): Promise<string> {
   const patientCode = `${clinicCode}${lastFourDigits}`;
 
   // Ensure uniqueness
-  let existing = await prisma.patient.findUnique({
-    where: { patientCode: patientCode },
+  let existing = await prisma.patient.findFirst({
+    where: { patientCode: patientCode, isDeleted: false },
   });
 
   let finalCode = patientCode;
@@ -34,8 +34,8 @@ export async function generatePatientCode(clinicCode: string): Promise<string> {
   while (existing) {
     // If code exists, append a counter to make it unique
     finalCode = `${clinicCode}${lastFourDigits}${counter}`;
-    existing = await prisma.patient.findUnique({
-      where: { patientCode: finalCode },
+    existing = await prisma.patient.findFirst({
+      where: { patientCode: finalCode, isDeleted: false },
     });
     counter++;
   }
