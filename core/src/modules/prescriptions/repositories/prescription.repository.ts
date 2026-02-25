@@ -25,8 +25,14 @@ export class PrescriptionRepository {
   }
 
   public async getPrintData(prescriptionId: string) {
-    return await prisma.prescription.findUnique({
-      where: { prescriptionId },
+    return await prisma.prescription.findFirst({
+      where: {
+        prescriptionId,
+        medicalRecord: {
+          isDeleted: false,
+          patient: { isDeleted: false },
+        },
+      },
       include: {
         medicalRecord: {
           include: {
@@ -67,6 +73,8 @@ export class PrescriptionRepository {
       ...(status ? { status } : {}),
       medicalRecord: {
         patientId,
+        isDeleted: false,
+        patient: { isDeleted: false },
         ...(clinicId ? { clinicId } : {}),
         ...(fromDate || toDate ? { createdAt: recordDateFilter } : {}),
       },
@@ -97,8 +105,14 @@ export class PrescriptionRepository {
   ) {
     const client = tx || prisma;
 
-    return await client.prescription.findUnique({
-      where: { prescriptionId },
+    return await client.prescription.findFirst({
+      where: {
+        prescriptionId,
+        medicalRecord: {
+          isDeleted: false,
+          patient: { isDeleted: false },
+        },
+      },
       include: {
         medicalRecord: { select: { clinicId: true } },
         details: {
@@ -133,7 +147,10 @@ export class PrescriptionRepository {
   }) {
     const { from, to, clinicId, page, size, isDispensed, fullName } = params;
 
-    const medicalRecordWhere: Prisma.MedicalRecordWhereInput = {};
+    const medicalRecordWhere: Prisma.MedicalRecordWhereInput = {
+      isDeleted: false,
+      patient: { isDeleted: false },
+    };
     if (clinicId) {
       medicalRecordWhere.clinicId = clinicId;
     }

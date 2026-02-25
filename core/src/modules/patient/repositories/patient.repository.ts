@@ -59,6 +59,7 @@ export class PatientRepository {
     return await prisma.patient.findFirst({
       where: {
         patientId: id,
+        isDeleted: false,
         ...this.buildClinicIdFilter(clinicId),
       },
     });
@@ -94,6 +95,7 @@ export class PatientRepository {
         : {};
 
     const baseWhere = {
+      isDeleted: false,
       ...this.buildClinicIdFilter(clinicId),
       ...(gender ? { gender } : {}),
       ...(patientCategory ? { patientCategory } : {}),
@@ -159,6 +161,7 @@ export class PatientRepository {
     const existing = await prisma.patient.findFirst({
       where: {
         patientId: id,
+        isDeleted: false,
         ...this.buildClinicIdFilter(clinicId),
       },
     });
@@ -175,8 +178,8 @@ export class PatientRepository {
   }
 
   public async findPatientByCode(patientCode: string): Promise<Patient | null> {
-    return await prisma.patient.findUnique({
-      where: { patientCode: patientCode },
+    return await prisma.patient.findFirst({
+      where: { patientCode: patientCode, isDeleted: false },
     });
   }
 
@@ -187,6 +190,7 @@ export class PatientRepository {
     return await prisma.patient.findFirst({
       where: {
         phone: phone,
+        isDeleted: false,
         ...this.buildClinicIdFilter(clinicId),
       },
     });
@@ -199,6 +203,7 @@ export class PatientRepository {
     return await prisma.patient.findFirst({
       where: {
         identityCard: identityCard,
+        isDeleted: false,
         ...this.buildClinicIdFilter(clinicId),
       },
     });
@@ -211,6 +216,7 @@ export class PatientRepository {
     return await prisma.patient.findFirst({
       where: {
         insuranceNumber: insuranceNumber,
+        isDeleted: false,
         ...this.buildClinicIdFilter(clinicId),
       },
     });
@@ -346,6 +352,7 @@ export class PatientRepository {
     const normalizedSearch = search?.trim().toLocaleLowerCase();
     return await prisma.patient.findMany({
       where: {
+        isDeleted: false,
         ...(clinicId ? { clinicId: clinicId } : {}),
         OR: [
           {

@@ -210,17 +210,18 @@ model UserRole {
 
 model Patient {
   patientId              String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  patientCode            String?                 @unique
+  patientCode            String?
   fullName               String?
   gender                 Gender?
   dob                    DateTime?               @db.Timestamptz
   patientCategory        PatientCategory?        @default(DichVu)
-  phone                  String?                 @unique
+  phone                  String?
   email                  String?
-  identityCard           String?                 @unique
-  insuranceNumber        String?                 @unique
+  identityCard           String?
+  insuranceNumber        String?
   occupation             String?
   address                String?
+  isDeleted              Boolean                 @default(false)
   createdAt              DateTime?               @default(now()) @db.Timestamptz
   updatedAt              DateTime?               @updatedAt @db.Timestamptz
   relatives              PatientRelative[]
