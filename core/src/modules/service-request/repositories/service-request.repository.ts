@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 import { Session } from "@prisma/client";
-import { BaseError } from "../../../utils/base-error.util";
 
 export interface CreateServiceRequestDetailPayload {
   itemId: string;

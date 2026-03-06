@@ -46,10 +46,7 @@ export class ServiceRequestService {
     allowInactiveItemIds?: Set<string>,
   ): Promise<CreateServiceRequestPayload["details"]> {
     if (!details || details.length === 0) {
-      throw new BaseError(
-        400,
-        "Phiếu chỉ định phải có ít nhất 1 dịch vụ CLS",
-      );
+      throw new BaseError(400, "Phiếu chỉ định phải có ít nhất 1 dịch vụ CLS");
     }
 
     const itemIds = details.map((detail) => detail.itemId);
@@ -104,9 +101,11 @@ export class ServiceRequestService {
         const metaOptions = Array.isArray(
           (config.metaData as { options?: unknown })?.options,
         )
-          ? ((config.metaData as {
-              options?: { value?: string; surcharge?: number }[];
-            }).options ?? [])
+          ? ((
+              config.metaData as {
+                options?: { value?: string; surcharge?: number }[];
+              }
+            ).options ?? [])
           : [];
         for (const option of metaOptions) {
           if (typeof option?.value !== "string") {
@@ -132,10 +131,7 @@ export class ServiceRequestService {
     for (const detail of details) {
       const itemMeta = itemConfigMap.get(detail.itemId);
       if (!itemMeta) {
-        throw new BaseError(
-          400,
-          "Dịch vụ không hợp lệ cho phiếu chỉ định.",
-        );
+        throw new BaseError(400, "Dịch vụ không hợp lệ cho phiếu chỉ định.");
       }
 
       const selectedConfigs = detail.selectedConfigs ?? [];
@@ -159,19 +155,13 @@ export class ServiceRequestService {
       for (const config of selectedConfigs) {
         const configMeta = itemMeta.configs.get(config.configId);
         if (!configMeta) {
-          throw new BaseError(
-            400,
-            "Cấu hình không thuộc dịch vụ đã chọn.",
-          );
+          throw new BaseError(400, "Cấu hình không thuộc dịch vụ đã chọn.");
         }
 
         let configSurcharge = 0;
         if (configMeta.options.size > 0) {
           if (!config.selectedValues || config.selectedValues.length === 0) {
-            throw new BaseError(
-              400,
-              "Giá trị chọn của cấu hình không hợp lệ.",
-            );
+            throw new BaseError(400, "Giá trị chọn của cấu hình không hợp lệ.");
           }
           for (const selectedValue of config.selectedValues) {
             const optionSurcharge = configMeta.options.get(selectedValue);
@@ -658,7 +648,7 @@ export class ServiceRequestService {
         };
       });
     });
-    const note = toStringValue(rawData.note);
+    const notePart = rawData.note ? toStringValue(rawData.note) : null;
     const clinicName = formatHyphenLines(
       rawData.medicalRecord?.clinic?.clinicName,
     );
@@ -703,7 +693,7 @@ export class ServiceRequestService {
       requestSelectedConfigs: serviceRequestSelectedConfigs,
       groups,
       date: formatDateLong(rawData.createdAt ?? null),
-      note,
+      note: toStringValue(notePart),
       clinicName,
       clinicAddress,
       clinicPhones,
@@ -944,6 +934,3 @@ export class ServiceRequestService {
     return request;
   }
 }
-
-
-
