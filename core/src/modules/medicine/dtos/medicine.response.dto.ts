@@ -12,6 +12,7 @@ export interface MedicineResponseDto {
   baseUnit: string | null;
   totalQuantity: number | 0;
   sellPrice: number | 0;
+  importPrice: number | 0;
   note: string | null;
   supplier: string | null;
   sideEffects: string | null;
@@ -31,6 +32,7 @@ export const MedicineResponseSchema = Joi.object<MedicineResponseDto>({
   baseUnit: Joi.string().allow(null).description("Đơn vị cơ bản"),
   totalQuantity: Joi.number().description("Tổng số lượng"),
   sellPrice: Joi.number().description("Giá bán"),
+  importPrice: Joi.number().description("Giá nhập"),
   note: Joi.string().allow(null).description("Ghi chú"),
   supplier: Joi.string().allow(null).description("Nhà cung cấp"),
   sideEffects: Joi.string().allow(null).description("Tác dụng phụ"),

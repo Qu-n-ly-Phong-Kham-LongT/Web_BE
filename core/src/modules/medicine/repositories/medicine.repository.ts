@@ -30,6 +30,7 @@ export class MedicineRepository {
         baseUnit: data.baseUnit ?? null,
         totalQuantity: data.totalQuantity ?? 0,
         sellPrice: data.sellPrice ? new Prisma.Decimal(data.sellPrice) : null,
+        importPrice: data.importPrice ? new Prisma.Decimal(data.importPrice) : null,
         note: data.note ?? null,
         supplier: data.supplier ?? null,
         sideEffects: data.sideEffects ?? null,
@@ -231,6 +232,7 @@ export class MedicineRepository {
       Medicine,
       | "medicineId"
       | "sellPrice"
+      | "importPrice"
       | "medicineName"
       | "isInsuranceCovered"
       | "insurancePrice"
@@ -246,6 +248,7 @@ export class MedicineRepository {
       select: {
         medicineId: true,
         sellPrice: true,
+        importPrice: true,
         medicineName: true,
         isInsuranceCovered: true,
         insurancePrice: true,
