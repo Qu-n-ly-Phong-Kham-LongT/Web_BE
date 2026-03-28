@@ -270,6 +270,7 @@ model MedicalRecord {
   doctorId               String?              @db.Uuid
   doctor                 User?                @relation(fields: [doctorId], references: [userId])
   diagnoses              Json?
+  diagnosisNote          String?
   evidenceBasedDiagnosis Boolean?             @default(false)
   doctorAdvice           String?
   treatmentNote          String?
@@ -369,6 +370,7 @@ model PrescriptionDetail {
   daysToTake          Int?
   isInsuranceCovered  Boolean?      @default(false)
   appliedExportPrice  Decimal?      @db.Decimal(18, 0)
+  appliedImportPrice  Decimal?      @db.Decimal(18, 0)
   totalPrice          Decimal?      @db.Decimal(18, 0)
   note                String?
 }
@@ -446,6 +448,7 @@ model ServiceRequest {
   orderingDoctorId      String?   @db.Uuid
   orderingDoctor        User?     @relation(fields: [orderingDoctorId], references: [userId])
   diagnoses             Json?
+  diagnosisNote         String?
   isPatientRequested    Boolean   @default(false)
   receiveResultAtClinic Boolean   @default(false)
   isForFollowUp         Boolean   @default(false)
@@ -532,6 +535,7 @@ model Medicine {
   baseUnit            String?
   totalQuantity       Int?                         @default(0)
   sellPrice           Decimal?                     @db.Decimal(18, 0)
+  importPrice         Decimal?                     @db.Decimal(18, 0)
   note                String?
   supplier            String?
   sideEffects         String?

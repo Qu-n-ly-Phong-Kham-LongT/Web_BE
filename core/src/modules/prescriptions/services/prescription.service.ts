@@ -164,6 +164,10 @@ export class PrecriptionService {
         const lineTotal = appliedPrice * quantity;
         totalPrice += lineTotal;
 
+        const importPrice = medicine.importPrice
+          ? Number(medicine.importPrice)
+          : null;
+
         detailsToCreate.push({
           prescriptionId: "",
           medicineId: item.medicineId,
@@ -176,6 +180,7 @@ export class PrecriptionService {
           daysToTake: item.daysToTake,
           isInsuranceCovered: item.isInsuranceCovered ?? false,
           appliedExportPrice: new Prisma.Decimal(appliedPrice),
+          appliedImportPrice: importPrice !== null ? new Prisma.Decimal(importPrice) : null,
           totalPrice: new Prisma.Decimal(lineTotal),
           note: item.note ?? null,
         });

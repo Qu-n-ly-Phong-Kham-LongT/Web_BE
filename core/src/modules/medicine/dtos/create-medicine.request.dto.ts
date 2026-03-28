@@ -11,6 +11,7 @@ export interface CreateMedicineRequestDto {
   baseUnit?: string;
   totalQuantity?: number;
   sellPrice?: number;
+  importPrice?: number;
   note?: string;
   supplier?: string;
   sideEffects?: string;
@@ -46,6 +47,9 @@ export const CreateMedicineRequestSchema = Joi.object<CreateMedicineRequestDto>(
   }),
   sellPrice: Joi.number().min(0).optional().messages({
     "number.min": "Giá bán phải lớn hơn hoặc bằng 0",
+  }),
+  importPrice: Joi.number().min(0).optional().messages({
+    "number.min": "Giá nhập phải lớn hơn hoặc bằng 0",
   }),
   note: Joi.string().optional().allow(null, ""),
   supplier: Joi.string().required().messages({

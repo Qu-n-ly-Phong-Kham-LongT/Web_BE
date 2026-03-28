@@ -130,6 +130,7 @@ export class StatisticRepository {
             quantity: true,
             totalPrice: true,
             appliedExportPrice: true,
+            appliedImportPrice: true,
             medicine: {
               select: {
                 medicineId: true,
@@ -159,6 +160,44 @@ export class StatisticRepository {
       },
     });
   }
+  public async findDispensedPrescriptionProfitsInRange(
+    from: Date,
+    to: Date,
+    clinicId?: string,
+  ) {
+    const prescriptions = await prisma.prescription.findMany({
+      where: {
+        medicalRecord: {
+          isDeleted: false,
+          ...(clinicId ? { clinicId } : {}),
+        },
+        isDispensed: true,
+        dispensedAt: { gte: from, lt: to },
+      },
+      select: {
+        dispensedAt: true,
+        details: {
+          select: {
+            quantity: true,
+            appliedExportPrice: true,
+            appliedImportPrice: true,
+          },
+        },
+      },
+    });
+
+    return prescriptions.map((p) => ({
+      dispensedAt: p.dispensedAt,
+      profit: (p.details ?? []).reduce((sum, d) => {
+        if (!d.appliedImportPrice) return sum;
+        const qty = d.quantity ? Number(d.quantity) : 0;
+        const sell = d.appliedExportPrice ? Number(d.appliedExportPrice) : 0;
+        const cost = Number(d.appliedImportPrice);
+        return sum + (sell - cost) * qty;
+      }, 0),
+    }));
+  }
+
   public async findDispensedPrescriptionTotalsInRange(
     from: Date,
     to: Date,

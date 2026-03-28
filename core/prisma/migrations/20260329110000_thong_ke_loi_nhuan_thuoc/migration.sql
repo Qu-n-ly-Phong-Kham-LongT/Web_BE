@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Medicine" ADD COLUMN "importPrice" DOUBLE PRECISION NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "PrescriptionDetail" ADD COLUMN "appliedImportPrice" DOUBLE PRECISION NOT NULL DEFAULT 0;

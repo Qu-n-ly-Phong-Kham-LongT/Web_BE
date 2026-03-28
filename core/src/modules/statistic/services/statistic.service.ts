@@ -367,8 +367,13 @@ export class StatisticService {
     const chartFrom = starts[0];
     const chartTo = stepStart(anchorStartUtc, 1);
 
-    const [prescriptions, consultationFees] = await Promise.all([
+    const [prescriptions, profitItems, consultationFees] = await Promise.all([
       this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+        chartFrom,
+        chartTo,
+        clinicId,
+      ),
+      this.statisticRepository.findDispensedPrescriptionProfitsInRange(
         chartFrom,
         chartTo,
         clinicId,
@@ -381,6 +386,7 @@ export class StatisticService {
     ]);
 
     const prescriptionByBucket = new Map<string, number>();
+    const profitByBucket = new Map<string, number>();
     const consultationByBucket = new Map<string, number>();
 
     for (const p of prescriptions) {
@@ -388,6 +394,12 @@ export class StatisticService {
       const key = this.vnBucketKeyFromUtc(p.dispensedAt, range);
       const val = p.totalPrice ? Number(p.totalPrice) : 0;
       prescriptionByBucket.set(key, (prescriptionByBucket.get(key) ?? 0) + val);
+    }
+
+    for (const p of profitItems) {
+      if (!p.dispensedAt) continue;
+      const key = this.vnBucketKeyFromUtc(p.dispensedAt, range);
+      profitByBucket.set(key, (profitByBucket.get(key) ?? 0) + p.profit);
     }
 
     for (const c of consultationFees) {
@@ -399,25 +411,30 @@ export class StatisticService {
 
     const labels: string[] = [];
     const prescriptionValues: number[] = [];
+    const profitValues: number[] = [];
     const consultationValues: number[] = [];
 
     for (const start of starts) {
       const key = this.vnBucketKeyFromUtc(start, range);
       labels.push(this.labelFromBucketStartUtc(start, range));
       prescriptionValues.push(prescriptionByBucket.get(key) ?? 0);
+      profitValues.push(profitByBucket.get(key) ?? 0);
       consultationValues.push(consultationByBucket.get(key) ?? 0);
     }
 
     const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+    const totalProfit = profitValues.reduce((a, b) => a + b, 0);
     const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
 
     return {
       totalRevenue: totalPrescription + totalConsultation,
       totalPrescription,
+      totalProfit,
       totalConsultation,
       chart: {
         labels,
         prescriptionValues,
+        profitValues,
         consultationValues,
         range,
       },
@@ -443,8 +460,13 @@ export class StatisticService {
         this.parseVnDateInput(options?.date) ?? this.vnStartOfDayUtc(nowUtc);
       const endUtc = this.addDays(startUtc, 1);
 
-      const [prescriptions, consultationFees] = await Promise.all([
+      const [prescriptions, profitItems, consultationFees] = await Promise.all([
         this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+          startUtc,
+          endUtc,
+          clinicId,
+        ),
+        this.statisticRepository.findDispensedPrescriptionProfitsInRange(
           startUtc,
           endUtc,
           clinicId,
@@ -461,6 +483,7 @@ export class StatisticService {
       const bucketCount = endHour - startHour + 1;
       const labels: string[] = [];
       const prescriptionValues = Array.from({ length: bucketCount }, () => 0);
+      const profitValues = Array.from({ length: bucketCount }, () => 0);
       const consultationValues = Array.from({ length: bucketCount }, () => 0);
 
       for (let h = startHour; h <= endHour; h++) {
@@ -476,6 +499,14 @@ export class StatisticService {
         prescriptionValues[hour - startHour] += val;
       }
 
+      for (const p of profitItems) {
+        if (!p.dispensedAt) continue;
+        const vn = this.toVnWallClock(p.dispensedAt);
+        const hour = vn.getUTCHours();
+        if (hour < startHour || hour > endHour) continue;
+        profitValues[hour - startHour] += p.profit;
+      }
+
       for (const c of consultationFees) {
         if (!c.createdAt) continue;
         const vn = this.toVnWallClock(c.createdAt);
@@ -486,15 +517,18 @@ export class StatisticService {
       }
 
       const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+      const totalProfit = profitValues.reduce((a, b) => a + b, 0);
       const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
 
       return {
         totalRevenue: totalPrescription + totalConsultation,
         totalPrescription,
+        totalProfit,
         totalConsultation,
         chart: {
           labels,
           prescriptionValues,
+          profitValues,
           consultationValues,
           range,
           granularity: "hour",
@@ -517,8 +551,13 @@ export class StatisticService {
       const startUtc = weekStartUtc ?? this.vnStartOfWeekUtc(nowUtc);
       const endUtc = this.addDays(startUtc, 7);
 
-      const [prescriptions, consultationFees] = await Promise.all([
+      const [prescriptions, profitItems, consultationFees] = await Promise.all([
         this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+          startUtc,
+          endUtc,
+          clinicId,
+        ),
+        this.statisticRepository.findDispensedPrescriptionProfitsInRange(
           startUtc,
           endUtc,
           clinicId,
@@ -532,6 +571,7 @@ export class StatisticService {
 
       const labels: string[] = [];
       const prescriptionValues: number[] = [];
+      const profitValues: number[] = [];
       const consultationValues: number[] = [];
       const bucketMap = new Map<string, number>();
 
@@ -543,6 +583,7 @@ export class StatisticService {
         bucketMap.set(key, i);
         labels.push(this.formatVnDateLabelFromUtc(d));
         prescriptionValues.push(0);
+        profitValues.push(0);
         consultationValues.push(0);
       }
 
@@ -555,6 +596,14 @@ export class StatisticService {
         prescriptionValues[idx] += val;
       }
 
+      for (const p of profitItems) {
+        if (!p.dispensedAt) continue;
+        const key = this.vnBucketKeyFromUtc(p.dispensedAt, "day");
+        const idx = bucketMap.get(key);
+        if (idx === undefined) continue;
+        profitValues[idx] += p.profit;
+      }
+
       for (const c of consultationFees) {
         if (!c.createdAt) continue;
         const key = this.vnBucketKeyFromUtc(c.createdAt, "day");
@@ -565,15 +614,18 @@ export class StatisticService {
       }
 
       const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+      const totalProfit = profitValues.reduce((a, b) => a + b, 0);
       const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
 
       return {
         totalRevenue: totalPrescription + totalConsultation,
         totalPrescription,
+        totalProfit,
         totalConsultation,
         chart: {
           labels,
           prescriptionValues,
+          profitValues,
           consultationValues,
           range,
           granularity: "day",
@@ -595,8 +647,13 @@ export class StatisticService {
     );
     const monthEndUtc = this.addMonths(monthStartUtc, 1);
 
-    const [prescriptions, consultationFees] = await Promise.all([
+    const [prescriptions, profitItems, consultationFees] = await Promise.all([
       this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+        monthStartUtc,
+        monthEndUtc,
+        clinicId,
+      ),
+      this.statisticRepository.findDispensedPrescriptionProfitsInRange(
         monthStartUtc,
         monthEndUtc,
         clinicId,
@@ -612,6 +669,7 @@ export class StatisticService {
     const weekStarts: Date[] = [];
     const labels: string[] = [];
     const prescriptionValues: number[] = [];
+    const profitValues: number[] = [];
     const consultationValues: number[] = [];
     const bucketIndex = new Map<string, number>();
 
@@ -622,6 +680,7 @@ export class StatisticService {
       weekStarts.push(cursor);
       labels.push(this.formatVnDateLabelFromUtc(labelDate));
       prescriptionValues.push(0);
+      profitValues.push(0);
       consultationValues.push(0);
       cursor = this.addDays(cursor, 7);
     }
@@ -635,6 +694,14 @@ export class StatisticService {
       prescriptionValues[idx] += val;
     }
 
+    for (const p of profitItems) {
+      if (!p.dispensedAt) continue;
+      const weekStart = this.vnStartOfWeekUtc(p.dispensedAt);
+      const idx = bucketIndex.get(weekStart.toISOString());
+      if (idx === undefined) continue;
+      profitValues[idx] += p.profit;
+    }
+
     for (const c of consultationFees) {
       if (!c.createdAt) continue;
       const weekStart = this.vnStartOfWeekUtc(c.createdAt);
@@ -645,15 +712,18 @@ export class StatisticService {
     }
 
     const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
+    const totalProfit = profitValues.reduce((a, b) => a + b, 0);
     const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
 
     return {
       totalRevenue: totalPrescription + totalConsultation,
       totalPrescription,
+      totalProfit,
       totalConsultation,
       chart: {
         labels,
         prescriptionValues,
+        profitValues,
         consultationValues,
         range,
         granularity: "week",
@@ -709,10 +779,11 @@ export class StatisticService {
     ]);
 
     const revenueByBucket = new Map<string, number>();
+    const profitByBucket = new Map<string, number>();
     const consultationFeesByBucket = new Map<string, number>();
     const byMedicine = new Map<
       string,
-      { medicineId: string; medicineName: string; revenue: number; quantity: number }
+      { medicineId: string; medicineName: string; revenue: number; profit: number; quantity: number }
     >();
 
     for (const p of prescriptions) {
@@ -720,18 +791,23 @@ export class StatisticService {
       const bucketKey = this.vnBucketKeyFromUtc(p.dispensedAt, range);
 
       let prescriptionRevenue = 0;
+      let prescriptionProfit = 0;
       for (const d of p.details ?? []) {
+        const qty = d.quantity ? Number(d.quantity) : 0;
         const lineRevenue = d.totalPrice
           ? Number(d.totalPrice)
-          : d.appliedExportPrice && d.quantity
-            ? Number(d.appliedExportPrice) * Number(d.quantity)
+          : d.appliedExportPrice && qty
+            ? Number(d.appliedExportPrice) * qty
             : 0;
         prescriptionRevenue += lineRevenue;
+
+        const costPerUnit = d.appliedImportPrice ? Number(d.appliedImportPrice) : null;
+        const lineProfit = costPerUnit !== null ? (Number(d.appliedExportPrice ?? 0) - costPerUnit) * qty : 0;
+        prescriptionProfit += lineProfit;
 
         const medicineId = d.medicine?.medicineId;
         if (!medicineId) continue;
         const medicineName = d.medicine?.medicineName ?? "Khac";
-        const quantity = d.quantity ? Number(d.quantity) : 0;
 
         const existing = byMedicine.get(medicineId);
         if (!existing) {
@@ -739,17 +815,23 @@ export class StatisticService {
             medicineId,
             medicineName,
             revenue: lineRevenue,
-            quantity,
+            profit: lineProfit,
+            quantity: qty,
           });
         } else {
           existing.revenue += lineRevenue;
-          existing.quantity += quantity;
+          existing.profit += lineProfit;
+          existing.quantity += qty;
         }
       }
 
       revenueByBucket.set(
         bucketKey,
         (revenueByBucket.get(bucketKey) ?? 0) + prescriptionRevenue,
+      );
+      profitByBucket.set(
+        bucketKey,
+        (profitByBucket.get(bucketKey) ?? 0) + prescriptionProfit,
       );
     }
 
@@ -765,11 +847,13 @@ export class StatisticService {
 
     const labels: string[] = [];
     const values: number[] = [];
+    const profitValues: number[] = [];
     const consultationFeeValues: number[] = [];
     for (const start of starts) {
       const key = this.vnBucketKeyFromUtc(start, range);
       labels.push(this.labelFromBucketStartUtc(start, range));
       values.push(revenueByBucket.get(key) ?? 0);
+      profitValues.push(profitByBucket.get(key) ?? 0);
       consultationFeeValues.push(consultationFeesByBucket.get(key) ?? 0);
     }
 
@@ -783,6 +867,10 @@ export class StatisticService {
 
     const totalRevenue = Array.from(byMedicine.values()).reduce(
       (sum, item) => sum + item.revenue,
+      0,
+    );
+    const totalProfit = Array.from(byMedicine.values()).reduce(
+      (sum, item) => sum + item.profit,
       0,
     );
     const totalConsultationFees = consultationFeeValues.reduce(
@@ -804,6 +892,7 @@ export class StatisticService {
     return {
       summary: {
         totalRevenue,
+        totalProfit,
         totalMedicines: byMedicine.size,
         totalConsultationFees,
       },
@@ -811,6 +900,7 @@ export class StatisticService {
         range,
         labels,
         values,
+        profitValues,
         latest,
         average,
         trendPct,
