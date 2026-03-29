@@ -154,15 +154,24 @@ export class PrecriptionService {
           throw new BaseError(400, "Số lượng thuốc không hợp lệ");
         }
 
-        let appliedPrice = medicine.sellPrice ? Number(medicine.sellPrice) : 0;
-        if (item.isInsuranceCovered) {
+        const isInsuranceCovered = item.isInsuranceCovered === true;
+        let appliedPrice = 0;
+        if (isInsuranceCovered) {
           if (!medicine.isInsuranceCovered) {
             throw new BaseError(400, "Thuốc này không được BHYT hỗ trợ");
           }
-          if (!medicine.insurancePrice) {
+          if (
+            medicine.insurancePrice === null ||
+            medicine.insurancePrice === undefined
+          ) {
             throw new BaseError(400, "Thuốc này chưa có giá BHYT");
           }
           appliedPrice = Number(medicine.insurancePrice);
+        } else {
+          if (medicine.sellPrice === null || medicine.sellPrice === undefined) {
+            throw new BaseError(400, "Thuốc này chưa có giá bán");
+          }
+          appliedPrice = Number(medicine.sellPrice);
         }
         const lineTotal = appliedPrice * quantity;
         totalPrice += lineTotal;
@@ -181,7 +190,7 @@ export class PrecriptionService {
           timing: item.timing,
           quantity: quantity,
           daysToTake: item.daysToTake,
-          isInsuranceCovered: item.isInsuranceCovered ?? false,
+          isInsuranceCovered,
           appliedExportPrice: new Prisma.Decimal(appliedPrice),
           appliedImportPrice: importPrice !== null ? new Prisma.Decimal(importPrice) : null,
           totalPrice: new Prisma.Decimal(lineTotal),
