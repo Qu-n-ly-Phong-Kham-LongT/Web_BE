@@ -2,9 +2,9 @@ const FollowUpSwagger = {
   "/api/follow-ups": {
     get: {
       tags: ["Core Businesses"],
-      summary: "Lay danh sach tai kham",
+      summary: "Lấy danh sách tái khám",
       description:
-        "Tra ve danh sach lich tai kham theo phong kham trong token va khoang ngay",
+        "Trả về danh sách lịch tái khám theo phòng khám trong token và khoảng ngày",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
@@ -12,40 +12,43 @@ const FollowUpSwagger = {
           in: "query",
           required: true,
           schema: { type: "string", format: "date", example: "2026-03-01" },
-          description: "Ngay bat dau (YYYY-MM-DD)",
+          description: "Ngày bắt đầu (YYYY-MM-DD)",
         },
         {
           name: "endDate",
           in: "query",
           required: true,
           schema: { type: "string", format: "date", example: "2026-03-31" },
-          description: "Ngay ket thuc (YYYY-MM-DD)",
+          description: "Ngày kết thúc (YYYY-MM-DD)",
         },
         {
           name: "page",
           in: "query",
           required: false,
           schema: { type: "integer", minimum: 1, default: 1 },
-          description: "So trang",
+          description: "Số trang",
         },
         {
           name: "limit",
           in: "query",
           required: false,
           schema: { type: "integer", minimum: 1, maximum: 100, default: 10 },
-          description: "So ban ghi moi trang",
+          description: "Số bản ghi mỗi trang",
         },
       ],
       responses: {
         200: {
-          description: "Lay danh sach tai kham thanh cong",
+          description: "Lấy danh sách tái khám thành công",
           content: {
             "application/json": {
               schema: {
                 type: "object",
                 properties: {
                   success: { type: "boolean", example: true },
-                  message: { type: "string", example: "Lay danh sach tai kham thanh cong" },
+                  message: {
+                    type: "string",
+                    example: "Lấy danh sách tái khám thành công",
+                  },
                   data: {
                     type: "array",
                     items: {
@@ -206,9 +209,9 @@ const FollowUpSwagger = {
             },
           },
         },
-        400: { description: "Validation failed" },
-        401: { description: "Unauthorized" },
-        403: { description: "Forbidden" },
+        400: { description: "Dữ liệu không hợp lệ" },
+        401: { description: "Chưa đăng nhập" },
+        403: { description: "Không có quyền truy cập" },
       },
     },
   },

@@ -60,8 +60,12 @@ export class FollowUpService {
 
   private sortByDateAndSession(items: FollowUpListRecord[]): FollowUpListRecord[] {
     return [...items].sort((a, b) => {
-      const dateA = a.appointmentDate ? a.appointmentDate.getTime() : Number.MAX_SAFE_INTEGER;
-      const dateB = b.appointmentDate ? b.appointmentDate.getTime() : Number.MAX_SAFE_INTEGER;
+      const dateA = a.appointmentDate
+        ? a.appointmentDate.getTime()
+        : Number.MAX_SAFE_INTEGER;
+      const dateB = b.appointmentDate
+        ? b.appointmentDate.getTime()
+        : Number.MAX_SAFE_INTEGER;
 
       if (dateA !== dateB) {
         return dateA - dateB;
