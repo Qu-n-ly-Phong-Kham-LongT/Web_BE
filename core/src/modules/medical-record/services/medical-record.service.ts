@@ -1,7 +1,6 @@
 import { MedicalRecordRepository } from "../repositories/medical-record.repository";
 import {
   BasicMedicalRecordRequestDto,
-  BasicMedicalRecordWithDateDto,
 } from "../dtos/medical-record.request.dto";
 import { MedicalRecord, Prisma } from "@prisma/client";
 import { UserRepository } from "../../users/repositories/user.repository";
@@ -231,6 +230,7 @@ export class MedicalRecordService {
                 : undefined,
               doctorAdvice: payload.doctorAdvice ?? null,
               treatmentNote: payload.treatmentNote ?? null,
+              diagnosisNote: payload.diagnosisNote ?? null,
             },
           })
         : await tx.medicalRecord.create({
@@ -246,6 +246,7 @@ export class MedicalRecordService {
                 : undefined,
               doctorAdvice: payload.doctorAdvice ?? null,
               treatmentNote: payload.treatmentNote ?? null,
+              diagnosisNote: payload.diagnosisNote ?? null,
               createdAt: recordCreatedAt,
               updatedAt: recordUpdatedAt,
             },

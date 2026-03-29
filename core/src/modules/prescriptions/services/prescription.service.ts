@@ -75,6 +75,9 @@ export class PrecriptionService {
       if (payload.treatmentNote !== undefined) {
         updateRecordData.treatmentNote = payload.treatmentNote;
       }
+      if (payload.diagnosisNote !== undefined) {
+        updateRecordData.diagnosisNote = payload.diagnosisNote;
+      }
 
       if (Object.keys(updateRecordData).length > 0) {
         await tx.medicalRecord.update({
@@ -331,8 +334,9 @@ export class PrecriptionService {
       ?.diagnoses as unknown as MedicalDiagnosisDto;
 
     const diagnosisMainCode = toStringValue(diagnoses?.main?.code);
+    const diagnosisNoteValue = rawData.medicalRecord?.diagnosisNote ?? null;
     const diagnosisMainDescription = toStringValue(
-      diagnoses?.main?.description,
+      diagnosisNoteValue ?? diagnoses?.main?.description,
     );
     const diagnosisSecondary = diagnoses?.secondary ?? [];
     const createDate = formatDateLong(rawData.createdAt);

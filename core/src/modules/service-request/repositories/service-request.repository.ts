@@ -21,6 +21,7 @@ export interface CreateServiceRequestPayload {
     | Session
     | null;
   note?: string | null;
+  diagnosisNote?: string | null;
   isPrinted?: boolean;
   details: CreateServiceRequestDetailPayload[];
 }
@@ -181,6 +182,7 @@ export class ServiceRequestRepository {
           followUpDate: createData.followUpDate ?? null,
           followUpSession: (createData.followUpSession as Session) ?? null,
           note: createData.note ?? null,
+          diagnosisNote: createData.diagnosisNote ?? null,
         },
       });
 
@@ -218,6 +220,7 @@ export class ServiceRequestRepository {
           followUpDate: createData.followUpDate ?? null,
           followUpSession: (createData.followUpSession as Session) ?? null,
           note: createData.note ?? null,
+          diagnosisNote: createData.diagnosisNote ?? null,
         },
       });
 
@@ -330,6 +333,7 @@ export class ServiceRequestRepository {
           followUpDate: payload.followUpDate ?? null,
           followUpSession: (payload.followUpSession as Session) ?? null,
           note: payload.note ?? null,
+          diagnosisNote: payload.diagnosisNote ?? null,
           updatedAt: new Date(),
         },
       });

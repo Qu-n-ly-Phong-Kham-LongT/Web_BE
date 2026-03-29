@@ -49,6 +49,7 @@ const FullMedicalRecordSchema = {
         diagnoses: { ...joiToSwagger(DiagnosisSchema), nullable: true },
         doctorAdvice: { type: "string", nullable: true },
         treatmentNote: { type: "string", nullable: true },
+        diagnosisNote: { type: "string", nullable: true },
         consultationFee: { type: "number" },
         createdAt: { type: "string", format: "date-time" },
         updatedAt: { type: "string", format: "date-time" },

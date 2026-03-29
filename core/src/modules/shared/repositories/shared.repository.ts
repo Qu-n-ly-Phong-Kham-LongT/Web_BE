@@ -367,6 +367,7 @@ export class SharedRepository {
         : undefined,
       doctorAdvice: record.doctorAdvice ?? undefined,
       treatmentNote: record.treatmentNote ?? undefined,
+      diagnosisNote: record.diagnosisNote ?? undefined,
       consultationFee: record.consultationFee
         ? Number(record.consultationFee)
         : 0,
@@ -512,6 +513,7 @@ export class SharedRepository {
             : null,
           followUpSession: request.followUpSession ?? null,
           note: request.note ?? null,
+          diagnosisNote: request.diagnosisNote ?? null,
           isPrinted: request.isPrinted ?? null,
           createdAt: request.createdAt ? request.createdAt.toISOString() : null,
           updatedAt: request.updatedAt ? request.updatedAt.toISOString() : null,
@@ -687,11 +689,11 @@ export class SharedRepository {
     const hasFollowUp = !!followUp?.appointmentDate;
 
     const diagnoses = medicalRecord.diagnoses;
+    const diagnosisNoteValue = medicalRecord.diagnosisNote ?? null;
     const diagnosisLines: string[] = [];
     if (diagnoses?.main) {
-      diagnosisLines.push(
-        `${diagnoses.main.code} - ${diagnoses.main.description}`,
-      );
+      const mainDisplay = diagnosisNoteValue ?? diagnoses.main.description;
+      diagnosisLines.push(`${diagnoses.main.code} - ${mainDisplay}`);
     }
     if (diagnoses?.secondary?.length) {
       diagnosisLines.push(
@@ -832,7 +834,7 @@ export class SharedRepository {
         medicalRecord.evidenceBasedDiagnosis,
       ),
       diagnosisMainCode: toStringValue(diagnoses?.main?.code),
-      diagnosisMainDescription: toStringValue(diagnoses?.main?.description),
+      diagnosisMainDescription: toStringValue(diagnosisNoteValue ?? diagnoses?.main?.description),
       diagnosisMainNote: toStringValue(diagnoses?.main?.note),
       diagnosisSecondary: diagnoses?.secondary ?? [],
       diagnosisText: diagnosisLines.join("; "),

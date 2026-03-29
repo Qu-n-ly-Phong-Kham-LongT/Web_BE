@@ -20,6 +20,7 @@ export interface RecordRequestDto {
   diagnoses?: MedicalDiagnosisDto;
   doctorAdvice?: string;
   treatmentNote?: string;
+  diagnosisNote?: string;
   consultationFee: number;
 }
 
@@ -105,6 +106,7 @@ export const RecordRequestSchema = Joi.object<RecordRequestDto>({
 
   doctorAdvice: Joi.string().allow(null, "").optional(),
   treatmentNote: Joi.string().allow(null, "").optional(),
+  diagnosisNote: Joi.string().allow(null, "").optional(),
   consultationFee: Joi.number().min(0).default(0),
 }).options({ abortEarly: false });
 

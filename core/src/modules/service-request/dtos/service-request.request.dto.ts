@@ -45,6 +45,7 @@ export interface CreateServiceRequestDto {
   followUpSession?: Session | null;
   isPrinted?: boolean;
   note?: string | null;
+  diagnosisNote?: string | null;
   details: CreateServiceRequestDetailDto[];
 }
 
@@ -91,6 +92,7 @@ export const createServiceRequestSchema = Joi.object({
     .allow(null, "")
     .optional(),
   note: Joi.string().allow("", null),
+  diagnosisNote: Joi.string().allow("", null).optional(),
   isPrinted: Joi.boolean().optional().default(false),
   details: Joi.array()
     .items(createServiceRequestDetailSchema)
