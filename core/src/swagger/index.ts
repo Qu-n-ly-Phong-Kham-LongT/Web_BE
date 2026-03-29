@@ -20,6 +20,7 @@ import SharedSwagger from "./shared.swagger";
 import AuditLogSwagger from "./audit-log.swagger";
 import StatisticSwagger from "./statistic.swagger";
 import DictionarySwagger from "./dictionary.swagger";
+import FollowUpSwagger from "./follow-up.swagger";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
 import { ServiceRequestFullResponseSchema } from "../modules/service-request/dtos/service-request.response.dto";
@@ -149,6 +150,7 @@ const swaggerDocument = {
     ...AuditLogSwagger,
     ...StatisticSwagger,
     ...DictionarySwagger,
+    ...FollowUpSwagger,
   },
   components: {
     securitySchemes: {
