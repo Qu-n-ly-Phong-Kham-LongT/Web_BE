@@ -126,9 +126,11 @@ export class FollowUpRepository {
         where,
         skip,
         take: limit,
-        orderBy: {
-          appointmentDate: "asc",
-        },
+        orderBy: [
+          { appointmentDate: "asc" },
+          { session: "asc" },
+          { followUpId: "asc" },
+        ],
         select: followUpListSelect,
       }),
     ]);

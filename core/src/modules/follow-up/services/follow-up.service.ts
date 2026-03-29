@@ -1,4 +1,4 @@
-import { Prisma, Session } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
 import { createPagination } from "../../../utils/pagination.util";
 import { GetFollowUpsQueryDto } from "../dtos/follow-up.request.dto";
@@ -16,13 +16,6 @@ import {
   FollowUpListRecord,
   FollowUpRepository,
 } from "../repositories/follow-up.repository";
-
-const SESSION_ORDER: Record<Session, number> = {
-  Morning: 1,
-  Noon: 2,
-  Afternoon: 3,
-  Evening: 4,
-};
 
 export class FollowUpService {
   private followUpRepository = new FollowUpRepository();
@@ -48,33 +41,10 @@ export class FollowUpService {
         limit: query.limit,
       });
 
-    const sortedItems = this.sortByDateAndSession(items).map((item) =>
-      this.mapToListItemResponse(item),
-    );
-
     return {
-      items: sortedItems,
+      items: items.map((item) => this.mapToListItemResponse(item)),
       pagination: createPagination(query.page, query.limit, totalItems),
     };
-  }
-
-  private sortByDateAndSession(items: FollowUpListRecord[]): FollowUpListRecord[] {
-    return [...items].sort((a, b) => {
-      const dateA = a.appointmentDate
-        ? a.appointmentDate.getTime()
-        : Number.MAX_SAFE_INTEGER;
-      const dateB = b.appointmentDate
-        ? b.appointmentDate.getTime()
-        : Number.MAX_SAFE_INTEGER;
-
-      if (dateA !== dateB) {
-        return dateA - dateB;
-      }
-
-      const sessionA = a.session ? SESSION_ORDER[a.session] : Number.MAX_SAFE_INTEGER;
-      const sessionB = b.session ? SESSION_ORDER[b.session] : Number.MAX_SAFE_INTEGER;
-      return sessionA - sessionB;
-    });
   }
 
   private mapToListItemResponse(item: FollowUpListRecord): FollowUpListItemResponseDto {

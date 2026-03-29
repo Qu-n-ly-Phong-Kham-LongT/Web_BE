@@ -3,6 +3,11 @@ import { StatisticRepository } from "../repositories/statistic.repository";
 type RangeType = "day" | "week" | "month";
 type RevenueView = "day" | "week" | "month";
 type MonthView = "week";
+type DispensedPrescriptionInRange = Awaited<
+  ReturnType<StatisticRepository["findDispensedPrescriptionsInRange"]>
+>[number];
+type DispensedPrescriptionDetailInRange =
+  DispensedPrescriptionInRange["details"][number];
 
 export class StatisticService {
   private statisticRepository = new StatisticRepository();
@@ -152,6 +157,93 @@ export class StatisticService {
       return `${vn.getUTCMonth() + 1}/${vn.getUTCFullYear()}`;
     }
     return `${vn.getUTCDate()}/${vn.getUTCMonth() + 1}`;
+  }
+
+  private getDetailQuantity(detail: DispensedPrescriptionDetailInRange) {
+    return detail.quantity ? Number(detail.quantity) : 0;
+  }
+
+  private getDetailSellPrice(detail: DispensedPrescriptionDetailInRange) {
+    if (detail.appliedExportPrice) {
+      return Number(detail.appliedExportPrice);
+    }
+    if (detail.medicine?.sellPrice) {
+      return Number(detail.medicine.sellPrice);
+    }
+    return 0;
+  }
+
+  private getDetailImportPrice(detail: DispensedPrescriptionDetailInRange) {
+    if (detail.appliedImportPrice) {
+      return Number(detail.appliedImportPrice);
+    }
+    if (detail.medicine?.importPrice) {
+      return Number(detail.medicine.importPrice);
+    }
+    return 0;
+  }
+
+  private buildMedicineProfitSummary(
+    prescriptions: DispensedPrescriptionInRange[],
+  ) {
+    const byMedicine = new Map<
+      string,
+      {
+        medicineId: string;
+        medicineName: string;
+        quantity: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+      }
+    >();
+
+    for (const prescription of prescriptions) {
+      for (const detail of prescription.details ?? []) {
+        const medicineId = detail.medicine?.medicineId;
+        if (!medicineId) {
+          continue;
+        }
+
+        const quantity = this.getDetailQuantity(detail);
+        const sellPrice = this.getDetailSellPrice(detail);
+        const importPrice = this.getDetailImportPrice(detail);
+
+        const revenue = sellPrice * quantity;
+        const cost = importPrice * quantity;
+        const profit = revenue - cost;
+
+        const medicineName = detail.medicine?.medicineName ?? "Khác";
+        const existing = byMedicine.get(medicineId);
+        if (!existing) {
+          byMedicine.set(medicineId, {
+            medicineId,
+            medicineName,
+            quantity,
+            revenue,
+            cost,
+            profit,
+          });
+          continue;
+        }
+
+        existing.quantity += quantity;
+        existing.revenue += revenue;
+        existing.cost += cost;
+        existing.profit += profit;
+      }
+    }
+
+    const medicineBreakdown = Array.from(byMedicine.values()).sort(
+      (a, b) => b.profit - a.profit,
+    );
+
+    const totalProfitMedicine = medicineBreakdown.reduce(
+      (sum, item) => sum + item.profit,
+      0,
+    );
+
+    return { medicineBreakdown, totalProfitMedicine };
   }
 
   public async recentPatientsToday(clinicId?: string, limit: number = 5) {
@@ -367,23 +459,29 @@ export class StatisticService {
     const chartFrom = starts[0];
     const chartTo = stepStart(anchorStartUtc, 1);
 
-    const [prescriptions, profitItems, consultationFees] = await Promise.all([
-      this.statisticRepository.findDispensedPrescriptionTotalsInRange(
-        chartFrom,
-        chartTo,
-        clinicId,
-      ),
+    const [prescriptions, profitItems, consultationFees, dispensedPrescriptions] =
+      await Promise.all([
+        this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+          chartFrom,
+          chartTo,
+          clinicId,
+        ),
       this.statisticRepository.findDispensedPrescriptionProfitsInRange(
         chartFrom,
         chartTo,
         clinicId,
       ),
-      this.statisticRepository.findConsultationFeesInRange(
-        chartFrom,
-        chartTo,
-        clinicId,
-      ),
-    ]);
+        this.statisticRepository.findConsultationFeesInRange(
+          chartFrom,
+          chartTo,
+          clinicId,
+        ),
+        this.statisticRepository.findDispensedPrescriptionsInRange(
+          chartFrom,
+          chartTo,
+          clinicId,
+        ),
+      ]);
 
     const prescriptionByBucket = new Map<string, number>();
     const profitByBucket = new Map<string, number>();
@@ -425,12 +523,16 @@ export class StatisticService {
     const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
     const totalProfit = profitValues.reduce((a, b) => a + b, 0);
     const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+    const { medicineBreakdown, totalProfitMedicine } =
+      this.buildMedicineProfitSummary(dispensedPrescriptions);
 
     return {
       totalRevenue: totalPrescription + totalConsultation,
       totalPrescription,
       totalProfit,
+      totalProfitMedicine,
       totalConsultation,
+      medicineBreakdown,
       chart: {
         labels,
         prescriptionValues,
@@ -460,23 +562,29 @@ export class StatisticService {
         this.parseVnDateInput(options?.date) ?? this.vnStartOfDayUtc(nowUtc);
       const endUtc = this.addDays(startUtc, 1);
 
-      const [prescriptions, profitItems, consultationFees] = await Promise.all([
-        this.statisticRepository.findDispensedPrescriptionTotalsInRange(
-          startUtc,
-          endUtc,
-          clinicId,
-        ),
+      const [prescriptions, profitItems, consultationFees, dispensedPrescriptions] =
+        await Promise.all([
+          this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+            startUtc,
+            endUtc,
+            clinicId,
+          ),
         this.statisticRepository.findDispensedPrescriptionProfitsInRange(
           startUtc,
           endUtc,
           clinicId,
         ),
-        this.statisticRepository.findConsultationFeesInRange(
-          startUtc,
-          endUtc,
-          clinicId,
-        ),
-      ]);
+          this.statisticRepository.findConsultationFeesInRange(
+            startUtc,
+            endUtc,
+            clinicId,
+          ),
+          this.statisticRepository.findDispensedPrescriptionsInRange(
+            startUtc,
+            endUtc,
+            clinicId,
+          ),
+        ]);
 
       const startHour = 6;
       const endHour = 23;
@@ -519,12 +627,16 @@ export class StatisticService {
       const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
       const totalProfit = profitValues.reduce((a, b) => a + b, 0);
       const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+      const { medicineBreakdown, totalProfitMedicine } =
+        this.buildMedicineProfitSummary(dispensedPrescriptions);
 
       return {
         totalRevenue: totalPrescription + totalConsultation,
         totalPrescription,
         totalProfit,
+        totalProfitMedicine,
         totalConsultation,
+        medicineBreakdown,
         chart: {
           labels,
           prescriptionValues,
@@ -551,23 +663,29 @@ export class StatisticService {
       const startUtc = weekStartUtc ?? this.vnStartOfWeekUtc(nowUtc);
       const endUtc = this.addDays(startUtc, 7);
 
-      const [prescriptions, profitItems, consultationFees] = await Promise.all([
-        this.statisticRepository.findDispensedPrescriptionTotalsInRange(
-          startUtc,
-          endUtc,
-          clinicId,
-        ),
+      const [prescriptions, profitItems, consultationFees, dispensedPrescriptions] =
+        await Promise.all([
+          this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+            startUtc,
+            endUtc,
+            clinicId,
+          ),
         this.statisticRepository.findDispensedPrescriptionProfitsInRange(
           startUtc,
           endUtc,
           clinicId,
         ),
-        this.statisticRepository.findConsultationFeesInRange(
-          startUtc,
-          endUtc,
-          clinicId,
-        ),
-      ]);
+          this.statisticRepository.findConsultationFeesInRange(
+            startUtc,
+            endUtc,
+            clinicId,
+          ),
+          this.statisticRepository.findDispensedPrescriptionsInRange(
+            startUtc,
+            endUtc,
+            clinicId,
+          ),
+        ]);
 
       const labels: string[] = [];
       const prescriptionValues: number[] = [];
@@ -616,12 +734,16 @@ export class StatisticService {
       const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
       const totalProfit = profitValues.reduce((a, b) => a + b, 0);
       const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+      const { medicineBreakdown, totalProfitMedicine } =
+        this.buildMedicineProfitSummary(dispensedPrescriptions);
 
       return {
         totalRevenue: totalPrescription + totalConsultation,
         totalPrescription,
         totalProfit,
+        totalProfitMedicine,
         totalConsultation,
+        medicineBreakdown,
         chart: {
           labels,
           prescriptionValues,
@@ -647,23 +769,29 @@ export class StatisticService {
     );
     const monthEndUtc = this.addMonths(monthStartUtc, 1);
 
-    const [prescriptions, profitItems, consultationFees] = await Promise.all([
-      this.statisticRepository.findDispensedPrescriptionTotalsInRange(
-        monthStartUtc,
-        monthEndUtc,
-        clinicId,
-      ),
+    const [prescriptions, profitItems, consultationFees, dispensedPrescriptions] =
+      await Promise.all([
+        this.statisticRepository.findDispensedPrescriptionTotalsInRange(
+          monthStartUtc,
+          monthEndUtc,
+          clinicId,
+        ),
       this.statisticRepository.findDispensedPrescriptionProfitsInRange(
         monthStartUtc,
         monthEndUtc,
         clinicId,
       ),
-      this.statisticRepository.findConsultationFeesInRange(
-        monthStartUtc,
-        monthEndUtc,
-        clinicId,
-      ),
-    ]);
+        this.statisticRepository.findConsultationFeesInRange(
+          monthStartUtc,
+          monthEndUtc,
+          clinicId,
+        ),
+        this.statisticRepository.findDispensedPrescriptionsInRange(
+          monthStartUtc,
+          monthEndUtc,
+          clinicId,
+        ),
+      ]);
 
     const firstWeekStartUtc = this.vnStartOfWeekUtc(monthStartUtc);
     const weekStarts: Date[] = [];
@@ -714,12 +842,16 @@ export class StatisticService {
     const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
     const totalProfit = profitValues.reduce((a, b) => a + b, 0);
     const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
+    const { medicineBreakdown, totalProfitMedicine } =
+      this.buildMedicineProfitSummary(dispensedPrescriptions);
 
     return {
       totalRevenue: totalPrescription + totalConsultation,
       totalPrescription,
       totalProfit,
+      totalProfitMedicine,
       totalConsultation,
+      medicineBreakdown,
       chart: {
         labels,
         prescriptionValues,

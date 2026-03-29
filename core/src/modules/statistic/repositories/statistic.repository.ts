@@ -125,6 +125,7 @@ export class StatisticRepository {
       },
       select: {
         dispensedAt: true,
+        totalPrice: true,
         details: {
           select: {
             quantity: true,
@@ -135,6 +136,8 @@ export class StatisticRepository {
               select: {
                 medicineId: true,
                 medicineName: true,
+                sellPrice: true,
+                importPrice: true,
               },
             },
           },
@@ -181,6 +184,12 @@ export class StatisticRepository {
             quantity: true,
             appliedExportPrice: true,
             appliedImportPrice: true,
+            medicine: {
+              select: {
+                sellPrice: true,
+                importPrice: true,
+              },
+            },
           },
         },
       },
@@ -189,10 +198,17 @@ export class StatisticRepository {
     return prescriptions.map((p) => ({
       dispensedAt: p.dispensedAt,
       profit: (p.details ?? []).reduce((sum, d) => {
-        if (!d.appliedImportPrice) return sum;
         const qty = d.quantity ? Number(d.quantity) : 0;
-        const sell = d.appliedExportPrice ? Number(d.appliedExportPrice) : 0;
-        const cost = Number(d.appliedImportPrice);
+        const sell = d.appliedExportPrice
+          ? Number(d.appliedExportPrice)
+          : d.medicine?.sellPrice
+            ? Number(d.medicine.sellPrice)
+            : 0;
+        const cost = d.appliedImportPrice
+          ? Number(d.appliedImportPrice)
+          : d.medicine?.importPrice
+            ? Number(d.medicine.importPrice)
+            : 0;
         return sum + (sell - cost) * qty;
       }, 0),
     }));
