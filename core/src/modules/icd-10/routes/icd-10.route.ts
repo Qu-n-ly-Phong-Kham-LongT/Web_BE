@@ -4,7 +4,6 @@ import { validateBody } from "../../../middlewares/validate";
 import { Icd10RequestSchema } from "../dtos/icd-10.dto";
 import { authenticate, authorize } from "../../../middlewares/auth.middleware";
 import { UserRoleEnum } from "@prisma/client";
-import { auditLogsMiddleware } from "../../../middlewares/audit-logs.middleware";
 
 const icd10Router = Router();
 const icd10Controller = new Icd10Controller();
@@ -12,7 +11,6 @@ const icd10Controller = new Icd10Controller();
 icd10Router.post(
   "/",
   authenticate,
-  auditLogsMiddleware("CREATE_ICD10", "Icd10"),
   validateBody(Icd10RequestSchema),
   icd10Controller.createIcd10
 );
@@ -26,14 +24,12 @@ icd10Router.get(
 icd10Router.put(
   "/:code",
   authenticate,
-  auditLogsMiddleware("UPDATE_ICD10", "Icd10"),
   validateBody(Icd10RequestSchema),
   icd10Controller.updateIcd10
 );
 
 icd10Router.delete("/:code",
   authenticate,
-  auditLogsMiddleware("DELETE_ICD10", "Icd10"),
   authorize([UserRoleEnum.Admin]),
   icd10Controller.deleteIcd10
 )

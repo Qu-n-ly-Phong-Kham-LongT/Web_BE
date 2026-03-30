@@ -17,7 +17,6 @@ import ServiceTemplateSwagger from "./service-template.swagger";
 import ServiceRequestSwagger from "./service-request.swagger";
 import ServiceResultSwagger from "./service-result.swagger";
 import SharedSwagger from "./shared.swagger";
-import AuditLogSwagger from "./audit-log.swagger";
 import StatisticSwagger from "./statistic.swagger";
 import DictionarySwagger from "./dictionary.swagger";
 import FollowUpSwagger from "./follow-up.swagger";
@@ -147,7 +146,6 @@ const swaggerDocument = {
     ...ServiceRequestSwagger,
     ...ServiceResultSwagger,
     ...SharedSwagger,
-    ...AuditLogSwagger,
     ...StatisticSwagger,
     ...DictionarySwagger,
     ...FollowUpSwagger,
