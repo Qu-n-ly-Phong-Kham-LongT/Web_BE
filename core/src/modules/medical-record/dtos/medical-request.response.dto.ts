@@ -10,6 +10,7 @@ export interface MedicalRecordResponseDto {
   diagnoses?: MedicalDiagnosisDto;
   doctorAdvice?: string;
   treatmentNote?: string;
+  diagnosisNote?: string;
   consultationFee: number;
   createdAt: Date;
   updatedAt: Date;

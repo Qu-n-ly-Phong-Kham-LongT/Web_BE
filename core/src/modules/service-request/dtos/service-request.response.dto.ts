@@ -56,6 +56,7 @@ export interface ServiceRequestResponseDto {
   followUpDate: string | null;
   followUpSession: Session | null;
   note: string | null;
+  diagnosisNote: string | null;
   isPrinted: boolean | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -124,6 +125,7 @@ export const ServiceRequestResponseSchema = Joi.object({
   followUpDate: Joi.string().allow(null),
   followUpSession: Joi.string().allow(null),
   note: Joi.string().allow(null),
+  diagnosisNote: Joi.string().allow(null),
   isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
   details: Joi.array().items(ServiceRequestDetailResponseSchema).required(),
@@ -143,6 +145,7 @@ export const ServiceRequestFullResponseSchema = Joi.object({
   followUpDate: Joi.string().allow(null),
   followUpSession: Joi.string().allow(null),
   note: Joi.string().allow(null),
+  diagnosisNote: Joi.string().allow(null),
   isPrinted: Joi.boolean().allow(null),
   createdAt: Joi.string().allow(null),
   updatedAt: Joi.string().allow(null),

@@ -17,9 +17,9 @@ import ServiceTemplateSwagger from "./service-template.swagger";
 import ServiceRequestSwagger from "./service-request.swagger";
 import ServiceResultSwagger from "./service-result.swagger";
 import SharedSwagger from "./shared.swagger";
-import AuditLogSwagger from "./audit-log.swagger";
 import StatisticSwagger from "./statistic.swagger";
 import DictionarySwagger from "./dictionary.swagger";
+import FollowUpSwagger from "./follow-up.swagger";
 import { joiToSwagger } from "../utils/joi-swagger.util";
 import { PatientResponseSchema } from "../modules/patient/dtos/patient.response.dto";
 import { ServiceRequestFullResponseSchema } from "../modules/service-request/dtos/service-request.response.dto";
@@ -49,6 +49,7 @@ const FullMedicalRecordSchema = {
         diagnoses: { ...joiToSwagger(DiagnosisSchema), nullable: true },
         doctorAdvice: { type: "string", nullable: true },
         treatmentNote: { type: "string", nullable: true },
+        diagnosisNote: { type: "string", nullable: true },
         consultationFee: { type: "number" },
         createdAt: { type: "string", format: "date-time" },
         updatedAt: { type: "string", format: "date-time" },
@@ -145,9 +146,9 @@ const swaggerDocument = {
     ...ServiceRequestSwagger,
     ...ServiceResultSwagger,
     ...SharedSwagger,
-    ...AuditLogSwagger,
     ...StatisticSwagger,
     ...DictionarySwagger,
+    ...FollowUpSwagger,
   },
   components: {
     securitySchemes: {

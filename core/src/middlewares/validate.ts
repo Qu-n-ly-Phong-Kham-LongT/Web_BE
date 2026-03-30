@@ -47,3 +47,31 @@ export const validateParams =
     req.params = value;
     next();
   };
+
+export const validateQuery =
+  (schema: Joi.ObjectSchema): RequestHandler =>
+  (req, _res, next) => {
+    const { value, error } = schema.validate(req.query, {
+      abortEarly: false,
+      stripUnknown: true,
+      convert: true,
+    });
+
+    if (error) {
+      throw new BaseError(400, "Validation failed", {
+        details: error.details.map((d) => ({
+          field: d.path.join("."),
+          message: d.message,
+          type: d.type,
+        })),
+      });
+    }
+
+    Object.defineProperty(req, "query", {
+      value,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
+    next();
+  };

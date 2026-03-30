@@ -144,6 +144,12 @@ export class MedicineService {
         : null;
     }
 
+    if (data.importPrice !== undefined) {
+      updateData.importPrice = data.importPrice
+        ? new Prisma.Decimal(data.importPrice)
+        : null;
+    }
+
     if (data.note !== undefined) {
       updateData.note = data.note;
     }
@@ -186,6 +192,7 @@ export class MedicineService {
       baseUnit: medicine.baseUnit,
       totalQuantity: medicine.totalQuantity ?? 0,
       sellPrice: medicine.sellPrice ? Number(medicine.sellPrice) : 0,
+      importPrice: medicine.importPrice ? Number(medicine.importPrice) : 0,
       note: medicine.note,
       supplier: medicine.supplier,
       sideEffects: medicine.sideEffects,

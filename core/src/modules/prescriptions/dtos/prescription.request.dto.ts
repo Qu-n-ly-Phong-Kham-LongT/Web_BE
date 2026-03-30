@@ -28,6 +28,7 @@ export interface UpsertDianosisPrescriptionDto {
   diagnoses?: MedicalDiagnosisDto;
   doctorAdvice?: string;
   treatmentNote?: string;
+  diagnosisNote?: string;
   prescriptionItems?: PrescriptionItemDto[];
   followUp?: FollowUpDto;
 }
@@ -86,6 +87,7 @@ export const upsertDiagnosisPrescriptionSchema = Joi.object({
 
   doctorAdvice: Joi.string().allow("", null),
   treatmentNote: Joi.string().allow("", null),
+  diagnosisNote: Joi.string().allow("", null).optional(),
   prescriptionItems: Joi.array()
     .items(prescriptionItemSchema)
     .unique("medicineId")

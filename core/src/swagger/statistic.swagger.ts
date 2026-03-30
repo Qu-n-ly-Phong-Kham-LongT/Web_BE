@@ -248,7 +248,23 @@
                     properties: {
                       totalRevenue: { type: "number" },
                       totalPrescription: { type: "number" },
+                      totalProfit: { type: "number" },
+                      totalProfitMedicine: { type: "number" },
                       totalConsultation: { type: "number" },
+                      medicineBreakdown: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            medicineId: { type: "string", format: "uuid" },
+                            medicineName: { type: "string" },
+                            quantity: { type: "number" },
+                            revenue: { type: "number" },
+                            cost: { type: "number" },
+                            profit: { type: "number" },
+                          },
+                        },
+                      },
                       chart: {
                         type: "object",
                         properties: {
@@ -256,6 +272,7 @@
                           granularity: { type: "string", enum: ["hour", "day", "week"] },
                           labels: { type: "array", items: { type: "string" } },
                           prescriptionValues: { type: "array", items: { type: "number" } },
+                          profitValues: { type: "array", items: { type: "number" } },
                           consultationValues: { type: "array", items: { type: "number" } },
                         },
                       },

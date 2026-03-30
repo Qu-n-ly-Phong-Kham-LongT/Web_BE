@@ -80,6 +80,7 @@ export interface LegacyMedicalRecordImportRequestDto {
   diagnoses?: MedicalDiagnosisDto;
   doctorAdvice?: string;
   treatmentNote?: string;
+  diagnosisNote?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
   clinicalExamination?: LegacyClinicalExaminationDto;
@@ -196,6 +197,7 @@ export const legacyMedicalRecordImportSchema = Joi.object<LegacyMedicalRecordImp
   diagnoses: DiagnosisSchema.optional(),
   doctorAdvice: Joi.string().allow("", null).optional(),
   treatmentNote: Joi.string().allow("", null).optional(),
+  diagnosisNote: Joi.string().allow("", null).optional(),
   createdAt: dateRequired,
   updatedAt: dateRequired,
   clinicalExamination: legacyClinicalExaminationSchema.optional(),

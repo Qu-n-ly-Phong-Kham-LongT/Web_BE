@@ -1,7 +1,6 @@
 import { MedicalRecordRepository } from "../repositories/medical-record.repository";
 import {
   BasicMedicalRecordRequestDto,
-  BasicMedicalRecordWithDateDto,
 } from "../dtos/medical-record.request.dto";
 import { MedicalRecord, Prisma } from "@prisma/client";
 import { UserRepository } from "../../users/repositories/user.repository";
@@ -231,6 +230,7 @@ export class MedicalRecordService {
                 : undefined,
               doctorAdvice: payload.doctorAdvice ?? null,
               treatmentNote: payload.treatmentNote ?? null,
+              diagnosisNote: payload.diagnosisNote ?? null,
             },
           })
         : await tx.medicalRecord.create({
@@ -246,6 +246,7 @@ export class MedicalRecordService {
                 : undefined,
               doctorAdvice: payload.doctorAdvice ?? null,
               treatmentNote: payload.treatmentNote ?? null,
+              diagnosisNote: payload.diagnosisNote ?? null,
               createdAt: recordCreatedAt,
               updatedAt: recordUpdatedAt,
             },
@@ -740,17 +741,24 @@ export class MedicalRecordService {
             throw new BaseError(400, "Số lượng thuốc không hợp lệ");
           }
 
-          let appliedPrice = medicine.sellPrice
-            ? Number(medicine.sellPrice)
-            : 0;
-          if (item.isInsuranceCovered) {
+          const isInsuranceCovered = item.isInsuranceCovered === true;
+          let appliedPrice = 0;
+          if (isInsuranceCovered) {
             if (!medicine.isInsuranceCovered) {
               throw new BaseError(400, "Thuốc này không được BHYT hỗ trợ");
             }
-            if (!medicine.insurancePrice) {
+            if (
+              medicine.insurancePrice === null ||
+              medicine.insurancePrice === undefined
+            ) {
               throw new BaseError(400, "Thuốc này chưa có giá BHYT");
             }
             appliedPrice = Number(medicine.insurancePrice);
+          } else {
+            if (medicine.sellPrice === null || medicine.sellPrice === undefined) {
+              throw new BaseError(400, "Thuoc nay chua co gia ban");
+            }
+            appliedPrice = Number(medicine.sellPrice);
           }
           const lineTotal = appliedPrice * quantity;
           totalPrice += lineTotal;
@@ -765,8 +773,12 @@ export class MedicalRecordService {
             timing: item.timing,
             quantity: quantity,
             daysToTake: item.daysToTake,
-            isInsuranceCovered: item.isInsuranceCovered ?? false,
+            isInsuranceCovered,
             appliedExportPrice: new Prisma.Decimal(appliedPrice),
+            appliedImportPrice:
+              medicine.importPrice !== null && medicine.importPrice !== undefined
+                ? new Prisma.Decimal(medicine.importPrice)
+                : null,
             totalPrice: new Prisma.Decimal(lineTotal),
             note: item.note ?? null,
           });
@@ -1027,4 +1039,3 @@ export class MedicalRecordService {
     });
   }
 }
-
