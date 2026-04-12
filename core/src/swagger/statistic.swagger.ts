@@ -84,92 +84,6 @@
     },
   },
 
-  "/api/statistic/prescriptions/revenue": {
-    get: {
-      tags: ["Statistic"],
-      summary: "Thống kê doanh thu thuốc",
-      parameters: [
-        {
-          name: "range",
-          in: "query",
-          required: false,
-          schema: { type: "string", enum: ["day", "week", "month"], default: "month" },
-          description: "Kiểu cột biểu đồ: day|week|month",
-        },
-        {
-          name: "points",
-          in: "query",
-          required: false,
-          schema: { type: "integer", default: 4, minimum: 1 },
-          description: "Số cột biểu đồ",
-        },
-        {
-          name: "top",
-          in: "query",
-          required: false,
-          schema: { type: "integer", default: 10, minimum: 1 },
-          description: "Số lượng thuốc top theo doanh thu",
-        },
-      ],
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "ấy thống kê doanh thu thuốc thành công",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: { type: "boolean" },
-                  message: { type: "string" },
-                  data: {
-                    type: "object",
-                    properties: {
-                      summary: {
-                        type: "object",
-                        properties: {
-                          totalRevenue: { type: "number" },
-                          totalMedicines: { type: "number" },
-                        },
-                      },
-                      chart: {
-                        type: "object",
-                        properties: {
-                          range: { type: "string", enum: ["day", "week", "month"] },
-                          labels: { type: "array", items: { type: "string" } },
-                          values: { type: "array", items: { type: "number" } },
-                          latest: { type: "number" },
-                          average: { type: "number" },
-                          trendPct: { type: "number" },
-                        },
-                      },
-                      breakdown: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            medicineId: { type: "string", format: "uuid" },
-                            medicineName: { type: "string" },
-                            revenue: { type: "number" },
-                            quantity: { type: "number" },
-                            pct: { type: "number" },
-                          },
-                        },
-                      },
-                    },
-                  },
-                  pagination: { type: "object", nullable: true },
-                },
-              },
-            },
-          },
-        },
-        401: { description: "Chưa đăng nhập" },
-        403: { description: "Không có quyền truy cập" },
-      },
-    },
-  },
-
   "/api/statistic/revenue": {
     get: {
       tags: ["Statistic"],
@@ -258,6 +172,21 @@
                           properties: {
                             medicineId: { type: "string", format: "uuid" },
                             medicineName: { type: "string" },
+                            quantity: { type: "number" },
+                            revenue: { type: "number" },
+                            cost: { type: "number" },
+                            profit: { type: "number" },
+                          },
+                        },
+                      },
+                      medicineTypeBreakdown: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            typeCode: { type: "string", enum: ["BHYT", "DICH_VU"] },
+                            typeName: { type: "string", enum: ["BHYT", "Dịch vụ"] },
+                            medicineCount: { type: "number" },
                             quantity: { type: "number" },
                             revenue: { type: "number" },
                             cost: { type: "number" },

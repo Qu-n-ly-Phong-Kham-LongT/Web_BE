@@ -57,12 +57,12 @@ export const updateServiceItemStatusSchema = Joi.object<UpdateServiceItemStatusD
 
 const createServiceConfigSchema = Joi.object({
   configId: Joi.string().uuid().optional(),
-  configCode: Joi.string().trim().min(2).max(50).required(),
+  configCode: Joi.string().trim().min(1).max(50).required(),
   displayName: Joi.string().trim().max(200).allow(null, "").required(),
   inputType: Joi.string()
     .valid(...Object.values(InputType))
     .default(InputType.Text),
-  unit: Joi.string().trim().max(50).allow(null, "").optional(),
+  unit: Joi.string().trim().min(1).allow(null, "").optional(),
   refRange: Joi.string().trim().max(255).allow(null, "").optional(),
 
   metaData: Joi.object({
@@ -84,8 +84,8 @@ const createServiceConfigSchema = Joi.object({
 });
 
 export const updateServiceItemSchema = Joi.object<UpdateServiceItemRequestDto>({
-  itemCode: Joi.string().trim().min(3).max(50).optional(),
-  name: Joi.string().trim().min(5).max(255).optional(),
+  itemCode: Joi.string().trim().min(1).max(50).optional(),
+  name: Joi.string().trim().min(1).max(255).optional(),
 
   basePrice: Joi.number().min(0).allow(null).optional().messages({
     "number.min": "Giá dịch vụ phải từ 0",
@@ -93,7 +93,7 @@ export const updateServiceItemSchema = Joi.object<UpdateServiceItemRequestDto>({
 
   categoryId: Joi.string().uuid().allow(null).optional(),
   typeId: Joi.string().uuid().optional(),
-  unit: Joi.string().trim().max(50).allow(null, "").optional(),
+  unit: Joi.string().trim().min(1).allow(null, "").optional(),
   specimen: Joi.string().trim().max(100).allow(null, "").optional(),
   prepNote: Joi.string().trim().max(1000).allow(null, "").optional(),
   isActive: Joi.boolean().optional(),
@@ -102,8 +102,8 @@ export const updateServiceItemSchema = Joi.object<UpdateServiceItemRequestDto>({
 }).options({ abortEarly: false, stripUnknown: true });
 
 export const createServiceItemSchema = Joi.object({
-  itemCode: Joi.string().trim().min(3).max(50).required(),
-  name: Joi.string().trim().min(5).max(255).required(),
+  itemCode: Joi.string().trim().min(1).max(50).required(),
+  name: Joi.string().trim().min(1).max(255).required(),
 
   basePrice: Joi.number().min(0).allow(null, "").messages({
     "number.min": "Giá dịch vụ phải từ 0",
@@ -111,7 +111,7 @@ export const createServiceItemSchema = Joi.object({
 
   categoryId: Joi.string().uuid().allow(null).optional(),
   typeId: Joi.string().uuid().required(),
-  unit: Joi.string().trim().max(50).allow(null, "").optional(),
+  unit: Joi.string().trim().min(1).allow(null, "").optional(),
   specimen: Joi.string().trim().max(100).allow(null, "").optional(),
   prepNote: Joi.string().trim().max(1000).allow(null, "").optional(),
   isActive: Joi.boolean().default(true),

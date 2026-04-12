@@ -197,6 +197,18 @@ export class StatisticService {
         profit: number;
       }
     >();
+    const byMedicineType = new Map<
+      string,
+      {
+        typeCode: string;
+        typeName: string;
+        medicineIds: Set<string>;
+        quantity: number;
+        revenue: number;
+        cost: number;
+        profit: number;
+      }
+    >();
 
     for (const prescription of prescriptions) {
       for (const detail of prescription.details ?? []) {
@@ -212,6 +224,28 @@ export class StatisticService {
         const revenue = sellPrice * quantity;
         const cost = importPrice * quantity;
         const profit = revenue - cost;
+        const typeCode =
+          detail.medicine?.isInsuranceCovered === true ? "BHYT" : "DICH_VU";
+        const typeName =
+          detail.medicine?.isInsuranceCovered === true ? "BHYT" : "Dịch vụ";
+        const existingType = byMedicineType.get(typeCode);
+        if (!existingType) {
+          byMedicineType.set(typeCode, {
+            typeCode,
+            typeName,
+            medicineIds: new Set([medicineId]),
+            quantity,
+            revenue,
+            cost,
+            profit,
+          });
+        } else {
+          existingType.medicineIds.add(medicineId);
+          existingType.quantity += quantity;
+          existingType.revenue += revenue;
+          existingType.cost += cost;
+          existingType.profit += profit;
+        }
 
         const medicineName = detail.medicine?.medicineName ?? "Khác";
         const existing = byMedicine.get(medicineId);
@@ -243,7 +277,19 @@ export class StatisticService {
       0,
     );
 
-    return { medicineBreakdown, totalProfitMedicine };
+    const medicineTypeBreakdown = Array.from(byMedicineType.values())
+      .map((item) => ({
+        typeCode: item.typeCode,
+        typeName: item.typeName,
+        medicineCount: item.medicineIds.size,
+        quantity: item.quantity,
+        revenue: item.revenue,
+        cost: item.cost,
+        profit: item.profit,
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+
+    return { medicineBreakdown, medicineTypeBreakdown, totalProfitMedicine };
   }
 
   public async recentPatientsToday(clinicId?: string, limit: number = 5) {
@@ -523,7 +569,7 @@ export class StatisticService {
     const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
     const totalProfit = profitValues.reduce((a, b) => a + b, 0);
     const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
-    const { medicineBreakdown, totalProfitMedicine } =
+    const { medicineBreakdown, medicineTypeBreakdown, totalProfitMedicine } =
       this.buildMedicineProfitSummary(dispensedPrescriptions);
 
     return {
@@ -533,6 +579,7 @@ export class StatisticService {
       totalProfitMedicine,
       totalConsultation,
       medicineBreakdown,
+      medicineTypeBreakdown,
       chart: {
         labels,
         prescriptionValues,
@@ -627,7 +674,7 @@ export class StatisticService {
       const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
       const totalProfit = profitValues.reduce((a, b) => a + b, 0);
       const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
-      const { medicineBreakdown, totalProfitMedicine } =
+      const { medicineBreakdown, medicineTypeBreakdown, totalProfitMedicine } =
         this.buildMedicineProfitSummary(dispensedPrescriptions);
 
       return {
@@ -637,6 +684,7 @@ export class StatisticService {
         totalProfitMedicine,
         totalConsultation,
         medicineBreakdown,
+        medicineTypeBreakdown,
         chart: {
           labels,
           prescriptionValues,
@@ -734,7 +782,7 @@ export class StatisticService {
       const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
       const totalProfit = profitValues.reduce((a, b) => a + b, 0);
       const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
-      const { medicineBreakdown, totalProfitMedicine } =
+      const { medicineBreakdown, medicineTypeBreakdown, totalProfitMedicine } =
         this.buildMedicineProfitSummary(dispensedPrescriptions);
 
       return {
@@ -744,6 +792,7 @@ export class StatisticService {
         totalProfitMedicine,
         totalConsultation,
         medicineBreakdown,
+        medicineTypeBreakdown,
         chart: {
           labels,
           prescriptionValues,
@@ -842,7 +891,7 @@ export class StatisticService {
     const totalPrescription = prescriptionValues.reduce((a, b) => a + b, 0);
     const totalProfit = profitValues.reduce((a, b) => a + b, 0);
     const totalConsultation = consultationValues.reduce((a, b) => a + b, 0);
-    const { medicineBreakdown, totalProfitMedicine } =
+    const { medicineBreakdown, medicineTypeBreakdown, totalProfitMedicine } =
       this.buildMedicineProfitSummary(dispensedPrescriptions);
 
     return {
@@ -852,6 +901,7 @@ export class StatisticService {
       totalProfitMedicine,
       totalConsultation,
       medicineBreakdown,
+      medicineTypeBreakdown,
       chart: {
         labels,
         prescriptionValues,
@@ -863,182 +913,4 @@ export class StatisticService {
     };
   }
 
-  public async getPrescriptionRevenueByMedicine(
-    range: RangeType = "month",
-    points = 4,
-    top = 10,
-    clinicId?: string,
-  ) {
-    const safePoints = Number.isFinite(points) ? Math.max(1, points) : 4;
-    const safeTop = Number.isFinite(top) ? Math.max(1, top) : 10;
-
-    const nowUtc = new Date();
-    const todayStart = this.vnStartOfDayUtc(nowUtc);
-    const weekStart = this.vnStartOfWeekUtc(nowUtc);
-    const monthStart = this.vnStartOfMonthUtc(nowUtc);
-
-    const anchorStartUtc =
-      range === "day"
-        ? todayStart
-        : range === "week"
-          ? weekStart
-          : monthStart;
-
-    const stepStart = (base: Date, step: number) => {
-      if (range === "day") return this.addDays(base, step);
-      if (range === "week") return this.addDays(base, step * 7);
-      return this.addMonths(base, step);
-    };
-
-    const starts: Date[] = [];
-    for (let i = safePoints - 1; i >= 0; i--) {
-      starts.push(stepStart(anchorStartUtc, -i));
-    }
-
-    const chartFrom = starts[0];
-    const chartTo = stepStart(anchorStartUtc, 1);
-    const [prescriptions, consultationFees] = await Promise.all([
-      this.statisticRepository.findDispensedPrescriptionsInRange(
-        chartFrom,
-        chartTo,
-        clinicId,
-      ),
-      this.statisticRepository.findConsultationFeesInRange(
-        chartFrom,
-        chartTo,
-        clinicId,
-      ),
-    ]);
-
-    const revenueByBucket = new Map<string, number>();
-    const profitByBucket = new Map<string, number>();
-    const consultationFeesByBucket = new Map<string, number>();
-    const byMedicine = new Map<
-      string,
-      { medicineId: string; medicineName: string; revenue: number; profit: number; quantity: number }
-    >();
-
-    for (const p of prescriptions) {
-      if (!p.dispensedAt) continue;
-      const bucketKey = this.vnBucketKeyFromUtc(p.dispensedAt, range);
-
-      let prescriptionRevenue = 0;
-      let prescriptionProfit = 0;
-      for (const d of p.details ?? []) {
-        const qty = d.quantity ? Number(d.quantity) : 0;
-        const lineRevenue = d.totalPrice
-          ? Number(d.totalPrice)
-          : d.appliedExportPrice && qty
-            ? Number(d.appliedExportPrice) * qty
-            : 0;
-        prescriptionRevenue += lineRevenue;
-
-        const costPerUnit = d.appliedImportPrice ? Number(d.appliedImportPrice) : null;
-        const lineProfit = costPerUnit !== null ? (Number(d.appliedExportPrice ?? 0) - costPerUnit) * qty : 0;
-        prescriptionProfit += lineProfit;
-
-        const medicineId = d.medicine?.medicineId;
-        if (!medicineId) continue;
-        const medicineName = d.medicine?.medicineName ?? "Khac";
-
-        const existing = byMedicine.get(medicineId);
-        if (!existing) {
-          byMedicine.set(medicineId, {
-            medicineId,
-            medicineName,
-            revenue: lineRevenue,
-            profit: lineProfit,
-            quantity: qty,
-          });
-        } else {
-          existing.revenue += lineRevenue;
-          existing.profit += lineProfit;
-          existing.quantity += qty;
-        }
-      }
-
-      revenueByBucket.set(
-        bucketKey,
-        (revenueByBucket.get(bucketKey) ?? 0) + prescriptionRevenue,
-      );
-      profitByBucket.set(
-        bucketKey,
-        (profitByBucket.get(bucketKey) ?? 0) + prescriptionProfit,
-      );
-    }
-
-    for (const r of consultationFees) {
-      if (!r.createdAt) continue;
-      const bucketKey = this.vnBucketKeyFromUtc(r.createdAt, range);
-      const fee = r.consultationFee ? Number(r.consultationFee) : 0;
-      consultationFeesByBucket.set(
-        bucketKey,
-        (consultationFeesByBucket.get(bucketKey) ?? 0) + fee,
-      );
-    }
-
-    const labels: string[] = [];
-    const values: number[] = [];
-    const profitValues: number[] = [];
-    const consultationFeeValues: number[] = [];
-    for (const start of starts) {
-      const key = this.vnBucketKeyFromUtc(start, range);
-      labels.push(this.labelFromBucketStartUtc(start, range));
-      values.push(revenueByBucket.get(key) ?? 0);
-      profitValues.push(profitByBucket.get(key) ?? 0);
-      consultationFeeValues.push(consultationFeesByBucket.get(key) ?? 0);
-    }
-
-    const latest = values[values.length - 1] ?? 0;
-    const average =
-      values.length > 0
-        ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-        : 0;
-    const trendPct =
-      average === 0 ? 0 : Math.round(((latest - average) / average) * 100);
-
-    const totalRevenue = Array.from(byMedicine.values()).reduce(
-      (sum, item) => sum + item.revenue,
-      0,
-    );
-    const totalProfit = Array.from(byMedicine.values()).reduce(
-      (sum, item) => sum + item.profit,
-      0,
-    );
-    const totalConsultationFees = consultationFeeValues.reduce(
-      (sum, fee) => sum + fee,
-      0,
-    );
-
-    const breakdown = Array.from(byMedicine.values())
-      .map((item) => ({
-        ...item,
-        pct:
-          totalRevenue === 0
-            ? 0
-            : Math.round((item.revenue / totalRevenue) * 100),
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, safeTop);
-
-    return {
-      summary: {
-        totalRevenue,
-        totalProfit,
-        totalMedicines: byMedicine.size,
-        totalConsultationFees,
-      },
-      chart: {
-        range,
-        labels,
-        values,
-        profitValues,
-        latest,
-        average,
-        trendPct,
-        consultationFeeValues,
-      },
-      breakdown,
-    };
-  }
 }

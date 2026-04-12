@@ -593,13 +593,19 @@ export class PrecriptionService {
       throw new BaseError(400, "Toa thuốc đã hủy, không thể mở lại");
     }
 
+    const updateData: Prisma.PrescriptionUpdateInput = {
+      status: PrescriptionStatus.Draft,
+    };
+
     if (prescription.isDispensed) {
-      throw new BaseError(400, "Toa thuốc đã xuất, không thể mở lại")
+      updateData.isDispensed = false;
+      updateData.dispensedAt = null;
+      updateData.dispensedBy = null;
     }
 
     return await prisma.prescription.update({
       where: { prescriptionId },
-      data: { status: PrescriptionStatus.Draft },
+      data: updateData,
     });
   }
 
