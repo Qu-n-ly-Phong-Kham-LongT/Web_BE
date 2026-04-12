@@ -138,6 +138,7 @@ export class StatisticRepository {
                 medicineName: true,
                 sellPrice: true,
                 importPrice: true,
+                isInsuranceCovered: true,
               },
             },
           },
