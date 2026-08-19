@@ -1,0 +1,7 @@
+# Script chạy trong container Linux -> luôn dùng LF, kể cả khi checkout trên Windows
+*.sh text eol=lf
+*.sql text eol=lf
+Dockerfile text eol=lf
+Jenkinsfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

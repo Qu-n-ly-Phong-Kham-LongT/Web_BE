@@ -1,0 +1,9 @@
+# File env thật -> KHÔNG commit. Trên Jenkins nó được sinh ra từ credential file.
+.env
+.env.*
+infra/.env
+infra/.env.runtime
+
+# Trừ các file mẫu
+!*.example
+!**/*.example

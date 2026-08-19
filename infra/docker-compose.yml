@@ -1,4 +1,86 @@
 services:
+  # ============================================================
+  # Postgres — DB chính. Data nằm ở named volume nên KHÔNG mất
+  # khi Jenkins recreate container mỗi lần build.
+  # ============================================================
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    container_name: phong-kham-postgres-${ENVIRONMENT_NAME}
+    env_file:
+      - ./.env.runtime
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      PGTZ: ${TZ:-Asia/Ho_Chi_Minh}
+      # Không set POSTGRES_INITDB_ARGS: image postgres đã mặc định encoding UTF8,
+      # thêm --encoding/--locale dễ làm initdb fail ngay lần khởi tạo đầu tiên.
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      # Chỉ chạy ĐÚNG 1 LẦN lúc khởi tạo DB rỗng (lần chạy đầu tiên)
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    # ⚠ Bind 0.0.0.0 -> Postgres NGHE TỪ INTERNET, chỉ còn mật khẩu bảo vệ.
+    # Bắt buộc: POSTGRES_PASSWORD phải mạnh, và nên chặn firewall chỉ cho IP
+    # phòng khám/văn phòng vào port này.
+    # Muốn đóng lại thì thêm tiền tố "127.0.0.1:" vào dòng dưới.
+    ports:
+      - "${POSTGRES_HOST_PORT:?POSTGRES_HOST_PORT chưa có trong .env.runtime}:5432"
+    networks:
+      - pk-net
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -q"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  # ============================================================
+  # RabbitMQ — hàng đợi in ấn. Mỗi môi trường một broker RIÊNG trên pk-net,
+  # nên tên queue trùng nhau (pdf_conversion...) cũng không trộn job giữa
+  # product và staging nữa, khỏi cần tách vhost.
+  # Queue/exchange bên trong do core tự khai báo lúc khởi động.
+  # ============================================================
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4-management}
+    container_name: phong-kham-rabbitmq-${ENVIRONMENT_NAME}
+    # KHÔNG dùng env_file ở đây: file đó chứa secret của app (JWT, mật khẩu DB)
+    # và nhiều biến RABBITMQ_* khác mà image có thể hiểu nhầm.
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?RABBITMQ_USER chưa có trong .env.runtime}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?RABBITMQ_PASS chưa có trong .env.runtime}
+    # Chỉ mở UI quản trị. Cổng AMQP 5672 không publish vì core gọi qua pk-net.
+    ports:
+      - "${RABBITMQ_UI_PORT:?RABBITMQ_UI_PORT chưa có trong .env.runtime}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - pk-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ============================================================
+  # migrate — chạy prisma migrate deploy bằng chính image core vừa build.
+  # Gọi bằng: docker compose --profile tools run --rm migrate
+  # ============================================================
+  migrate:
+    image: phong-kham-core:${ENVIRONMENT_NAME}-${BUILD_NUMBER}
+    profiles: ["tools"]
+    env_file:
+      - ./.env.runtime
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - pk-net
+    restart: "no"
+
   core:
     image: phong-kham-core:${ENVIRONMENT_NAME}-${BUILD_NUMBER}
     container_name: phong-kham-core-${ENVIRONMENT_NAME}
@@ -7,10 +89,21 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./.env.runtime
+    environment:
+      TZ: ${TZ:-Asia/Ho_Chi_Minh}
     ports:
-      - "${CORE_PORT}:${PORT}"
+      - "${CORE_PORT:?CORE_PORT chưa có trong .env.runtime}:${PORT:?PORT chưa có trong .env.runtime}"
     networks:
       - at-net
+      - pk-net
+    # runWorker() chỉ chạy 1 lần lúc boot, lỗi thì .catch() nuốt và KHÔNG thử
+    # lại (server.ts:17) -> core bắt buộc phải lên sau khi rabbitmq healthy,
+    # nếu không chức năng in sẽ chết cho tới lần restart tiếp theo.
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
     volumes:
       - /data/phong-kham/${ENVIRONMENT_NAME}/public:/app/public:rw
@@ -23,12 +116,27 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./.env.runtime
+    # Chỉ core gọi pdf, không ai ngoài cần -> để trên pk-net (mạng riêng của
+    # từng project). Nhờ vậy CONVERT_FILE dùng được tên service ngắn "pdf",
+    # không phụ thuộc ENVIRONMENT_NAME và không đụng tên giữa các môi trường.
     networks:
-      - at-net
+      - pk-net
     mem_limit: 4g
     cpus: 2
     restart: unless-stopped
 
 networks:
+  # Mạng dùng chung với hệ thống khác (nginx proxy manager...). Chỉ core còn
+  # nằm ở đây để nhận request từ ngoài.
   at-net:
     external: true
+  # Mạng riêng của từng project (phong-kham-product / phong-kham-staging).
+  # Nhờ vậy tên "postgres" / "rabbitmq" / "pdf" KHÔNG đụng nhau giữa 2 môi
+  # trường, và DATABASE_URL / RABBITMQ_URL / CONVERT_FILE dùng chung 1 chuỗi
+  # cho mọi env.
+  pk-net:
+    driver: bridge
+
+volumes:
+  pg-data:
+  rabbitmq-data:
