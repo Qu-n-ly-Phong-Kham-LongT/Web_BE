@@ -3,6 +3,10 @@ pipeline {
 
     environment {
         APP_NAME = "phong-kham"
+        COMPOSE_FILE_PATH = "./infra/docker-compose.yml"
+        // --env-file: compose đọc .env.runtime cho cả phần interpolation ${...}
+        // (ports, container_name, image tag). Không cần sinh thêm file .env nào.
+        COMPOSE_ENV_FILE = "./infra/.env.runtime"
     }
 
     options {
@@ -18,28 +22,35 @@ pipeline {
                     def BR = env.BRANCH_NAME
                     echo "[Init] Branch = ${BR}"
 
+                    // Toàn bộ PORT (PORT, CORE_PORT, POSTGRES_HOST_PORT) khai
+                    // báo trong credential file, KHÔNG để ở đây nữa. Compose
+                    // đọc chúng qua cờ --env-file.
                     def branchMap = [
                         "product": [
                             envName: "product",
-                            credId : "env-phong-kham-product",
-                            corePort: "30000"
+                            credId : "env-phong-kham-product"
                         ],
                         "staging": [
                             envName: "staging",
-                            credId : "env-phong-kham-staging",
-                            corePort: "30001"
+                            credId : "env-phong-kham-staging"
                         ]
                     ]
 
-                    env.ENVIRONMENT_NAME = branchMap[BR].envName
-                    env.ENV_CRED_ID      = branchMap[BR].credId
-                    env.CORE_PORT        = branchMap[BR].corePort
+                    def cfg = branchMap[BR]
+                    if (cfg == null) {
+                        error("Branch '${BR}' chua duoc cau hinh deploy. " +
+                              "Chi build: ${branchMap.keySet().join(', ')}")
+                    }
 
+                    env.ENVIRONMENT_NAME = cfg.envName
+                    env.ENV_CRED_ID      = cfg.credId
+
+                    env.COMPOSE_PROJECT = "${APP_NAME}-${cfg.envName}"
                     env.CORE_IMAGE_TAG = "${APP_NAME}-core:${ENVIRONMENT_NAME}-${BUILD_NUMBER}"
                     env.PDF_IMAGE_TAG  = "${APP_NAME}-pdf:${ENVIRONMENT_NAME}-stable"
 
                     echo "[Init] ENVIRONMENT = ${ENVIRONMENT_NAME}"
-                    echo "[Init] CORE_PORT  = ${CORE_PORT}"
+                    echo "[Init] PROJECT    = ${COMPOSE_PROJECT}"
                     echo "[Init] CORE_IMAGE = ${CORE_IMAGE_TAG}"
                     echo "[Init] PDF_IMAGE  = ${PDF_IMAGE_TAG}"
                 }
@@ -88,14 +99,56 @@ pipeline {
             }
         }
 
+        // Postgres + RabbitMQ phải sống TRƯỚC khi migrate và trước khi core lên.
+        // Hai service này KHÔNG bị --force-recreate ở stage Deploy nên dữ liệu
+        // và uptime giữ nguyên qua mỗi lần build.
+        stage('Start infrastructure') {
+            steps {
+                withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
+                    sh """
+                        set -e
+
+                        docker network inspect at-net >/dev/null 2>&1 || docker network create at-net
+                        mkdir -p "/data/${APP_NAME}/${ENVIRONMENT_NAME}/public"
+
+                        # core chay bang user nodeuser (core/Dockerfile: USER nodeuser),
+                        # con mkdir o tren tao thu muc thuoc root -> upload file se bi
+                        # Permission denied. Chay 1 container root tam de chown lai.
+                        docker run --rm --user root \\
+                            -v "/data/${APP_NAME}/${ENVIRONMENT_NAME}/public:/mnt" \\
+                            ${CORE_IMAGE_TAG} chown -R nodeuser:nodegrp /mnt
+
+                        # Credential file nằm ở đường dẫn tạm ngẫu nhiên, phải copy về
+                        # đúng ./infra/.env.runtime vì compose ghi cứng đường dẫn này.
+                        # sed: bỏ \\r nếu file được soạn trên Windows.
+                        cp "\$ENV_FILE" ./infra/.env.runtime
+                        chmod 600 ./infra/.env.runtime
+                        sed -i 's/\\r\$//' ./infra/.env.runtime
+                        rm -f ./infra/.env
+
+                        # --wait: chờ tới khi cả 2 healthy rồi mới sang stage sau
+                        echo "[Infra] Start postgres + rabbitmq"
+                        docker compose --env-file ${COMPOSE_ENV_FILE} -p ${COMPOSE_PROJECT} -f ${COMPOSE_FILE_PATH} \\
+                            up -d --wait postgres rabbitmq
+
+                        rm -f ./infra/.env.runtime
+                    """
+                }
+            }
+        }
+
         stage('Migrate Database (core)') {
             steps {
                 withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
                     sh """
                         set -e
-                        cp "\$ENV_FILE" ./.env.runtime
-                        docker run --rm --network at-net --env-file ./.env.runtime ${CORE_IMAGE_TAG} npx prisma migrate deploy
-                        rm -f ./.env.runtime
+                        cp "\$ENV_FILE" ./infra/.env.runtime
+                        chmod 600 ./infra/.env.runtime
+                        sed -i 's/\\r\$//' ./infra/.env.runtime
+
+                        docker compose --env-file ${COMPOSE_ENV_FILE} --profile tools -p ${COMPOSE_PROJECT} -f ${COMPOSE_FILE_PATH} run --rm migrate
+
+                        rm -f ./infra/.env.runtime
                     """
                 }
             }
@@ -106,24 +159,22 @@ pipeline {
                 withCredentials([file(credentialsId: env.ENV_CRED_ID, variable: 'ENV_FILE')]) {
                     sh """
                         set -e
-                        cp "\$ENV_FILE" ./.env.runtime
-
-                        docker network inspect at-net >/dev/null 2>&1 || docker network create at-net
-
-                        HOST_PUBLIC_DIR="/data/${APP_NAME}/${ENVIRONMENT_NAME}/public"
-                        mkdir -p "\$HOST_PUBLIC_DIR"
-
-                        cp ./.env.runtime ./infra/.env.runtime
+                        cp "\$ENV_FILE" ./infra/.env.runtime
+                        chmod 600 ./infra/.env.runtime
+                        sed -i 's/\\r\$//' ./infra/.env.runtime
 
                         echo "[Deploy] Stopping old containers if exist..."
                         docker stop phong-kham-core-${ENVIRONMENT_NAME} phong-kham-pdf-${ENVIRONMENT_NAME} 2>/dev/null || true
-                        docker rm phong-kham-core-${ENVIRONMENT_NAME} phong-kham-pdf-${ENVIRONMENT_NAME} 2>/dev/null || true
+                        docker rm   phong-kham-core-${ENVIRONMENT_NAME} phong-kham-pdf-${ENVIRONMENT_NAME} 2>/dev/null || true
 
-                        echo "[Deploy] Starting containers..."
-                        export PORT=\$(grep '^PORT=' ./.env.runtime | cut -d '=' -f2 | tr -d '\\r\\n' | xargs)
-                        docker compose -p ${APP_NAME}-${ENVIRONMENT_NAME} -f ./infra/docker-compose.yml up -d --force-recreate --remove-orphans
+                        # --no-deps: chỉ dựng lại core/pdf, KHÔNG đụng tới postgres
+                        echo "[Deploy] Starting core + pdf..."
+                        docker compose --env-file ${COMPOSE_ENV_FILE} -p ${COMPOSE_PROJECT} -f ${COMPOSE_FILE_PATH} \\
+                            up -d --force-recreate --no-deps --remove-orphans core pdf
 
-                        rm -f ./.env.runtime ./infra/.env.runtime
+                        docker compose --env-file ${COMPOSE_ENV_FILE} -p ${COMPOSE_PROJECT} -f ${COMPOSE_FILE_PATH} ps
+
+                        rm -f ./infra/.env.runtime
                         echo "[Deploy] Done"
                     """
                 }
@@ -148,6 +199,8 @@ pipeline {
 
     post {
         always {
+            // Không để lộ file env nếu pipeline fail giữa chừng
+            sh 'rm -f ./infra/.env.runtime ./.env.runtime || true'
             echo "Pipeline finished for branch ${env.BRANCH_NAME}"
         }
     }
