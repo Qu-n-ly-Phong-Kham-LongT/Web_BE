@@ -1,7 +1,6 @@
 import {
   Prisma,
   PrescriptionStatus,
-  PrintJobStatus,
   PrintJobType,
 } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
@@ -21,7 +20,7 @@ import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
-import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
+import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
 import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
 import { createPagination } from "../../../utils/pagination.util";
 
@@ -550,23 +549,16 @@ export class PrecriptionService {
       }
     }
 
-    const job = await prisma.printJob.create({
-      data: {
-        type: PrintJobType.PRESCRIPTION,
-        status: PrintJobStatus.PENDING,
-        entityId: prescriptionId,
-        clinicId: clinicId || null,
-        userId: userId ?? null,
-        payload: { prescriptionId },
-      },
+    const job = await findOrEnqueuePrintJob({
+      type: PrintJobType.PRESCRIPTION,
+      entityId: prescriptionId,
+      clinicId,
+      userId,
+      payload: { prescriptionId },
     });
 
-    await enqueuePrintJob(job.jobId);
-
     return {
-      jobId: job.jobId,
-      status: job.status,
-      type: job.type,
+      ...job,
       enqueued: true,
     };
   }

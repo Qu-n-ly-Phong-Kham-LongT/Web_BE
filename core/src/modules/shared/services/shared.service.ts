@@ -10,9 +10,8 @@ import { FileService } from "../../file/services/file.service";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
 import { FileRepository } from "../../file/repositories/file.repository";
-import { PrintJobStatus, PrintJobType } from "@prisma/client";
-import { prisma } from "../../../config/database.config";
-import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
+import { PrintJobType } from "@prisma/client";
+import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
 
 export class SharedService {
   private sharedReposoitory = new SharedRepository();
@@ -105,24 +104,13 @@ export class SharedService {
   ) {
     await this.getFullMedicalRecord(recordId, clinicId);
 
-    const job = await prisma.printJob.create({
-      data: {
-        type: PrintJobType.MEDICAL_RECORD,
-        status: PrintJobStatus.PENDING,
-        entityId: recordId,
-        clinicId: clinicId || null,
-        userId: userId ?? null,
-        payload: { recordId },
-      },
+    return await findOrEnqueuePrintJob({
+      type: PrintJobType.MEDICAL_RECORD,
+      entityId: recordId,
+      clinicId,
+      userId,
+      payload: { recordId },
     });
-
-    await enqueuePrintJob(job.jobId);
-
-    return {
-      jobId: job.jobId,
-      status: job.status,
-      type: job.type,
-    };
   }
 
   private parseDate(value?: string | Date | null): Date | null {
