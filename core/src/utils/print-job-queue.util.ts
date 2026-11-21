@@ -1,4 +1,4 @@
-import amqp, { Channel, ChannelModel } from "amqplib";
+import amqp, { Channel, ChannelModel, ConfirmChannel } from "amqplib";
 
 export const QUEUE_MAIN = "pdf_conversion";
 export const QUEUE_RETRY = "pdf_conversion_retry";
@@ -9,7 +9,7 @@ const RABBIT_PREFIX = "[rabbitmq][publisher]";
 const DEFAULT_RETRY_DELAY_MS = 5000;
 
 let publishConnection: ChannelModel | null = null;
-let publishChannel: Channel | null = null;
+let publishChannel: ConfirmChannel | null = null;
 
 export function getNumberEnv(name: string, fallback: number): number {
   const raw = Number(process.env[name] ?? fallback);
@@ -50,7 +50,7 @@ export async function ensurePrintJobInfrastructure(
   );
 }
 
-async function getPublishChannel(): Promise<Channel> {
+async function getPublishChannel(): Promise<ConfirmChannel> {
   if (publishChannel) return publishChannel;
 
   const url = process.env.RABBITMQ_URL;
@@ -69,7 +69,7 @@ async function getPublishChannel(): Promise<Channel> {
     publishChannel = null;
   });
 
-  publishChannel = await publishConnection.createChannel();
+  publishChannel = await publishConnection.createConfirmChannel();
   publishChannel.on("error", (error) => {
     console.error(`${RABBIT_PREFIX} channel error`, error);
   });
@@ -91,7 +91,8 @@ export async function enqueuePrintJob(jobId: string): Promise<void> {
     persistent: true,
     contentType: "application/json",
   });
+  await channel.waitForConfirms();
   console.log(
-    `${RABBIT_PREFIX} publish jobId=${jobId} queue=${QUEUE_MAIN} bytes=${payload.length} buffered=${!published}`,
+    `${RABBIT_PREFIX} publish confirmed jobId=${jobId} queue=${QUEUE_MAIN} bytes=${payload.length} buffered=${!published}`,
   );
 }
