@@ -19,6 +19,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
+import { FileRepository } from "../../file/repositories/file.repository";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
 import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
 import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
@@ -41,6 +42,7 @@ export class PrecriptionService {
   private medicineRepository = new MedicineRepository();
   private patientRepository = new PatientRepository();
   private fileService = new FileService();
+  private fileRepository = new FileRepository();
 
   public async upsertPrecriptionDiagnosis(
     payload: UpsertDianosisPrescriptionDto,
@@ -457,10 +459,8 @@ export class PrecriptionService {
       throw new BaseError(404, "Không tìm thấy toa thuốc để in");
     }
 
-    const existingFile = await prisma.file.findUnique({
-      where: { prescriptionId },
-      select: { fileID: true },
-    });
+    const existingFile =
+      await this.fileRepository.findByPrescriptionId(prescriptionId);
     const action = resolvePrescriptionPrintAction(
       existing.status,
       Boolean(existingFile),
