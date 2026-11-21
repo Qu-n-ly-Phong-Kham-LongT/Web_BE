@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { ChannelModel } from "amqplib";
 import {
+  describeError,
   reconnectDelayMs,
   startPrintWorker,
 } from "../../src/utils/print-worker.util";
@@ -96,6 +97,22 @@ describe("startPrintWorker", () => {
 
     assert.equal(connector.attempts(), 1);
     assert.equal(worker.isConsuming(), false);
+  });
+});
+
+describe("describeError", () => {
+  it("keeps the error code when the message is empty", () => {
+    const refused = Object.assign(new Error(""), {
+      code: "ECONNREFUSED",
+    });
+    assert.equal(describeError(refused), "ECONNREFUSED");
+  });
+
+  it("joins code and message", () => {
+    assert.equal(
+      describeError(connectionRefused()),
+      "ECONNREFUSED connect ECONNREFUSED 172.20.0.3:5672",
+    );
   });
 });
 

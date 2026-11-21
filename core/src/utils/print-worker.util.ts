@@ -37,8 +37,11 @@ export function reconnectDelayMs(
   return Math.min(maxDelayMs, minDelayMs * 2 ** attempt);
 }
 
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+export function describeError(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const code = (error as NodeJS.ErrnoException).code;
+  const parts = [code, error.message].filter(Boolean);
+  return parts.length > 0 ? parts.join(" ") : error.name;
 }
 
 export function startPrintWorker(options: PrintWorkerOptions): PrintWorkerHandle {
