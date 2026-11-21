@@ -82,11 +82,9 @@ export async function findOrEnqueuePrintJob(
       for (const stale of active.filter((j) => !isFresh(j, now))) {
         await store.markAbandoned(stale.jobId);
       }
-      const queued = active.find(
-        (j) => j.status === PrintJobStatus.PENDING && isFresh(j, now),
-      );
-      if (queued) {
-        return { job: queued, reused: true };
+      const running = active.find((j) => isFresh(j, now));
+      if (running) {
+        return { job: running, reused: true };
       }
       return { job: await store.create(input), reused: false };
     },

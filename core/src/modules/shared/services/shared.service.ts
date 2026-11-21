@@ -12,11 +12,21 @@ import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
 import { FileRepository } from "../../file/repositories/file.repository";
 import { PrintJobType } from "@prisma/client";
 import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
+import { PrintJobRepository } from "../../print-job/repositories/print-job.repository";
+
+export function isRecordFileFresh(
+  latestChange: Date,
+  fileCreatedAt: Date,
+  renderStartedAt: Date | null,
+): boolean {
+  return latestChange <= (renderStartedAt ?? fileCreatedAt);
+}
 
 export class SharedService {
   private sharedReposoitory = new SharedRepository();
   private fileService = new FileService();
   private fileRepository = new FileRepository();
+  private printJobRepository = new PrintJobRepository();
 
   public async getFullMedicalRecord(
     recordId: string,
@@ -182,7 +192,9 @@ export class SharedService {
     if (existing?.createdAt) {
       const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
       const latestChange = this.getLatestRecordChange(fullRecord);
-      if (latestChange <= existing.createdAt) {
+      const renderStartedAt =
+        await this.printJobRepository.findRenderStartedAtForFile(existing.fileID);
+      if (isRecordFileFresh(latestChange, existing.createdAt, renderStartedAt)) {
         return { file: existing, enqueued: false };
       }
     }

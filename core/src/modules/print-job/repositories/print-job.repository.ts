@@ -101,6 +101,15 @@ export class PrintJobRepository {
     });
   }
 
+  public async findRenderStartedAtForFile(fileId: string): Promise<Date | null> {
+    const producer = await this.db.printJob.findFirst({
+      where: { fileId, status: PrintJobStatus.DONE },
+      orderBy: { finishedAt: "desc" },
+      select: { startedAt: true },
+    });
+    return producer?.startedAt ?? null;
+  }
+
   public async claim(jobId: string): Promise<boolean> {
     const { count } = await this.db.printJob.updateMany({
       where: { jobId, status: { in: ACTIVE_PRINT_JOB_STATUSES } },

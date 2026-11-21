@@ -127,19 +127,16 @@ describe("findOrEnqueuePrintJob", () => {
     assert.equal(jobs.find((j) => j.jobId === first.jobId)?.status, PrintJobStatus.FAILED);
   });
 
-  it("a processing job gets exactly one queued successor", async () => {
+  it("reuses a running job instead of rendering the same document in parallel", async () => {
     const { deps, jobs } = createMemoryDeps();
 
     const first = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
     jobs[0].status = PrintJobStatus.PROCESSING;
     const second = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
-    const third = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
 
-    assert.notEqual(second.jobId, first.jobId);
-    assert.equal(second.reused, false);
-    assert.equal(third.jobId, second.jobId);
-    assert.equal(third.reused, true);
-    assert.equal(jobs.length, 2);
+    assert.equal(second.jobId, first.jobId);
+    assert.equal(second.reused, true);
+    assert.equal(jobs.length, 1);
   });
 
   it("publish failure marks job failed", async () => {
