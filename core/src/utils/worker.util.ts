@@ -7,6 +7,7 @@ import { ServiceRequestService } from "../modules/service-request/services/servi
 import { FileRepository } from "../modules/file/repositories/file.repository";
 import { getNumberEnv } from "./print-job-queue.util";
 import { emitToJob } from "./socket.util";
+import { resolveFileUrl } from "./file-url.util";
 import {
   createPrintJobHandler,
   GeneratedPrintFile,
@@ -22,13 +23,6 @@ const sharedService = new SharedService();
 const prescriptionService = new PrecriptionService();
 const serviceRequestService = new ServiceRequestService();
 const fileRepository = new FileRepository();
-
-function resolveFileUrl(relativePath?: string | null): string | null {
-  if (!relativePath) return null;
-  const base = (process.env.BASE_URL ?? "").replace(/\/+$/, "");
-  if (!base) return relativePath;
-  return `${base}${relativePath}`;
-}
 
 function toGeneratedFile(
   file: { fileID: string; relativePath: string } | null,

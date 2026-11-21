@@ -19,6 +19,7 @@ import sharedRouter from "../modules/shared/routes/shared.route";
 import statisticRouter from "../modules/statistic/routes/statistic.route";
 import dictionaryRouter from "../modules/dictionary/routes/dictionary.route";
 import followUpRouter from "../modules/follow-up/routes/follow-up.route";
+import printJobRouter from "../modules/print-job/routes/print-job.route";
 
 const rootRouter = Router();
 
@@ -42,5 +43,6 @@ rootRouter.use("/medical-records", sharedRouter);
 rootRouter.use("/statistic", statisticRouter);
 rootRouter.use("/dictionaries", dictionaryRouter);
 rootRouter.use("/follow-ups", followUpRouter);
+rootRouter.use("/print-jobs", printJobRouter);
 
 export default rootRouter;
