@@ -24,6 +24,17 @@ import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
 import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
 import { createPagination } from "../../../utils/pagination.util";
 
+export type PrescriptionPrintAction = "render" | "reuse" | "reject";
+
+export function resolvePrescriptionPrintAction(
+  status: PrescriptionStatus | null,
+  hasFile: boolean,
+): PrescriptionPrintAction {
+  if (status === PrescriptionStatus.Draft) return "render";
+  if (status === PrescriptionStatus.Issued && hasFile) return "reuse";
+  return "reject";
+}
+
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
   private prescriptionRepository = new PrescriptionRepository();
@@ -436,7 +447,7 @@ export class PrecriptionService {
   public async printPrescriptionPdf(
     prescriptionId: string,
     clinicId?: string,
-  ): Promise<{ buffer: Buffer; prescriptionCode: string }> {
+  ): Promise<{ reused: boolean }> {
     const existing = await prisma.prescription.findUnique({
       where: { prescriptionId },
       select: { status: true, printCount: true },
@@ -446,7 +457,18 @@ export class PrecriptionService {
       throw new BaseError(404, "Không tìm thấy toa thuốc để in");
     }
 
-    if (existing.status !== PrescriptionStatus.Draft) {
+    const existingFile = await prisma.file.findUnique({
+      where: { prescriptionId },
+      select: { fileID: true },
+    });
+    const action = resolvePrescriptionPrintAction(
+      existing.status,
+      Boolean(existingFile),
+    );
+    if (action === "reuse") {
+      return { reused: true };
+    }
+    if (action === "reject") {
       throw new BaseError(400, "Toa thuốc đã in, không được in lại");
     }
 
@@ -514,10 +536,7 @@ export class PrecriptionService {
         printCount: (existing.printCount ?? 0) + 1,
       },
     });
-    return {
-      buffer: pdfBuffer,
-      prescriptionCode,
-    };
+    return { reused: false };
   }
 
   public async enqueuePrescriptionPrint(
