@@ -1,6 +1,6 @@
-import { PrintJobStatus, PrintJobType } from "@prisma/client";
-import { prisma } from "../config/database.config";
+import { PrintJobType } from "@prisma/client";
 import { BaseError } from "./base-error.util";
+import { PrintJobRepository } from "../modules/print-job/repositories/print-job.repository";
 import { SharedService } from "../modules/shared/services/shared.service";
 import { PrecriptionService } from "../modules/prescriptions/services/prescription.service";
 import { ServiceRequestService } from "../modules/service-request/services/service-request.service";
@@ -14,7 +14,11 @@ import {
   PrintJobHandlerDeps,
   PrintJobRecord,
 } from "./print-job-handler.util";
-import { PrintWorkerHandle, startPrintWorker } from "./print-worker.util";
+import {
+  PrintWorkerHandle,
+  startPrintWorker,
+  WORKER_PREFIX,
+} from "./print-worker.util";
 
 const DEFAULT_JOB_RETRY_MAX = 3;
 const DEFAULT_PREFETCH = 1;
@@ -23,6 +27,7 @@ const sharedService = new SharedService();
 const prescriptionService = new PrecriptionService();
 const serviceRequestService = new ServiceRequestService();
 const fileRepository = new FileRepository();
+const printJobRepository = new PrintJobRepository();
 
 function toGeneratedFile(
   file: { fileID: string; relativePath: string } | null,
@@ -70,39 +75,12 @@ async function generatePrintFile(
 export function buildPrintJobHandlerDeps(): PrintJobHandlerDeps {
   return {
     retryMax: getNumberEnv("RABBITMQ_JOB_RETRY_MAX", DEFAULT_JOB_RETRY_MAX),
-    findJob: (jobId) =>
-      prisma.printJob.findUnique({
-        where: { jobId },
-        select: { jobId: true, type: true, entityId: true, clinicId: true },
-      }),
-    markProcessing: async (jobId) => {
-      await prisma.printJob.update({
-        where: { jobId },
-        data: {
-          status: PrintJobStatus.PROCESSING,
-          startedAt: new Date(),
-          errorMsg: null,
-        },
-      });
-    },
+    findJob: (jobId) => printJobRepository.findForWorker(jobId),
+    claimJob: (jobId) => printJobRepository.claim(jobId),
     generateFile: generatePrintFile,
-    markDone: async (jobId, file) => {
-      await prisma.printJob.update({
-        where: { jobId },
-        data: {
-          status: PrintJobStatus.DONE,
-          fileId: file.fileId,
-          finishedAt: new Date(),
-          errorMsg: null,
-        },
-      });
-    },
-    markFailure: async (jobId, status, errorMsg) => {
-      await prisma.printJob.update({
-        where: { jobId },
-        data: { status, errorMsg, finishedAt: new Date() },
-      });
-    },
+    markDone: (jobId, file) => printJobRepository.markDone(jobId, file.fileId),
+    markFailure: (jobId, status, errorMsg) =>
+      printJobRepository.markStatus(jobId, status, errorMsg),
     emit: emitToJob,
   };
 }
@@ -114,7 +92,7 @@ export function runWorker(): PrintWorkerHandle {
   }
 
   const deps = buildPrintJobHandlerDeps();
-  console.log(`[rabbitmq][worker] retryMax=${deps.retryMax}`);
+  console.log(`${WORKER_PREFIX} retryMax=${deps.retryMax}`);
 
   return startPrintWorker({
     url: rabbitUrl,

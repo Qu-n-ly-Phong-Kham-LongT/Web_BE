@@ -1,33 +1,26 @@
-import { Prisma, PrintJobStatus, PrintJobType } from "@prisma/client";
+import { PrintJobStatus, PrintJobType } from "@prisma/client";
 import { prisma } from "../config/database.config";
+import {
+  NewPrintJob,
+  PrintJobRepository,
+  StoredPrintJob,
+} from "../modules/print-job/repositories/print-job.repository";
 import { BaseError } from "./base-error.util";
 import { enqueuePrintJob } from "./print-job-queue.util";
 
+export type { StoredPrintJob } from "../modules/print-job/repositories/print-job.repository";
+
 export const ACTIVE_PRINT_JOB_STALE_MS = 10 * 60 * 1000;
+export const PRINT_QUEUE_UNAVAILABLE_MESSAGE = "Print queue unavailable";
+const ABANDONED_JOB_MESSAGE = "Abandoned: no progress within the active job window";
 
-const ACTIVE_STATUSES = [PrintJobStatus.PENDING, PrintJobStatus.PROCESSING];
-
-export type EnqueuePrintJobInput = {
-  type: PrintJobType;
-  entityId: string;
-  clinicId?: string | null;
-  userId?: string | null;
-  payload: Prisma.InputJsonValue;
-};
-
-export type StoredPrintJob = {
-  jobId: string;
-  type: PrintJobType;
-  entityId: string | null;
-  status: PrintJobStatus;
-  createdAt: Date;
-};
+export type EnqueuePrintJobInput = NewPrintJob;
 
 export type LockedPrintJobStore = {
   findActive: (
     type: PrintJobType,
     entityId: string,
-  ) => Promise<StoredPrintJob | null>;
+  ) => Promise<StoredPrintJob[]>;
   markAbandoned: (jobId: string) => Promise<void>;
   create: (input: EnqueuePrintJobInput) => Promise<StoredPrintJob>;
 };
@@ -50,44 +43,12 @@ export type EnqueuedPrintJob = {
   reused: boolean;
 };
 
-const jobSelect = {
-  jobId: true,
-  type: true,
-  entityId: true,
-  status: true,
-  createdAt: true,
-} as const;
-
-function lockStore(tx: Prisma.TransactionClient): LockedPrintJobStore {
+function lockedStore(repository: PrintJobRepository): LockedPrintJobStore {
   return {
-    findActive: (type, entityId) =>
-      tx.printJob.findFirst({
-        where: { type, entityId, status: { in: ACTIVE_STATUSES } },
-        orderBy: { createdAt: "desc" },
-        select: jobSelect,
-      }),
-    markAbandoned: async (jobId) => {
-      await tx.printJob.update({
-        where: { jobId },
-        data: {
-          status: PrintJobStatus.FAILED,
-          errorMsg: "Abandoned: no progress within the active job window",
-          finishedAt: new Date(),
-        },
-      });
-    },
-    create: (input) =>
-      tx.printJob.create({
-        data: {
-          type: input.type,
-          status: PrintJobStatus.PENDING,
-          entityId: input.entityId,
-          clinicId: input.clinicId || null,
-          userId: input.userId || null,
-          payload: input.payload,
-        },
-        select: jobSelect,
-      }),
+    findActive: (type, entityId) => repository.findActiveForEntity(type, entityId),
+    markAbandoned: (jobId) =>
+      repository.markStatus(jobId, PrintJobStatus.FAILED, ABANDONED_JOB_MESSAGE),
+    create: (input) => repository.create(input),
   };
 }
 
@@ -97,15 +58,11 @@ export const prismaPrintJobEnqueueDeps: PrintJobEnqueueDeps = {
     prisma.$transaction(async (tx) => {
       const lockKey = `print-job:${type}:${entityId}`;
       await tx.$queryRaw`SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(${lockKey}))) AS locked`;
-      return work(lockStore(tx));
+      return work(lockedStore(new PrintJobRepository(tx)));
     }),
   publish: enqueuePrintJob,
-  markPublishFailed: async (jobId, errorMsg) => {
-    await prisma.printJob.update({
-      where: { jobId },
-      data: { status: PrintJobStatus.FAILED, errorMsg, finishedAt: new Date() },
-    });
-  },
+  markPublishFailed: (jobId, errorMsg) =>
+    new PrintJobRepository().markStatus(jobId, PrintJobStatus.FAILED, errorMsg),
 };
 
 function isFresh(job: StoredPrintJob, now: Date): boolean {
@@ -120,12 +77,16 @@ export async function findOrEnqueuePrintJob(
     input.type,
     input.entityId,
     async (store) => {
+      const now = deps.now();
       const active = await store.findActive(input.type, input.entityId);
-      if (active && isFresh(active, deps.now())) {
-        return { job: active, reused: true };
+      for (const stale of active.filter((j) => !isFresh(j, now))) {
+        await store.markAbandoned(stale.jobId);
       }
-      if (active) {
-        await store.markAbandoned(active.jobId);
+      const queued = active.find(
+        (j) => j.status === PrintJobStatus.PENDING && isFresh(j, now),
+      );
+      if (queued) {
+        return { job: queued, reused: true };
       }
       return { job: await store.create(input), reused: false };
     },
@@ -140,14 +101,14 @@ export async function findOrEnqueuePrintJob(
         `[rabbitmq][publisher] publish failed: jobId=${job.jobId} reason=${reason}`,
       );
       await deps
-        .markPublishFailed(job.jobId, `Print queue unavailable: ${reason}`)
+        .markPublishFailed(job.jobId, PRINT_QUEUE_UNAVAILABLE_MESSAGE)
         .catch((updateError) => {
           console.error(
             `[rabbitmq][publisher] could not mark job failed: jobId=${job.jobId}`,
             updateError,
           );
         });
-      throw new BaseError(503, "Print queue is unavailable, please try again");
+      throw new BaseError(503, PRINT_QUEUE_UNAVAILABLE_MESSAGE);
     }
   }
 

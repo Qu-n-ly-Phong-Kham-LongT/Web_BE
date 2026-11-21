@@ -22,7 +22,7 @@ function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
       entityId: "entity-1",
       clinicId: "clinic-1",
     }),
-    markProcessing: async () => undefined,
+    claimJob: async () => true,
     generateFile: async () => ({
       fileId: "file-1",
       fileUrl: "https://files/x.pdf",
@@ -73,6 +73,25 @@ describe("createPrintJobHandler", () => {
 
     assert.equal(channel.acked.length, 1);
     assert.equal(channel.sent.length, 0);
+  });
+
+  it("skips a job that already finished without regenerating it", async () => {
+    const channel = new FakeChannel();
+    let generated = 0;
+    const { deps, emitted } = buildDeps({
+      claimJob: async () => false,
+      generateFile: async () => {
+        generated += 1;
+        return { fileId: "file-1", fileUrl: null };
+      },
+    });
+
+    await handle(channel, deps, "job-done");
+
+    assert.equal(generated, 0);
+    assert.equal(channel.acked.length, 1);
+    assert.equal(channel.sent.length, 0);
+    assert.deepEqual(emitted, []);
   });
 
   it("message is settled when failure status update throws", async () => {

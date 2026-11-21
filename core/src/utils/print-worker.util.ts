@@ -6,7 +6,7 @@ import {
   QUEUE_RETRY,
 } from "./print-job-queue.util";
 
-const WORKER_PREFIX = "[rabbitmq][worker]";
+export const WORKER_PREFIX = "[rabbitmq][worker]";
 const DEFAULT_MIN_RECONNECT_DELAY_MS = 1000;
 const DEFAULT_MAX_RECONNECT_DELAY_MS = 30000;
 

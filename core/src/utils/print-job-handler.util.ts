@@ -2,9 +2,8 @@ import { Channel, ConsumeMessage } from "amqplib";
 import { PrintJobStatus, PrintJobType } from "@prisma/client";
 import { BaseError } from "./base-error.util";
 import { QUEUE_DEAD, QUEUE_MAIN, QUEUE_RETRY } from "./print-job-queue.util";
-import type { PrintMessageHandler } from "./print-worker.util";
+import { WORKER_PREFIX, type PrintMessageHandler } from "./print-worker.util";
 
-const WORKER_PREFIX = "[rabbitmq][worker]";
 
 export type PrintJobRecord = {
   jobId: string;
@@ -21,7 +20,7 @@ export type GeneratedPrintFile = {
 export type PrintJobHandlerDeps = {
   retryMax: number;
   findJob: (jobId: string) => Promise<PrintJobRecord | null>;
-  markProcessing: (jobId: string) => Promise<void>;
+  claimJob: (jobId: string) => Promise<boolean>;
   generateFile: (job: PrintJobRecord) => Promise<GeneratedPrintFile>;
   markDone: (jobId: string, file: GeneratedPrintFile) => Promise<void>;
   markFailure: (
@@ -113,7 +112,13 @@ export function createPrintJobHandler(
         return;
       }
 
-      await deps.markProcessing(jobId);
+      if (!(await deps.claimJob(jobId))) {
+        console.warn(
+          `${WORKER_PREFIX} job already finished: jobId=${jobId}, ack and skip`,
+        );
+        tryAck(channel, msg, jobId);
+        return;
+      }
       deps.emit(jobId, "print.processing", {
         jobId,
         status: PrintJobStatus.PROCESSING,

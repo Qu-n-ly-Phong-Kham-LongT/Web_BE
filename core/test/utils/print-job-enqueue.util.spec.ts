@@ -29,8 +29,7 @@ function createMemoryDeps(now: () => Date = () => new Date()) {
                   (j.status === PrintJobStatus.PENDING ||
                     j.status === PrintJobStatus.PROCESSING),
               )
-              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ??
-            null,
+              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
           markAbandoned: async (jobId) => {
             const job = jobs.find((j) => j.jobId === jobId);
             if (job) job.status = PrintJobStatus.FAILED;
@@ -126,6 +125,21 @@ describe("findOrEnqueuePrintJob", () => {
     assert.notEqual(second.jobId, first.jobId);
     assert.equal(second.reused, false);
     assert.equal(jobs.find((j) => j.jobId === first.jobId)?.status, PrintJobStatus.FAILED);
+  });
+
+  it("a processing job gets exactly one queued successor", async () => {
+    const { deps, jobs } = createMemoryDeps();
+
+    const first = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+    jobs[0].status = PrintJobStatus.PROCESSING;
+    const second = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+    const third = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+
+    assert.notEqual(second.jobId, first.jobId);
+    assert.equal(second.reused, false);
+    assert.equal(third.jobId, second.jobId);
+    assert.equal(third.reused, true);
+    assert.equal(jobs.length, 2);
   });
 
   it("publish failure marks job failed", async () => {
