@@ -7,6 +7,7 @@ import {
 } from "../../src/utils/print-job-handler.util";
 import { BaseError } from "../../src/utils/base-error.util";
 import { QUEUE_DEAD, QUEUE_RETRY } from "../../src/utils/print-job-queue.util";
+import { PRINT_JOB_FAILED_MESSAGE } from "../../src/utils/print-job-handler.util";
 import { buildMessage, FakeChannel } from "../helpers/fake-amqp";
 
 type Emitted = { jobId: string; event: string; data: unknown };
@@ -14,6 +15,7 @@ type Emitted = { jobId: string; event: string; data: unknown };
 function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
   const emitted: Emitted[] = [];
   const failures: Array<{ jobId: string; status: PrintJobStatus }> = [];
+  const reasons: string[] = [];
   const deps: PrintJobHandlerDeps = {
     retryMax: 3,
     findJob: async (jobId) => ({
@@ -22,21 +24,22 @@ function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
       entityId: "entity-1",
       clinicId: "clinic-1",
     }),
-    claimJob: async () => true,
+    claimJob: async () => "claimed",
     generateFile: async () => ({
       fileId: "file-1",
       fileUrl: "https://files/x.pdf",
     }),
-    markDone: async () => undefined,
-    markFailure: async (jobId, status) => {
+    markDone: async () => true,
+    markFailure: async (jobId, status, errorMsg) => {
       failures.push({ jobId, status });
+      reasons.push(errorMsg);
     },
     emit: (jobId, event, data) => {
       emitted.push({ jobId, event, data });
     },
     ...overrides,
   };
-  return { deps, emitted, failures };
+  return { deps, emitted, failures, reasons };
 }
 
 async function handle(
@@ -79,7 +82,7 @@ describe("createPrintJobHandler", () => {
     const channel = new FakeChannel();
     let generated = 0;
     const { deps, emitted } = buildDeps({
-      claimJob: async () => false,
+      claimJob: async () => "finished",
       generateFile: async () => {
         generated += 1;
         return { fileId: "file-1", fileUrl: null };
@@ -92,6 +95,72 @@ describe("createPrintJobHandler", () => {
     assert.equal(channel.acked.length, 1);
     assert.equal(channel.sent.length, 0);
     assert.deepEqual(emitted, []);
+  });
+
+  it("requeues a job whose document is already rendering without spending a retry", async () => {
+    const channel = new FakeChannel();
+    let generated = 0;
+    const { deps, emitted } = buildDeps({
+      claimJob: async () => "busy",
+      generateFile: async () => {
+        generated += 1;
+        return { fileId: null, fileUrl: null };
+      },
+    });
+
+    await handle(channel, deps, "job-busy", 2);
+
+    assert.equal(generated, 0);
+    assert.equal(channel.sent.length, 1);
+    assert.equal(channel.sent[0].queue, QUEUE_RETRY);
+    assert.equal(channel.sent[0].options?.headers?.["x-retry"], 2);
+    assert.equal(channel.acked.length, 1);
+    assert.deepEqual(emitted, []);
+  });
+
+  it("waits for the in-flight run when the broker redelivers the same job", async () => {
+    let release: () => void = () => undefined;
+    let generated = 0;
+    const { deps } = buildDeps({
+      generateFile: async () => {
+        generated += 1;
+        await new Promise<void>((resolve) => (release = resolve));
+        return { fileId: "file-1", fileUrl: null };
+      },
+    });
+    const handler = createPrintJobHandler(deps);
+    const oldChannel = new FakeChannel();
+    const newChannel = new FakeChannel();
+
+    const first = handler(oldChannel.asChannel(), buildMessage({ jobId: "job-r" }));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const redelivered = handler(newChannel.asChannel(), buildMessage({ jobId: "job-r" }));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(newChannel.acked.length, 0);
+
+    release();
+    await Promise.all([first, redelivered]);
+
+    assert.equal(generated, 1);
+    assert.equal(newChannel.acked.length, 1);
+  });
+
+  it("stores a generic reason for technical failures and keeps business messages", async () => {
+    const technical = buildDeps({
+      generateFile: async () => {
+        throw new Error("connect ECONNREFUSED 10.0.0.9:2003");
+      },
+    });
+    await handle(new FakeChannel(), technical.deps, "job-t", 3);
+    assert.deepEqual(technical.reasons, [PRINT_JOB_FAILED_MESSAGE]);
+
+    const business = buildDeps({
+      generateFile: async () => {
+        throw new BaseError(400, "Prescription already issued");
+      },
+    });
+    await handle(new FakeChannel(), business.deps, "job-b");
+    assert.deepEqual(business.reasons, ["Prescription already issued"]);
   });
 
   it("message is settled when failure status update throws", async () => {

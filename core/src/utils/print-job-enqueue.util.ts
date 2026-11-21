@@ -12,7 +12,7 @@ export type { StoredPrintJob } from "../modules/print-job/repositories/print-job
 
 export const ACTIVE_PRINT_JOB_STALE_MS = 10 * 60 * 1000;
 export const PRINT_QUEUE_UNAVAILABLE_MESSAGE = "Print queue unavailable";
-const ABANDONED_JOB_MESSAGE = "Abandoned: no progress within the active job window";
+export const PRINT_JOB_ABANDONED_MESSAGE = "Print job abandoned";
 
 export type EnqueuePrintJobInput = NewPrintJob;
 
@@ -47,7 +47,11 @@ function lockedStore(repository: PrintJobRepository): LockedPrintJobStore {
   return {
     findActive: (type, entityId) => repository.findActiveForEntity(type, entityId),
     markAbandoned: (jobId) =>
-      repository.markStatus(jobId, PrintJobStatus.FAILED, ABANDONED_JOB_MESSAGE),
+      repository.abandonIfStale(
+        jobId,
+        new Date(Date.now() - ACTIVE_PRINT_JOB_STALE_MS),
+        PRINT_JOB_ABANDONED_MESSAGE,
+      ),
     create: (input) => repository.create(input),
   };
 }
@@ -56,13 +60,13 @@ export const prismaPrintJobEnqueueDeps: PrintJobEnqueueDeps = {
   now: () => new Date(),
   withEntityLock: (type, entityId, work) =>
     prisma.$transaction(async (tx) => {
-      const lockKey = `print-job:${type}:${entityId}`;
-      await tx.$queryRaw`SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(${lockKey}))) AS locked`;
-      return work(lockedStore(new PrintJobRepository(tx)));
+      const repository = new PrintJobRepository(tx);
+      await repository.lockEntity(type, entityId);
+      return work(lockedStore(repository));
     }),
   publish: enqueuePrintJob,
   markPublishFailed: (jobId, errorMsg) =>
-    new PrintJobRepository().markStatus(jobId, PrintJobStatus.FAILED, errorMsg),
+    new PrintJobRepository().markPendingFailed(jobId, errorMsg),
 };
 
 function isFresh(job: StoredPrintJob, now: Date): boolean {
@@ -82,9 +86,11 @@ export async function findOrEnqueuePrintJob(
       for (const stale of active.filter((j) => !isFresh(j, now))) {
         await store.markAbandoned(stale.jobId);
       }
-      const running = active.find((j) => isFresh(j, now));
-      if (running) {
-        return { job: running, reused: true };
+      const queued = active.find(
+        (j) => j.status === PrintJobStatus.PENDING && isFresh(j, now),
+      );
+      if (queued) {
+        return { job: queued, reused: true };
       }
       return { job: await store.create(input), reused: false };
     },

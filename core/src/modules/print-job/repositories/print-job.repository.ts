@@ -1,7 +1,7 @@
 import { Prisma, PrintJobStatus, PrintJobType } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 
-export const ACTIVE_PRINT_JOB_STATUSES = [
+export const ACTIVE_PRINT_JOB_STATUSES: PrintJobStatus[] = [
   PrintJobStatus.PENDING,
   PrintJobStatus.PROCESSING,
 ];
@@ -32,6 +32,8 @@ export type WorkerPrintJob = {
   entityId: string | null;
   clinicId: string | null;
 };
+
+export type ClaimResult = "claimed" | "finished" | "busy" | "missing";
 
 export type NewPrintJob = {
   type: PrintJobType;
@@ -101,30 +103,58 @@ export class PrintJobRepository {
     });
   }
 
-  public async findRenderStartedAtForFile(fileId: string): Promise<Date | null> {
-    const producer = await this.db.printJob.findFirst({
-      where: { fileId, status: PrintJobStatus.DONE },
+  public async lockEntity(type: PrintJobType, entityId: string): Promise<void> {
+    const lockKey = `print-job:${type}:${entityId}`;
+    await this.db.$queryRaw`SELECT 1 FROM (SELECT pg_advisory_xact_lock(hashtext(${lockKey}))) AS locked`;
+  }
+
+  public async findLatestRenderStartedAt(
+    type: PrintJobType,
+    entityId: string,
+  ): Promise<Date | null> {
+    const latest = await this.db.printJob.findFirst({
+      where: { type, entityId, status: PrintJobStatus.DONE },
       orderBy: { finishedAt: "desc" },
       select: { startedAt: true },
     });
-    return producer?.startedAt ?? null;
+    return latest?.startedAt ?? null;
   }
 
-  public async claim(jobId: string): Promise<boolean> {
-    const { count } = await this.db.printJob.updateMany({
-      where: { jobId, status: { in: ACTIVE_PRINT_JOB_STATUSES } },
+  public async claimLocked(
+    jobId: string,
+    type: PrintJobType,
+    entityId: string,
+  ): Promise<ClaimResult> {
+    const current = await this.db.printJob.findUnique({
+      where: { jobId },
+      select: { status: true },
+    });
+    if (!current) return "missing";
+    if (!ACTIVE_PRINT_JOB_STATUSES.includes(current.status)) return "finished";
+    const sibling = await this.db.printJob.findFirst({
+      where: {
+        type,
+        entityId,
+        status: PrintJobStatus.PROCESSING,
+        jobId: { not: jobId },
+      },
+      select: { jobId: true },
+    });
+    if (sibling) return "busy";
+    await this.db.printJob.update({
+      where: { jobId },
       data: {
         status: PrintJobStatus.PROCESSING,
         startedAt: new Date(),
         errorMsg: null,
       },
     });
-    return count > 0;
+    return "claimed";
   }
 
-  public async markDone(jobId: string, fileId: string | null): Promise<void> {
-    await this.db.printJob.update({
-      where: { jobId },
+  public async markDone(jobId: string, fileId: string | null): Promise<boolean> {
+    const { count } = await this.db.printJob.updateMany({
+      where: { jobId, status: PrintJobStatus.PROCESSING },
       data: {
         status: PrintJobStatus.DONE,
         fileId,
@@ -132,16 +162,40 @@ export class PrintJobRepository {
         errorMsg: null,
       },
     });
+    return count > 0;
   }
 
-  public async markStatus(
+  public async markProcessingFailure(
     jobId: string,
     status: PrintJobStatus,
     errorMsg: string,
-  ): Promise<void> {
-    await this.db.printJob.update({
-      where: { jobId },
+  ): Promise<boolean> {
+    const { count } = await this.db.printJob.updateMany({
+      where: { jobId, status: PrintJobStatus.PROCESSING },
       data: { status, errorMsg, finishedAt: new Date() },
+    });
+    return count > 0;
+  }
+
+  public async markPendingFailed(jobId: string, errorMsg: string): Promise<void> {
+    await this.db.printJob.updateMany({
+      where: { jobId, status: PrintJobStatus.PENDING },
+      data: { status: PrintJobStatus.FAILED, errorMsg, finishedAt: new Date() },
+    });
+  }
+
+  public async abandonIfStale(
+    jobId: string,
+    createdBefore: Date,
+    errorMsg: string,
+  ): Promise<void> {
+    await this.db.printJob.updateMany({
+      where: {
+        jobId,
+        status: { in: ACTIVE_PRINT_JOB_STATUSES },
+        createdAt: { lt: createdBefore },
+      },
+      data: { status: PrintJobStatus.FAILED, errorMsg, finishedAt: new Date() },
     });
   }
 }

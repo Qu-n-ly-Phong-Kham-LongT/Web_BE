@@ -193,7 +193,10 @@ export class SharedService {
       const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
       const latestChange = this.getLatestRecordChange(fullRecord);
       const renderStartedAt =
-        await this.printJobRepository.findRenderStartedAtForFile(existing.fileID);
+        await this.printJobRepository.findLatestRenderStartedAt(
+          PrintJobType.MEDICAL_RECORD,
+          recordId,
+        );
       if (isRecordFileFresh(latestChange, existing.createdAt, renderStartedAt)) {
         return { file: existing, enqueued: false };
       }

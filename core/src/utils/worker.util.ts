@@ -1,4 +1,5 @@
 import { PrintJobType } from "@prisma/client";
+import { prisma } from "../config/database.config";
 import { BaseError } from "./base-error.util";
 import { PrintJobRepository } from "../modules/print-job/repositories/print-job.repository";
 import { SharedService } from "../modules/shared/services/shared.service";
@@ -76,11 +77,18 @@ export function buildPrintJobHandlerDeps(): PrintJobHandlerDeps {
   return {
     retryMax: getNumberEnv("RABBITMQ_JOB_RETRY_MAX", DEFAULT_JOB_RETRY_MAX),
     findJob: (jobId) => printJobRepository.findForWorker(jobId),
-    claimJob: (jobId) => printJobRepository.claim(jobId),
+    claimJob: (job) =>
+      prisma.$transaction(async (tx) => {
+        const locked = new PrintJobRepository(tx);
+        const entityKey = job.entityId ?? job.jobId;
+        await locked.lockEntity(job.type, entityKey);
+        return locked.claimLocked(job.jobId, job.type, entityKey);
+      }),
     generateFile: generatePrintFile,
     markDone: (jobId, file) => printJobRepository.markDone(jobId, file.fileId),
-    markFailure: (jobId, status, errorMsg) =>
-      printJobRepository.markStatus(jobId, status, errorMsg),
+    markFailure: async (jobId, status, errorMsg) => {
+      await printJobRepository.markProcessingFailure(jobId, status, errorMsg);
+    },
     emit: emitToJob,
   };
 }

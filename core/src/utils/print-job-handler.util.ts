@@ -4,6 +4,7 @@ import { BaseError } from "./base-error.util";
 import { QUEUE_DEAD, QUEUE_MAIN, QUEUE_RETRY } from "./print-job-queue.util";
 import { WORKER_PREFIX, type PrintMessageHandler } from "./print-worker.util";
 
+export const PRINT_JOB_FAILED_MESSAGE = "Print job failed";
 
 export type PrintJobRecord = {
   jobId: string;
@@ -17,12 +18,14 @@ export type GeneratedPrintFile = {
   fileUrl: string | null;
 };
 
+export type ClaimOutcome = "claimed" | "finished" | "busy" | "missing";
+
 export type PrintJobHandlerDeps = {
   retryMax: number;
   findJob: (jobId: string) => Promise<PrintJobRecord | null>;
-  claimJob: (jobId: string) => Promise<boolean>;
+  claimJob: (job: PrintJobRecord) => Promise<ClaimOutcome>;
   generateFile: (job: PrintJobRecord) => Promise<GeneratedPrintFile>;
-  markDone: (jobId: string, file: GeneratedPrintFile) => Promise<void>;
+  markDone: (jobId: string, file: GeneratedPrintFile) => Promise<boolean>;
   markFailure: (
     jobId: string,
     status: PrintJobStatus,
@@ -38,9 +41,11 @@ export function shouldRetryJob(error: unknown): boolean {
   return true;
 }
 
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error ?? "Unknown error");
+function toUserReason(error: unknown): string {
+  if (error instanceof BaseError && error.statusCode < 500) {
+    return error.message;
+  }
+  return PRINT_JOB_FAILED_MESSAGE;
 }
 
 function parseJobId(msg: ConsumeMessage): string {
@@ -64,25 +69,23 @@ function tryAck(channel: Channel, msg: ConsumeMessage, jobId: string): void {
   }
 }
 
-function requeueOrDeadLetter(
+function moveMessage(
   channel: Channel,
   msg: ConsumeMessage,
   jobId: string,
-  retryable: boolean,
-  currentRetry: number,
+  targetQueue: string,
+  retry: number,
 ): void {
   const headers = msg.properties?.headers ?? {};
-  const targetQueue = retryable ? QUEUE_RETRY : QUEUE_DEAD;
-  const nextRetry = retryable ? currentRetry + 1 : currentRetry;
   try {
     channel.sendToQueue(targetQueue, msg.content, {
       persistent: true,
       contentType: msg.properties.contentType,
-      headers: { ...headers, "x-retry": nextRetry },
+      headers: { ...headers, "x-retry": retry },
     });
     channel.ack(msg);
     console.warn(
-      `${WORKER_PREFIX} moved: from=${QUEUE_MAIN} to=${targetQueue} jobId=${jobId || "unknown"} retry=${nextRetry}`,
+      `${WORKER_PREFIX} moved: from=${QUEUE_MAIN} to=${targetQueue} jobId=${jobId || "unknown"} retry=${retry}`,
     );
   } catch (error) {
     console.error(
@@ -92,85 +95,116 @@ function requeueOrDeadLetter(
   }
 }
 
-export function createPrintJobHandler(
+async function processJob(
   deps: PrintJobHandlerDeps,
-): PrintMessageHandler {
-  return async (channel, msg) => {
-    const currentRetry = Number(msg.properties?.headers?.["x-retry"] ?? 0);
-    let jobId = "";
-
-    try {
-      jobId = parseJobId(msg);
+  channel: Channel,
+  msg: ConsumeMessage,
+  jobId: string,
+  currentRetry: number,
+): Promise<void> {
+  try {
+    const job = await deps.findJob(jobId);
+    const outcome = job ? await deps.claimJob(job) : "missing";
+    if (!job || outcome === "missing" || outcome === "finished") {
+      console.warn(`${WORKER_PREFIX} job ${outcome}: jobId=${jobId}, ack and skip`);
+      tryAck(channel, msg, jobId);
+      return;
+    }
+    if (outcome === "busy") {
       console.log(
-        `${WORKER_PREFIX} received: queue=${QUEUE_MAIN} jobId=${jobId} retry=${currentRetry}/${deps.retryMax}`,
+        `${WORKER_PREFIX} document busy, postponing: jobId=${jobId} entityId=${job.entityId ?? "null"}`,
       );
-
-      const job = await deps.findJob(jobId);
-      if (!job) {
-        console.warn(`${WORKER_PREFIX} job not found: jobId=${jobId}, ack and skip`);
-        tryAck(channel, msg, jobId);
-        return;
-      }
-
-      if (!(await deps.claimJob(jobId))) {
-        console.warn(
-          `${WORKER_PREFIX} job already finished: jobId=${jobId}, ack and skip`,
-        );
-        tryAck(channel, msg, jobId);
-        return;
-      }
-      deps.emit(jobId, "print.processing", {
-        jobId,
-        status: PrintJobStatus.PROCESSING,
-      });
-      console.log(
-        `${WORKER_PREFIX} processing: jobId=${jobId} type=${job.type} entityId=${job.entityId ?? "null"}`,
-      );
-
-      const file = await deps.generateFile(job);
-      await deps.markDone(jobId, file);
-      console.log(
-        `${WORKER_PREFIX} done: jobId=${jobId} fileId=${file.fileId ?? "null"} fileUrl=${file.fileUrl ?? "null"}`,
-      );
-      deps.emit(jobId, "print.done", {
-        jobId,
-        status: PrintJobStatus.DONE,
-        fileId: file.fileId,
-        fileUrl: file.fileUrl,
-      });
-    } catch (error) {
-      const errorMsg = toErrorMessage(error);
-      console.error(
-        `${WORKER_PREFIX} failed: queue=${QUEUE_MAIN} jobId=${jobId || "unknown"} retry=${currentRetry}/${deps.retryMax}`,
-        error,
-      );
-
-      const retryable = shouldRetryJob(error) && currentRetry < deps.retryMax;
-      const nextStatus = retryable
-        ? PrintJobStatus.PENDING
-        : PrintJobStatus.FAILED;
-
-      requeueOrDeadLetter(channel, msg, jobId, retryable, currentRetry);
-
-      if (jobId) {
-        try {
-          await deps.markFailure(jobId, nextStatus, errorMsg);
-        } catch (updateError) {
-          console.error(
-            `${WORKER_PREFIX} could not record failure: jobId=${jobId}`,
-            updateError,
-          );
-        }
-      }
-      deps.emit(jobId, retryable ? "print.retrying" : "print.failed", {
-        jobId,
-        status: nextStatus,
-        errorMsg,
-        retry: retryable ? currentRetry + 1 : currentRetry,
-      });
+      moveMessage(channel, msg, jobId, QUEUE_RETRY, currentRetry);
       return;
     }
 
-    tryAck(channel, msg, jobId);
+    deps.emit(jobId, "print.processing", {
+      jobId,
+      status: PrintJobStatus.PROCESSING,
+    });
+    console.log(
+      `${WORKER_PREFIX} processing: jobId=${jobId} type=${job.type} entityId=${job.entityId ?? "null"}`,
+    );
+
+    const file = await deps.generateFile(job);
+    const recorded = await deps.markDone(jobId, file);
+    console.log(
+      `${WORKER_PREFIX} done: jobId=${jobId} fileId=${file.fileId ?? "null"} recorded=${recorded}`,
+    );
+    deps.emit(jobId, "print.done", {
+      jobId,
+      status: PrintJobStatus.DONE,
+      fileId: file.fileId,
+      fileUrl: file.fileUrl,
+    });
+  } catch (error) {
+    console.error(
+      `${WORKER_PREFIX} failed: queue=${QUEUE_MAIN} jobId=${jobId} retry=${currentRetry}/${deps.retryMax}`,
+      error,
+    );
+
+    const retryable = shouldRetryJob(error) && currentRetry < deps.retryMax;
+    const nextStatus = retryable ? PrintJobStatus.PENDING : PrintJobStatus.FAILED;
+    const nextRetry = retryable ? currentRetry + 1 : currentRetry;
+    const reason = toUserReason(error);
+
+    moveMessage(channel, msg, jobId, retryable ? QUEUE_RETRY : QUEUE_DEAD, nextRetry);
+
+    try {
+      await deps.markFailure(jobId, nextStatus, reason);
+    } catch (updateError) {
+      console.error(
+        `${WORKER_PREFIX} could not record failure: jobId=${jobId}`,
+        updateError,
+      );
+    }
+    deps.emit(jobId, retryable ? "print.retrying" : "print.failed", {
+      jobId,
+      status: nextStatus,
+      errorMsg: reason,
+      retry: nextRetry,
+    });
+    return;
+  }
+
+  tryAck(channel, msg, jobId);
+}
+
+export function createPrintJobHandler(
+  deps: PrintJobHandlerDeps,
+): PrintMessageHandler {
+  const inFlight = new Map<string, Promise<void>>();
+
+  return async (channel, msg) => {
+    const currentRetry = Number(msg.properties?.headers?.["x-retry"] ?? 0);
+    let jobId: string;
+    try {
+      jobId = parseJobId(msg);
+    } catch (error) {
+      console.error(`${WORKER_PREFIX} unreadable message, dead-lettering`, error);
+      moveMessage(channel, msg, "", QUEUE_DEAD, currentRetry);
+      return;
+    }
+    console.log(
+      `${WORKER_PREFIX} received: queue=${QUEUE_MAIN} jobId=${jobId} retry=${currentRetry}/${deps.retryMax}`,
+    );
+
+    const running = inFlight.get(jobId);
+    if (running) {
+      console.warn(
+        `${WORKER_PREFIX} redelivered while running: jobId=${jobId}, waiting for current run`,
+      );
+      await running;
+      tryAck(channel, msg, jobId);
+      return;
+    }
+
+    const run = processJob(deps, channel, msg, jobId, currentRetry);
+    inFlight.set(jobId, run);
+    try {
+      await run;
+    } finally {
+      inFlight.delete(jobId);
+    }
   };
 }
