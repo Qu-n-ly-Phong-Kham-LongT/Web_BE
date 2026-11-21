@@ -12,6 +12,8 @@ server.listen(ENV.port, () => {
 
 initSocket(server);
 
-runWorker().catch((error) => {
+try {
+  runWorker();
+} catch (error) {
   console.error("Worker failed to start:", error);
-});
+}
