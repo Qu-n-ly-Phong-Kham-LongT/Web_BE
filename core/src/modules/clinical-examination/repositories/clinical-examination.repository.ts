@@ -1,7 +1,7 @@
 import { ClinicalExamination, Prisma } from "@prisma/client";
 import { prisma } from "../../../config/database.config";
 
-const INHERITED_HISTORY_LOOKBACK = 20;
+const INHERITED_HISTORY_MAX_RECORDS_SCANNED = 20;
 
 export function pickInheritedPastMedicalHistory(
   histories: Array<string | null>,
@@ -10,12 +10,14 @@ export function pickInheritedPastMedicalHistory(
 }
 
 export class ClinicalExaminationRepository {
+  constructor(private readonly db: Prisma.TransactionClient = prisma) {}
+
   public async findInheritedPastMedicalHistory(
     patientId: string,
     clinicId: string,
     createdBefore: Date,
   ): Promise<string | null> {
-    const earlierExams = await prisma.clinicalExamination.findMany({
+    const earlierExams = await this.db.clinicalExamination.findMany({
       where: {
         AND: [
           { pastMedicalHistory: { not: null } },
@@ -30,7 +32,7 @@ export class ClinicalExaminationRepository {
       },
       orderBy: { medicalRecord: { createdAt: "desc" } },
       select: { pastMedicalHistory: true },
-      take: INHERITED_HISTORY_LOOKBACK,
+      take: INHERITED_HISTORY_MAX_RECORDS_SCANNED,
     });
     return pickInheritedPastMedicalHistory(
       earlierExams.map((exam) => exam.pastMedicalHistory),

@@ -32,6 +32,19 @@ export class MedicalRecordService {
   private serviceItemRepository = new ServiceItemRepository();
   private medicineRepository = new MedicineRepository();
 
+  private async findInheritedPastMedicalHistory(
+    patientId: string,
+    clinicId: string,
+    recordDay: Date,
+  ): Promise<string | null> {
+    const { startUtc } = getUtcDayRangeForTimeZone(recordDay, "Asia/Ho_Chi_Minh");
+    return this.clinicalExaminationRepository.findInheritedPastMedicalHistory(
+      patientId,
+      clinicId,
+      startUtc,
+    );
+  }
+
   public async createBasicMedicalRecord(
     createData: BasicMedicalRecordRequestDto,
   ): Promise<{
@@ -79,6 +92,13 @@ export class MedicalRecordService {
       );
     }
 
+    const inheritedPastMedicalHistory =
+      await this.findInheritedPastMedicalHistory(
+        createData.patientId || "",
+        createData.clinicId ?? "",
+        new Date(),
+      );
+
     const record = await this.medicalRecordRepository.createRecord({
       patientId: createData.patientId,
       doctorId: createData.doctorId,
@@ -96,12 +116,7 @@ export class MedicalRecordService {
         recordId: record.recordId,
         examinedBy: createData.doctorId,
         userId: createData.doctorId,
-        pastMedicalHistory:
-          await this.clinicalExaminationRepository.findInheritedPastMedicalHistory(
-            createData.patientId || "",
-            createData.clinicId ?? "",
-            startUtc,
-          ),
+        pastMedicalHistory: inheritedPastMedicalHistory,
       });
       examinationId = exam.examId;
     }
@@ -958,6 +973,13 @@ export class MedicalRecordService {
       );
     }
 
+    const inheritedPastMedicalHistory =
+      await this.findInheritedPastMedicalHistory(
+        createData.patientId || "",
+        createData.clinicId ?? "",
+        createdAt,
+      );
+
     const record = await this.medicalRecordRepository.createRecord({
       patientId: createData.patientId,
       doctorId: createData.doctorId,
@@ -978,12 +1000,7 @@ export class MedicalRecordService {
         recordId: record.recordId,
         examinedBy: createData.doctorId,
         userId: createData.doctorId,
-        pastMedicalHistory:
-          await this.clinicalExaminationRepository.findInheritedPastMedicalHistory(
-            createData.patientId || "",
-            createData.clinicId ?? "",
-            startUtc,
-          ),
+        pastMedicalHistory: inheritedPastMedicalHistory,
       });
       examinationId = exam.examId;
     }
