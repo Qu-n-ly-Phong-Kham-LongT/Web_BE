@@ -34,7 +34,12 @@ export type WorkerPrintJob = {
   clinicId: string | null;
 };
 
-export type ClaimResult = "claimed" | "finished" | "busy" | "missing";
+export type ClaimResult =
+  | { outcome: "claimed"; leaseStartedAt: Date }
+  | { outcome: "finished" }
+  | { outcome: "busy" }
+  | { outcome: "missing" }
+  | { outcome: "expired" };
 
 export type NewPrintJob = {
   type: PrintJobType;
@@ -131,13 +136,22 @@ export class PrintJobRepository {
   ): Promise<ClaimResult> {
     const current = await this.db.printJob.findUnique({
       where: { jobId },
-      select: { status: true, createdAt: true },
+      select: { status: true, createdAt: true, startedAt: true },
     });
-    if (!current) return "missing";
-    if (!ACTIVE_PRINT_JOB_STATUSES.includes(current.status)) return "finished";
-    if (current.status === PrintJobStatus.PENDING && current.createdAt < staleBefore) {
+    if (!current) return { outcome: "missing" };
+    if (!ACTIVE_PRINT_JOB_STATUSES.includes(current.status)) return { outcome: "finished" };
+    if (
+      current.status === PrintJobStatus.PENDING &&
+      (current.startedAt ?? current.createdAt) < staleBefore
+    ) {
       await this.abandonIfStale(jobId, staleBefore, abandonedMessage);
-      return "finished";
+      return { outcome: "expired" };
+    }
+    if (
+      current.status === PrintJobStatus.PROCESSING &&
+      (current.startedAt ?? current.createdAt) >= staleBefore
+    ) {
+      return { outcome: "busy" };
     }
     const sibling = await this.db.printJob.findFirst({
       where: {
@@ -146,26 +160,33 @@ export class PrintJobRepository {
         status: PrintJobStatus.PROCESSING,
         jobId: { not: jobId },
       },
-      select: { jobId: true, startedAt: true },
+      select: { jobId: true, createdAt: true, startedAt: true },
     });
     if (sibling) {
-      if (!sibling.startedAt || sibling.startedAt >= staleBefore) return "busy";
+      if ((sibling.startedAt ?? sibling.createdAt) >= staleBefore) {
+        return { outcome: "busy" };
+      }
       await this.abandonIfStale(sibling.jobId, staleBefore, abandonedMessage);
     }
+    const leaseStartedAt = new Date();
     await this.db.printJob.update({
       where: { jobId },
       data: {
         status: PrintJobStatus.PROCESSING,
-        startedAt: new Date(),
+        startedAt: leaseStartedAt,
         errorMsg: null,
       },
     });
-    return "claimed";
+    return { outcome: "claimed", leaseStartedAt };
   }
 
-  public async markDone(jobId: string, fileId: string | null): Promise<boolean> {
+  public async markDone(
+    jobId: string,
+    fileId: string | null,
+    leaseStartedAt: Date,
+  ): Promise<boolean> {
     const { count } = await this.db.printJob.updateMany({
-      where: { jobId, status: PrintJobStatus.PROCESSING },
+      where: { jobId, status: PrintJobStatus.PROCESSING, startedAt: leaseStartedAt },
       data: {
         status: PrintJobStatus.DONE,
         fileId,
@@ -180,19 +201,21 @@ export class PrintJobRepository {
     jobId: string,
     status: PrintJobStatus,
     errorMsg: string,
+    leaseStartedAt: Date,
   ): Promise<boolean> {
     const { count } = await this.db.printJob.updateMany({
-      where: { jobId, status: PrintJobStatus.PROCESSING },
+      where: { jobId, status: PrintJobStatus.PROCESSING, startedAt: leaseStartedAt },
       data: { status, errorMsg, finishedAt: new Date() },
     });
     return count > 0;
   }
 
-  public async markPendingFailed(jobId: string, errorMsg: string): Promise<void> {
-    await this.db.printJob.updateMany({
+  public async markPendingFailed(jobId: string, errorMsg: string): Promise<boolean> {
+    const { count } = await this.db.printJob.updateMany({
       where: { jobId, status: PrintJobStatus.PENDING },
       data: { status: PrintJobStatus.FAILED, errorMsg, finishedAt: new Date() },
     });
+    return count > 0;
   }
 
   public async abandonIfStale(
@@ -204,8 +227,18 @@ export class PrintJobRepository {
       where: {
         jobId,
         OR: [
-          { status: PrintJobStatus.PENDING, createdAt: { lt: staleBefore } },
+          { status: PrintJobStatus.PENDING, startedAt: { lt: staleBefore } },
+          {
+            status: PrintJobStatus.PENDING,
+            startedAt: null,
+            createdAt: { lt: staleBefore },
+          },
           { status: PrintJobStatus.PROCESSING, startedAt: { lt: staleBefore } },
+          {
+            status: PrintJobStatus.PROCESSING,
+            startedAt: null,
+            createdAt: { lt: staleBefore },
+          },
         ],
       },
       data: { status: PrintJobStatus.FAILED, errorMsg, finishedAt: new Date() },

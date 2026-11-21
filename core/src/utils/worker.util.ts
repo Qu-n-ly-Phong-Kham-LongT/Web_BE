@@ -101,10 +101,10 @@ export function buildPrintJobHandlerDeps(): PrintJobHandlerDeps {
         );
       }),
     generateFile: generatePrintFile,
-    markDone: (jobId, file) => printJobRepository.markDone(jobId, file.fileId),
-    markFailure: async (jobId, status, errorMsg) => {
-      await printJobRepository.markProcessingFailure(jobId, status, errorMsg);
-    },
+    markDone: (jobId, file, leaseStartedAt) =>
+      printJobRepository.markDone(jobId, file.fileId, leaseStartedAt),
+    markFailure: (jobId, status, errorMsg, leaseStartedAt) =>
+      printJobRepository.markProcessingFailure(jobId, status, errorMsg, leaseStartedAt),
     markUnclaimedFailed: (jobId, errorMsg) =>
       printJobRepository.markPendingFailed(jobId, errorMsg),
     emit: emitToJob,

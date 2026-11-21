@@ -157,6 +157,19 @@ describe("findOrEnqueuePrintJob", () => {
     assert.equal(jobs.find((j) => j.jobId === first.jobId)?.status, PrintJobStatus.PROCESSING);
   });
 
+  it("keeps a retried job that rendered recently", async () => {
+    let clock = new Date("2026-11-21T04:00:00Z");
+    const { deps, jobs } = createMemoryDeps(() => clock);
+
+    const first = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+    clock = new Date(clock.getTime() + ACTIVE_PRINT_JOB_STALE_MS + 60_000);
+    jobs[0].startedAt = new Date(clock.getTime() - 30_000);
+    const again = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+
+    assert.equal(again.jobId, first.jobId);
+    assert.equal(again.reused, true);
+  });
+
   it("abandons a job that has been rendering for too long", async () => {
     let clock = new Date("2026-11-21T04:00:00Z");
     const { deps, jobs } = createMemoryDeps(() => clock);

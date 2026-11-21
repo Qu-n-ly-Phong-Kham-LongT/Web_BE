@@ -12,6 +12,8 @@ import { buildMessage, FakeChannel } from "../helpers/fake-amqp";
 
 type Emitted = { jobId: string; event: string; data: unknown };
 
+const claimed = () => ({ outcome: "claimed" as const, leaseStartedAt: new Date() });
+
 function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
   const emitted: Emitted[] = [];
   const failures: Array<{ jobId: string; status: PrintJobStatus }> = [];
@@ -25,7 +27,7 @@ function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
       entityId: "entity-1",
       clinicId: "clinic-1",
     }),
-    claimJob: async () => "claimed",
+    claimJob: async () => claimed(),
     generateFile: async () => ({
       fileId: "file-1",
       fileUrl: "https://files/x.pdf",
@@ -34,10 +36,12 @@ function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
     markFailure: async (jobId, status, errorMsg) => {
       failures.push({ jobId, status });
       reasons.push(errorMsg);
+      return true;
     },
     markUnclaimedFailed: async (jobId, errorMsg) => {
       unclaimed.push(jobId);
       reasons.push(errorMsg);
+      return true;
     },
     emit: (jobId, event, data) => {
       emitted.push({ jobId, event, data });
@@ -87,7 +91,7 @@ describe("createPrintJobHandler", () => {
     const channel = new FakeChannel();
     let generated = 0;
     const { deps, emitted } = buildDeps({
-      claimJob: async () => "finished",
+      claimJob: async () => ({ outcome: "finished" }),
       generateFile: async () => {
         generated += 1;
         return { fileId: "file-1", fileUrl: null };
@@ -106,7 +110,7 @@ describe("createPrintJobHandler", () => {
     const channel = new FakeChannel();
     let generated = 0;
     const { deps, emitted } = buildDeps({
-      claimJob: async () => "busy",
+      claimJob: async () => ({ outcome: "busy" }),
       generateFile: async () => {
         generated += 1;
         return { fileId: null, fileUrl: null };
@@ -128,7 +132,7 @@ describe("createPrintJobHandler", () => {
     let generated = 0;
     let finished = false;
     const { deps } = buildDeps({
-      claimJob: async () => (finished ? "finished" : "claimed"),
+      claimJob: async () => (finished ? { outcome: "finished" } : claimed()),
       generateFile: async () => {
         generated += 1;
         await new Promise<void>((resolve) => (release = resolve));
@@ -214,12 +218,89 @@ describe("createPrintJobHandler", () => {
       },
       markFailure: async () => {
         order.push("db");
+        return true;
       },
     });
 
     await handle(channel, deps, "job-o");
 
     assert.deepEqual(order, ["db", `send:${QUEUE_DEAD}`]);
+  });
+
+  it("never renders twice when the broker redelivers a running job several times", async () => {
+    const releases: Array<() => void> = [];
+    let attempts = 0;
+    let rendering = 0;
+    let maxParallel = 0;
+    let finished = false;
+    const { deps } = buildDeps({
+      claimJob: async () => (finished ? { outcome: "finished" } : claimed()),
+      generateFile: async () => {
+        attempts += 1;
+        const attempt = attempts;
+        rendering += 1;
+        maxParallel = Math.max(maxParallel, rendering);
+        await new Promise<void>((resolve) => releases.push(resolve));
+        rendering -= 1;
+        if (attempt === 1) throw new Error("Timeout");
+        return { fileId: "file-1", fileUrl: null };
+      },
+      markDone: async () => {
+        finished = true;
+        return true;
+      },
+    });
+    const handler = createPrintJobHandler(deps);
+    const broken = new FakeChannel();
+    broken.failOnSend = true;
+    const channels = [new FakeChannel(), new FakeChannel()];
+
+    const runs = [handler(broken.asChannel(), buildMessage({ jobId: "job-m" }))];
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    runs.push(handler(channels[0].asChannel(), buildMessage({ jobId: "job-m" })));
+    runs.push(handler(channels[1].asChannel(), buildMessage({ jobId: "job-m" })));
+    for (let i = 0; i < 4; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      releases.shift()?.();
+    }
+    await Promise.all(runs);
+
+    assert.equal(maxParallel, 1);
+    assert.equal(attempts, 2);
+    assert.equal(channels[0].acked.length + channels[1].acked.length, 2);
+  });
+
+  it("tells the client when a job expired before it could run", async () => {
+    const channel = new FakeChannel();
+    const { deps, emitted } = buildDeps({ claimJob: async () => ({ outcome: "expired" }) });
+
+    await handle(channel, deps, "job-old");
+
+    assert.equal(channel.acked.length, 1);
+    assert.equal(emitted[0]?.event, "print.failed");
+  });
+
+  it("does not announce a file for a job that was abandoned meanwhile", async () => {
+    const channel = new FakeChannel();
+    const { deps, emitted } = buildDeps({ markDone: async () => false });
+
+    await handle(channel, deps, "job-late");
+
+    assert.equal(channel.acked.length, 1);
+    assert.ok(!emitted.some((e) => e.event === "print.done"));
+  });
+
+  it("does not announce a failure after the job lease has changed", async () => {
+    const { deps, emitted } = buildDeps({
+      generateFile: async () => {
+        throw new BaseError(400, "Invalid print request");
+      },
+      markFailure: async () => false,
+    });
+
+    await handle(new FakeChannel(), deps, "job-old-lease");
+
+    assert.ok(!emitted.some((event) => event.event === "print.failed"));
   });
 
   it("stores a generic reason for technical failures and keeps business messages", async () => {

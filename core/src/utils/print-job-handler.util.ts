@@ -2,6 +2,8 @@ import { Channel, ConsumeMessage } from "amqplib";
 import { PrintJobStatus, PrintJobType } from "@prisma/client";
 import { BaseError } from "./base-error.util";
 import { QUEUE_DEAD, QUEUE_MAIN, QUEUE_RETRY } from "./print-job-queue.util";
+import { PRINT_JOB_ABANDONED_MESSAGE } from "./print-job-enqueue.util";
+import type { ClaimResult } from "../modules/print-job/repositories/print-job.repository";
 import { WORKER_PREFIX, type PrintMessageHandler } from "./print-worker.util";
 
 export const PRINT_JOB_FAILED_MESSAGE = "Print job failed";
@@ -18,20 +20,25 @@ export type GeneratedPrintFile = {
   fileUrl: string | null;
 };
 
-export type ClaimOutcome = "claimed" | "finished" | "busy" | "missing";
+export type ClaimOutcome = ClaimResult;
 
 export type PrintJobHandlerDeps = {
   retryMax: number;
   findJob: (jobId: string) => Promise<PrintJobRecord | null>;
   claimJob: (job: PrintJobRecord) => Promise<ClaimOutcome>;
   generateFile: (job: PrintJobRecord) => Promise<GeneratedPrintFile>;
-  markDone: (jobId: string, file: GeneratedPrintFile) => Promise<boolean>;
+  markDone: (
+    jobId: string,
+    file: GeneratedPrintFile,
+    leaseStartedAt: Date,
+  ) => Promise<boolean>;
   markFailure: (
     jobId: string,
     status: PrintJobStatus,
     errorMsg: string,
-  ) => Promise<void>;
-  markUnclaimedFailed: (jobId: string, errorMsg: string) => Promise<void>;
+    leaseStartedAt: Date,
+  ) => Promise<boolean>;
+  markUnclaimedFailed: (jobId: string, errorMsg: string) => Promise<boolean>;
   emit: (jobId: string, event: string, data: unknown) => void;
 };
 
@@ -104,12 +111,22 @@ async function processJob(
   currentRetry: number,
 ): Promise<void> {
   let claimed = false;
+  let leaseStartedAt: Date | null = null;
   try {
     const job = await deps.findJob(jobId);
-    const outcome = job ? await deps.claimJob(job) : "missing";
-    claimed = outcome === "claimed";
+    const claim = job ? await deps.claimJob(job) : { outcome: "missing" as const };
+    const outcome = claim.outcome;
     if (!job || outcome === "missing" || outcome === "finished") {
       console.warn(`${WORKER_PREFIX} job ${outcome}: jobId=${jobId}, ack and skip`);
+      tryAck(channel, msg, jobId);
+      return;
+    }
+    if (outcome === "expired") {
+      deps.emit(jobId, "print.failed", {
+        jobId,
+        status: PrintJobStatus.FAILED,
+        errorMsg: PRINT_JOB_ABANDONED_MESSAGE,
+      });
       tryAck(channel, msg, jobId);
       return;
     }
@@ -120,6 +137,12 @@ async function processJob(
       moveMessage(channel, msg, jobId, QUEUE_RETRY, currentRetry);
       return;
     }
+    if (outcome !== "claimed") {
+      tryAck(channel, msg, jobId);
+      return;
+    }
+    leaseStartedAt = claim.leaseStartedAt;
+    claimed = true;
 
     deps.emit(jobId, "print.processing", {
       jobId,
@@ -130,10 +153,14 @@ async function processJob(
     );
 
     const file = await deps.generateFile(job);
-    const recorded = await deps.markDone(jobId, file);
+    const recorded = await deps.markDone(jobId, file, leaseStartedAt);
     console.log(
       `${WORKER_PREFIX} done: jobId=${jobId} fileId=${file.fileId ?? "null"} recorded=${recorded}`,
     );
+    if (!recorded) {
+      tryAck(channel, msg, jobId);
+      return;
+    }
     deps.emit(jobId, "print.done", {
       jobId,
       status: PrintJobStatus.DONE,
@@ -150,34 +177,39 @@ async function processJob(
     const nextStatus = retryable ? PrintJobStatus.PENDING : PrintJobStatus.FAILED;
     const nextRetry = retryable ? currentRetry + 1 : currentRetry;
     const reason = toUserReason(error);
-    const recordFailure = async () => {
+    const recordFailure = async (): Promise<boolean> => {
       try {
-        if (claimed) {
-          await deps.markFailure(jobId, nextStatus, reason);
+        if (claimed && leaseStartedAt) {
+          return await deps.markFailure(jobId, nextStatus, reason, leaseStartedAt);
         } else if (!retryable) {
-          await deps.markUnclaimedFailed(jobId, reason);
+          return await deps.markUnclaimedFailed(jobId, reason);
         }
+        return true;
       } catch (updateError) {
         console.error(
           `${WORKER_PREFIX} could not record failure: jobId=${jobId}`,
           updateError,
         );
+        return false;
       }
     };
 
+    let recorded = false;
     if (retryable) {
       moveMessage(channel, msg, jobId, QUEUE_RETRY, nextRetry);
-      await recordFailure();
+      recorded = await recordFailure();
     } else {
-      await recordFailure();
+      recorded = await recordFailure();
       moveMessage(channel, msg, jobId, QUEUE_DEAD, nextRetry);
     }
-    deps.emit(jobId, retryable ? "print.retrying" : "print.failed", {
-      jobId,
-      status: nextStatus,
-      errorMsg: reason,
-      retry: nextRetry,
-    });
+    if (recorded) {
+      deps.emit(jobId, retryable ? "print.retrying" : "print.failed", {
+        jobId,
+        status: nextStatus,
+        errorMsg: reason,
+        retry: nextRetry,
+      });
+    }
     return;
   }
 
@@ -203,20 +235,24 @@ export function createPrintJobHandler(
       `${WORKER_PREFIX} received: queue=${QUEUE_MAIN} jobId=${jobId} retry=${currentRetry}/${deps.retryMax}`,
     );
 
-    const running = inFlight.get(jobId);
-    if (running) {
-      console.warn(
-        `${WORKER_PREFIX} redelivered while running: jobId=${jobId}, waiting for current run`,
-      );
-      await running;
-    }
+    while (true) {
+      const running = inFlight.get(jobId);
+      if (running) {
+        console.warn(
+          `${WORKER_PREFIX} redelivered while running: jobId=${jobId}, waiting for current run`,
+        );
+        await running;
+        continue;
+      }
 
-    const run = processJob(deps, channel, msg, jobId, currentRetry);
-    inFlight.set(jobId, run);
-    try {
-      await run;
-    } finally {
-      if (inFlight.get(jobId) === run) inFlight.delete(jobId);
+      const run = processJob(deps, channel, msg, jobId, currentRetry);
+      inFlight.set(jobId, run);
+      try {
+        await run;
+      } finally {
+        if (inFlight.get(jobId) === run) inFlight.delete(jobId);
+      }
+      return;
     }
   };
 }

@@ -65,8 +65,9 @@ export const prismaPrintJobEnqueueDeps: PrintJobEnqueueDeps = {
       return work(lockedStore(repository));
     }),
   publish: enqueuePrintJob,
-  markPublishFailed: (jobId, errorMsg) =>
-    new PrintJobRepository().markPendingFailed(jobId, errorMsg),
+  markPublishFailed: async (jobId, errorMsg) => {
+    await new PrintJobRepository().markPendingFailed(jobId, errorMsg);
+  },
 };
 
 export function printJobStaleBefore(now: Date): Date {
@@ -74,8 +75,7 @@ export function printJobStaleBefore(now: Date): Date {
 }
 
 function isFresh(job: StoredPrintJob, now: Date): boolean {
-  const since =
-    job.status === PrintJobStatus.PROCESSING ? job.startedAt ?? job.createdAt : job.createdAt;
+  const since = job.startedAt ?? job.createdAt;
   return since >= printJobStaleBefore(now);
 }
 
