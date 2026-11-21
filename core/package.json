@@ -4,11 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test --require ts-node/register/transpile-only \"test/**/*.spec.ts\"",
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon --watch src --ext ts,json --exec \"npx ts-node\" src/server.ts",
-    "lint": "eslint 'src/**/*.ts'"
+    "lint": "eslint 'src/**/*.ts'",
+    "typecheck:test": "tsc -p tsconfig.test.json"
   },
   "repository": {
     "type": "git",

@@ -10,14 +10,23 @@ import { FileService } from "../../file/services/file.service";
 import { generateBarcodeBuffer } from "../../../utils/barcode.util";
 import { convertDocxToPdf } from "../../../utils/docx-to-pdf.util";
 import { FileRepository } from "../../file/repositories/file.repository";
-import { PrintJobStatus, PrintJobType } from "@prisma/client";
-import { prisma } from "../../../config/database.config";
-import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
+import { PrintJobType } from "@prisma/client";
+import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
+import { PrintJobRepository } from "../../print-job/repositories/print-job.repository";
+
+export function isRecordFileFresh(
+  latestChange: Date,
+  fileCreatedAt: Date,
+  renderStartedAt: Date | null,
+): boolean {
+  return latestChange <= (renderStartedAt ?? fileCreatedAt);
+}
 
 export class SharedService {
   private sharedReposoitory = new SharedRepository();
   private fileService = new FileService();
   private fileRepository = new FileRepository();
+  private printJobRepository = new PrintJobRepository();
 
   public async getFullMedicalRecord(
     recordId: string,
@@ -105,24 +114,13 @@ export class SharedService {
   ) {
     await this.getFullMedicalRecord(recordId, clinicId);
 
-    const job = await prisma.printJob.create({
-      data: {
-        type: PrintJobType.MEDICAL_RECORD,
-        status: PrintJobStatus.PENDING,
-        entityId: recordId,
-        clinicId: clinicId || null,
-        userId: userId ?? null,
-        payload: { recordId },
-      },
+    return await findOrEnqueuePrintJob({
+      type: PrintJobType.MEDICAL_RECORD,
+      entityId: recordId,
+      clinicId,
+      userId,
+      payload: { recordId },
     });
-
-    await enqueuePrintJob(job.jobId);
-
-    return {
-      jobId: job.jobId,
-      status: job.status,
-      type: job.type,
-    };
   }
 
   private parseDate(value?: string | Date | null): Date | null {
@@ -188,17 +186,29 @@ export class SharedService {
     }
   }
 
-  public async getMedicalRecordFile(recordId: string, clinicId: string) {
+  public async findFreshMedicalRecordFile(recordId: string, clinicId: string) {
     const existing = await this.fileRepository.findByMedicalRecordId(recordId);
+    if (!existing?.createdAt) return null;
+    const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
+    const renderStartedAt = await this.printJobRepository.findLatestRenderStartedAt(
+      PrintJobType.MEDICAL_RECORD,
+      recordId,
+    );
+    const fresh = isRecordFileFresh(
+      this.getLatestRecordChange(fullRecord),
+      existing.createdAt,
+      renderStartedAt,
+    );
+    return fresh ? existing : null;
+  }
 
-    if (existing?.createdAt) {
-      const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
-      const latestChange = this.getLatestRecordChange(fullRecord);
-      if (latestChange <= existing.createdAt) {
-        return { file: existing, enqueued: false };
-      }
+  public async getMedicalRecordFile(recordId: string, clinicId: string) {
+    const fresh = await this.findFreshMedicalRecordFile(recordId, clinicId);
+    if (fresh) {
+      return { file: fresh, enqueued: false };
     }
 
+    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
     const job = await this.enqueueMedicalRecordPrint(recordId, clinicId);
 
     return { file: existing ?? null, enqueued: true, stale: true, job };

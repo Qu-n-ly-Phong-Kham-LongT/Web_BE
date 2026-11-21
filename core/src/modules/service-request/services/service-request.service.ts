@@ -1,6 +1,6 @@
 import { BaseError } from "../../../utils/base-error.util";
 import { prisma } from "../../../config/database.config";
-import { Prisma, PrintJobStatus, PrintJobType, Session } from "@prisma/client";
+import { Prisma, PrintJobType, Session } from "@prisma/client";
 import { CreateServiceRequestDto } from "../dtos/service-request.request.dto";
 import { MedicalDiagnosisDto } from "../../medical-record/dtos/medical-record.request.dto";
 import {
@@ -31,7 +31,7 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
-import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
+import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
 
 export class ServiceRequestService {
   private serviceRequestRepository = new ServiceRequestRepository();
@@ -791,24 +791,13 @@ export class ServiceRequestService {
       throw new BaseError(403, "Phiếu chỉ định không thuộc phòng khám");
     }
 
-    const job = await prisma.printJob.create({
-      data: {
-        type: PrintJobType.SERVICE_REQUEST,
-        status: PrintJobStatus.PENDING,
-        entityId: requestId,
-        clinicId: clinicId || null,
-        userId: userId ?? null,
-        payload: { requestId },
-      },
+    return await findOrEnqueuePrintJob({
+      type: PrintJobType.SERVICE_REQUEST,
+      entityId: requestId,
+      clinicId,
+      userId,
+      payload: { requestId },
     });
-
-    await enqueuePrintJob(job.jobId);
-
-    return {
-      jobId: job.jobId,
-      status: job.status,
-      type: job.type,
-    };
   }
 
   public async initializeNewRequest(recordId: string, doctorId: string) {
@@ -883,23 +872,16 @@ export class ServiceRequestService {
       return { file, enqueued: false };
     }
 
-    const job = await prisma.printJob.create({
-      data: {
-        type: PrintJobType.SERVICE_REQUEST,
-        status: PrintJobStatus.PENDING,
-        entityId: requestId,
-        clinicId: clinicId ? clinicId : null,
-        userId: userId ? userId : null,
-        payload: { requestId },
-      },
+    const job = await findOrEnqueuePrintJob({
+      type: PrintJobType.SERVICE_REQUEST,
+      entityId: requestId,
+      clinicId,
+      userId,
+      payload: { requestId },
     });
 
-    await enqueuePrintJob(job.jobId);
-
     return {
-      jobId: job.jobId,
-      status: job.status,
-      type: job.type,
+      ...job,
       enqueued: true,
     };
   }

@@ -1,7 +1,6 @@
 import {
   Prisma,
   PrescriptionStatus,
-  PrintJobStatus,
   PrintJobType,
 } from "@prisma/client";
 import { BaseError } from "../../../utils/base-error.util";
@@ -20,10 +19,22 @@ import Docxtemplater from "docxtemplater";
 import ImageModule from "docxtemplater-image-module-free";
 import PizZip from "pizzip";
 import { FileService } from "../../file/services/file.service";
+import { FileRepository } from "../../file/repositories/file.repository";
 import { PatientRepository } from "../../patient/repositories/patient.repository";
-import { enqueuePrintJob } from "../../../utils/print-job-queue.util";
+import { findOrEnqueuePrintJob } from "../../../utils/print-job-enqueue.util";
 import { getUtcDayRangeForTimeZone } from "../../../utils/date.util";
 import { createPagination } from "../../../utils/pagination.util";
+
+export type PrescriptionPrintAction = "render" | "reuse" | "reject";
+
+export function resolvePrescriptionPrintAction(
+  status: PrescriptionStatus | null,
+  hasFile: boolean,
+): PrescriptionPrintAction {
+  if (status === PrescriptionStatus.Draft) return "render";
+  if (status === PrescriptionStatus.Issued && hasFile) return "reuse";
+  return "reject";
+}
 
 export class PrecriptionService {
   private medicalRecordRepository = new MedicalRecordRepository();
@@ -31,6 +42,7 @@ export class PrecriptionService {
   private medicineRepository = new MedicineRepository();
   private patientRepository = new PatientRepository();
   private fileService = new FileService();
+  private fileRepository = new FileRepository();
 
   public async upsertPrecriptionDiagnosis(
     payload: UpsertDianosisPrescriptionDto,
@@ -437,7 +449,7 @@ export class PrecriptionService {
   public async printPrescriptionPdf(
     prescriptionId: string,
     clinicId?: string,
-  ): Promise<{ buffer: Buffer; prescriptionCode: string }> {
+  ): Promise<{ reused: boolean }> {
     const existing = await prisma.prescription.findUnique({
       where: { prescriptionId },
       select: { status: true, printCount: true },
@@ -447,7 +459,16 @@ export class PrecriptionService {
       throw new BaseError(404, "Không tìm thấy toa thuốc để in");
     }
 
-    if (existing.status !== PrescriptionStatus.Draft) {
+    const existingFile =
+      await this.fileRepository.findByPrescriptionId(prescriptionId);
+    const action = resolvePrescriptionPrintAction(
+      existing.status,
+      Boolean(existingFile),
+    );
+    if (action === "reuse") {
+      return { reused: true };
+    }
+    if (action === "reject") {
       throw new BaseError(400, "Toa thuốc đã in, không được in lại");
     }
 
@@ -515,10 +536,7 @@ export class PrecriptionService {
         printCount: (existing.printCount ?? 0) + 1,
       },
     });
-    return {
-      buffer: pdfBuffer,
-      prescriptionCode,
-    };
+    return { reused: false };
   }
 
   public async enqueuePrescriptionPrint(
@@ -550,23 +568,16 @@ export class PrecriptionService {
       }
     }
 
-    const job = await prisma.printJob.create({
-      data: {
-        type: PrintJobType.PRESCRIPTION,
-        status: PrintJobStatus.PENDING,
-        entityId: prescriptionId,
-        clinicId: clinicId || null,
-        userId: userId ?? null,
-        payload: { prescriptionId },
-      },
+    const job = await findOrEnqueuePrintJob({
+      type: PrintJobType.PRESCRIPTION,
+      entityId: prescriptionId,
+      clinicId,
+      userId,
+      payload: { prescriptionId },
     });
 
-    await enqueuePrintJob(job.jobId);
-
     return {
-      jobId: job.jobId,
-      status: job.status,
-      type: job.type,
+      ...job,
       enqueued: true,
     };
   }
