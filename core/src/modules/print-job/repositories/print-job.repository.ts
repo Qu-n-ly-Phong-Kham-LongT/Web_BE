@@ -24,6 +24,7 @@ export type StoredPrintJob = {
   entityId: string | null;
   status: PrintJobStatus;
   createdAt: Date;
+  startedAt: Date | null;
 };
 
 export type WorkerPrintJob = {
@@ -49,6 +50,7 @@ const storedJobSelect = {
   entityId: true,
   status: true,
   createdAt: true,
+  startedAt: true,
 } as const;
 
 export class PrintJobRepository {
@@ -124,13 +126,19 @@ export class PrintJobRepository {
     jobId: string,
     type: PrintJobType,
     entityId: string,
+    staleBefore: Date,
+    abandonedMessage: string,
   ): Promise<ClaimResult> {
     const current = await this.db.printJob.findUnique({
       where: { jobId },
-      select: { status: true },
+      select: { status: true, createdAt: true },
     });
     if (!current) return "missing";
     if (!ACTIVE_PRINT_JOB_STATUSES.includes(current.status)) return "finished";
+    if (current.status === PrintJobStatus.PENDING && current.createdAt < staleBefore) {
+      await this.abandonIfStale(jobId, staleBefore, abandonedMessage);
+      return "finished";
+    }
     const sibling = await this.db.printJob.findFirst({
       where: {
         type,
@@ -138,9 +146,12 @@ export class PrintJobRepository {
         status: PrintJobStatus.PROCESSING,
         jobId: { not: jobId },
       },
-      select: { jobId: true },
+      select: { jobId: true, startedAt: true },
     });
-    if (sibling) return "busy";
+    if (sibling) {
+      if (!sibling.startedAt || sibling.startedAt >= staleBefore) return "busy";
+      await this.abandonIfStale(sibling.jobId, staleBefore, abandonedMessage);
+    }
     await this.db.printJob.update({
       where: { jobId },
       data: {
@@ -186,14 +197,16 @@ export class PrintJobRepository {
 
   public async abandonIfStale(
     jobId: string,
-    createdBefore: Date,
+    staleBefore: Date,
     errorMsg: string,
   ): Promise<void> {
     await this.db.printJob.updateMany({
       where: {
         jobId,
-        status: { in: ACTIVE_PRINT_JOB_STATUSES },
-        createdAt: { lt: createdBefore },
+        OR: [
+          { status: PrintJobStatus.PENDING, createdAt: { lt: staleBefore } },
+          { status: PrintJobStatus.PROCESSING, startedAt: { lt: staleBefore } },
+        ],
       },
       data: { status: PrintJobStatus.FAILED, errorMsg, finishedAt: new Date() },
     });

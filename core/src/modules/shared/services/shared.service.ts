@@ -186,22 +186,29 @@ export class SharedService {
     }
   }
 
-  public async getMedicalRecordFile(recordId: string, clinicId: string) {
+  public async findFreshMedicalRecordFile(recordId: string, clinicId: string) {
     const existing = await this.fileRepository.findByMedicalRecordId(recordId);
+    if (!existing?.createdAt) return null;
+    const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
+    const renderStartedAt = await this.printJobRepository.findLatestRenderStartedAt(
+      PrintJobType.MEDICAL_RECORD,
+      recordId,
+    );
+    const fresh = isRecordFileFresh(
+      this.getLatestRecordChange(fullRecord),
+      existing.createdAt,
+      renderStartedAt,
+    );
+    return fresh ? existing : null;
+  }
 
-    if (existing?.createdAt) {
-      const fullRecord = await this.getFullMedicalRecord(recordId, clinicId);
-      const latestChange = this.getLatestRecordChange(fullRecord);
-      const renderStartedAt =
-        await this.printJobRepository.findLatestRenderStartedAt(
-          PrintJobType.MEDICAL_RECORD,
-          recordId,
-        );
-      if (isRecordFileFresh(latestChange, existing.createdAt, renderStartedAt)) {
-        return { file: existing, enqueued: false };
-      }
+  public async getMedicalRecordFile(recordId: string, clinicId: string) {
+    const fresh = await this.findFreshMedicalRecordFile(recordId, clinicId);
+    if (fresh) {
+      return { file: fresh, enqueued: false };
     }
 
+    const existing = await this.fileRepository.findByMedicalRecordId(recordId);
     const job = await this.enqueueMedicalRecordPrint(recordId, clinicId);
 
     return { file: existing ?? null, enqueued: true, stale: true, job };

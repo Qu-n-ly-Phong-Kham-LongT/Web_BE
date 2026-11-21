@@ -16,6 +16,7 @@ function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
   const emitted: Emitted[] = [];
   const failures: Array<{ jobId: string; status: PrintJobStatus }> = [];
   const reasons: string[] = [];
+  const unclaimed: string[] = [];
   const deps: PrintJobHandlerDeps = {
     retryMax: 3,
     findJob: async (jobId) => ({
@@ -34,12 +35,16 @@ function buildDeps(overrides: Partial<PrintJobHandlerDeps> = {}) {
       failures.push({ jobId, status });
       reasons.push(errorMsg);
     },
+    markUnclaimedFailed: async (jobId, errorMsg) => {
+      unclaimed.push(jobId);
+      reasons.push(errorMsg);
+    },
     emit: (jobId, event, data) => {
       emitted.push({ jobId, event, data });
     },
     ...overrides,
   };
-  return { deps, emitted, failures, reasons };
+  return { deps, emitted, failures, reasons, unclaimed };
 }
 
 async function handle(
@@ -121,11 +126,17 @@ describe("createPrintJobHandler", () => {
   it("waits for the in-flight run when the broker redelivers the same job", async () => {
     let release: () => void = () => undefined;
     let generated = 0;
+    let finished = false;
     const { deps } = buildDeps({
+      claimJob: async () => (finished ? "finished" : "claimed"),
       generateFile: async () => {
         generated += 1;
         await new Promise<void>((resolve) => (release = resolve));
         return { fileId: "file-1", fileUrl: null };
+      },
+      markDone: async () => {
+        finished = true;
+        return true;
       },
     });
     const handler = createPrintJobHandler(deps);
@@ -143,6 +154,72 @@ describe("createPrintJobHandler", () => {
 
     assert.equal(generated, 1);
     assert.equal(newChannel.acked.length, 1);
+  });
+
+  it("reprocesses a redelivered job when the earlier run failed on a broken channel", async () => {
+    let attempts = 0;
+    let release: () => void = () => undefined;
+    const { deps } = buildDeps({
+      generateFile: async () => {
+        attempts += 1;
+        if (attempts === 1) {
+          await new Promise<void>((resolve) => (release = resolve));
+          throw new Error("Timeout");
+        }
+        return { fileId: "file-2", fileUrl: null };
+      },
+    });
+    const handler = createPrintJobHandler(deps);
+    const brokenChannel = new FakeChannel();
+    brokenChannel.failOnSend = true;
+    const newChannel = new FakeChannel();
+
+    const first = handler(brokenChannel.asChannel(), buildMessage({ jobId: "job-x" }));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const redelivered = handler(newChannel.asChannel(), buildMessage({ jobId: "job-x" }));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    release();
+    await Promise.all([first, redelivered]);
+
+    assert.equal(attempts, 2);
+    assert.equal(newChannel.acked.length, 1);
+  });
+
+  it("records a final failure that happened before the job was claimed", async () => {
+    const channel = new FakeChannel();
+    const { deps, unclaimed, failures } = buildDeps({
+      claimJob: async () => {
+        throw new Error("Transaction timeout");
+      },
+    });
+
+    await handle(channel, deps, "job-u", 3);
+
+    assert.deepEqual(unclaimed, ["job-u"]);
+    assert.deepEqual(failures, []);
+    assert.equal(channel.sent[0].queue, QUEUE_DEAD);
+  });
+
+  it("records a final failure before dead-lettering the message", async () => {
+    const order: string[] = [];
+    const channel = new FakeChannel();
+    const send = channel.sendToQueue.bind(channel);
+    channel.sendToQueue = (queue, content, options) => {
+      order.push(`send:${queue}`);
+      return send(queue, content, options);
+    };
+    const { deps } = buildDeps({
+      generateFile: async () => {
+        throw new BaseError(400, "Missing prescription id");
+      },
+      markFailure: async () => {
+        order.push("db");
+      },
+    });
+
+    await handle(channel, deps, "job-o");
+
+    assert.deepEqual(order, ["db", `send:${QUEUE_DEAD}`]);
   });
 
   it("stores a generic reason for technical failures and keeps business messages", async () => {

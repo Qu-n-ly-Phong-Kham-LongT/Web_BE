@@ -43,6 +43,7 @@ function createMemoryDeps(now: () => Date = () => new Date()) {
               entityId: input.entityId,
               status: PrintJobStatus.PENDING,
               createdAt: now(),
+              startedAt: null,
             };
             jobs.push(job);
             return job;
@@ -140,6 +141,33 @@ describe("findOrEnqueuePrintJob", () => {
     assert.equal(third.jobId, second.jobId);
     assert.equal(third.reused, true);
     assert.equal(jobs.length, 2);
+  });
+
+  it("does not abandon a long-queued job that only just started rendering", async () => {
+    let clock = new Date("2026-11-21T04:00:00Z");
+    const { deps, jobs } = createMemoryDeps(() => clock);
+
+    const first = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+    clock = new Date(clock.getTime() + ACTIVE_PRINT_JOB_STALE_MS + 60_000);
+    jobs[0].status = PrintJobStatus.PROCESSING;
+    jobs[0].startedAt = new Date(clock.getTime() - 30_000);
+    const second = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+
+    assert.notEqual(second.jobId, first.jobId);
+    assert.equal(jobs.find((j) => j.jobId === first.jobId)?.status, PrintJobStatus.PROCESSING);
+  });
+
+  it("abandons a job that has been rendering for too long", async () => {
+    let clock = new Date("2026-11-21T04:00:00Z");
+    const { deps, jobs } = createMemoryDeps(() => clock);
+
+    const first = await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+    jobs[0].status = PrintJobStatus.PROCESSING;
+    jobs[0].startedAt = clock;
+    clock = new Date(clock.getTime() + ACTIVE_PRINT_JOB_STALE_MS + 1);
+    await findOrEnqueuePrintJob(RECORD_INPUT, deps);
+
+    assert.equal(jobs.find((j) => j.jobId === first.jobId)?.status, PrintJobStatus.FAILED);
   });
 
   it("publish failure marks job failed", async () => {

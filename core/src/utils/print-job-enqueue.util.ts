@@ -49,7 +49,7 @@ function lockedStore(repository: PrintJobRepository): LockedPrintJobStore {
     markAbandoned: (jobId) =>
       repository.abandonIfStale(
         jobId,
-        new Date(Date.now() - ACTIVE_PRINT_JOB_STALE_MS),
+        printJobStaleBefore(new Date()),
         PRINT_JOB_ABANDONED_MESSAGE,
       ),
     create: (input) => repository.create(input),
@@ -69,8 +69,14 @@ export const prismaPrintJobEnqueueDeps: PrintJobEnqueueDeps = {
     new PrintJobRepository().markPendingFailed(jobId, errorMsg),
 };
 
+export function printJobStaleBefore(now: Date): Date {
+  return new Date(now.getTime() - ACTIVE_PRINT_JOB_STALE_MS);
+}
+
 function isFresh(job: StoredPrintJob, now: Date): boolean {
-  return now.getTime() - job.createdAt.getTime() < ACTIVE_PRINT_JOB_STALE_MS;
+  const since =
+    job.status === PrintJobStatus.PROCESSING ? job.startedAt ?? job.createdAt : job.createdAt;
+  return since >= printJobStaleBefore(now);
 }
 
 export async function findOrEnqueuePrintJob(

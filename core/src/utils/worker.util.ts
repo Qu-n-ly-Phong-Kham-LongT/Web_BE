@@ -7,6 +7,10 @@ import { PrecriptionService } from "../modules/prescriptions/services/prescripti
 import { ServiceRequestService } from "../modules/service-request/services/service-request.service";
 import { FileRepository } from "../modules/file/repositories/file.repository";
 import { getNumberEnv } from "./print-job-queue.util";
+import {
+  PRINT_JOB_ABANDONED_MESSAGE,
+  printJobStaleBefore,
+} from "./print-job-enqueue.util";
 import { emitToJob } from "./socket.util";
 import { resolveFileUrl } from "./file-url.util";
 import {
@@ -47,11 +51,17 @@ async function generatePrintFile(
   }
 
   switch (job.type) {
-    case PrintJobType.MEDICAL_RECORD:
+    case PrintJobType.MEDICAL_RECORD: {
+      const fresh = await sharedService.findFreshMedicalRecordFile(
+        job.entityId,
+        job.clinicId ?? "",
+      );
+      if (fresh) return toGeneratedFile(fresh);
       await sharedService.printMedicalRecordDocx(job.entityId, job.clinicId ?? "");
       return toGeneratedFile(
         await fileRepository.findByMedicalRecordId(job.entityId),
       );
+    }
     case PrintJobType.PRESCRIPTION:
       await prescriptionService.printPrescriptionPdf(
         job.entityId,
@@ -82,13 +92,21 @@ export function buildPrintJobHandlerDeps(): PrintJobHandlerDeps {
         const locked = new PrintJobRepository(tx);
         const entityKey = job.entityId ?? job.jobId;
         await locked.lockEntity(job.type, entityKey);
-        return locked.claimLocked(job.jobId, job.type, entityKey);
+        return locked.claimLocked(
+          job.jobId,
+          job.type,
+          entityKey,
+          printJobStaleBefore(new Date()),
+          PRINT_JOB_ABANDONED_MESSAGE,
+        );
       }),
     generateFile: generatePrintFile,
     markDone: (jobId, file) => printJobRepository.markDone(jobId, file.fileId),
     markFailure: async (jobId, status, errorMsg) => {
       await printJobRepository.markProcessingFailure(jobId, status, errorMsg);
     },
+    markUnclaimedFailed: (jobId, errorMsg) =>
+      printJobRepository.markPendingFailed(jobId, errorMsg),
     emit: emitToJob,
   };
 }
