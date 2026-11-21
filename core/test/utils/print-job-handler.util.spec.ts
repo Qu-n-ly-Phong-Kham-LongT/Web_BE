@@ -94,6 +94,41 @@ describe("createPrintJobHandler", () => {
     assert.equal(channel.sent[0].options?.headers?.["x-retry"], 1);
   });
 
+  it("retryable failure emits print.retrying not print.failed", async () => {
+    const channel = new FakeChannel();
+    const { deps, emitted } = buildDeps({
+      generateFile: async () => {
+        throw new Error("Timeout");
+      },
+    });
+
+    await handle(channel, deps, "job-7");
+
+    const events = emitted.map((e) => e.event);
+    assert.ok(events.includes("print.retrying"));
+    assert.ok(!events.includes("print.failed"));
+  });
+
+  it("final failure emits print.failed with FAILED status", async () => {
+    const channel = new FakeChannel();
+    const { deps, emitted } = buildDeps({
+      generateFile: async () => {
+        throw new BaseError(400, "Missing prescription id");
+      },
+    });
+
+    await handle(channel, deps, "job-8");
+
+    const failed = emitted.find((e) => e.event === "print.failed");
+    assert.deepEqual(failed?.data, {
+      jobId: "job-8",
+      status: PrintJobStatus.FAILED,
+      errorMsg: "Missing prescription id",
+      retry: 0,
+    });
+    assert.ok(!emitted.some((e) => e.event === "print.retrying"));
+  });
+
   it("dead-letters a client error without retrying", async () => {
     const channel = new FakeChannel();
     const { deps, failures } = buildDeps({

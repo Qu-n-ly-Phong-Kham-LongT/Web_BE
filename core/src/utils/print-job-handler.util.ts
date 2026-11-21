@@ -157,10 +157,11 @@ export function createPrintJobHandler(
           );
         }
       }
-      deps.emit(jobId, "print.failed", {
+      deps.emit(jobId, retryable ? "print.retrying" : "print.failed", {
         jobId,
         status: nextStatus,
         errorMsg,
+        retry: retryable ? currentRetry + 1 : currentRetry,
       });
       return;
     }
