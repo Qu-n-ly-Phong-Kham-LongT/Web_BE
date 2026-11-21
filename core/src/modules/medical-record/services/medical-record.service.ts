@@ -96,6 +96,12 @@ export class MedicalRecordService {
         recordId: record.recordId,
         examinedBy: createData.doctorId,
         userId: createData.doctorId,
+        pastMedicalHistory:
+          await this.clinicalExaminationRepository.findInheritedPastMedicalHistory(
+            createData.patientId || "",
+            createData.clinicId ?? "",
+            startUtc,
+          ),
       });
       examinationId = exam.examId;
     }
@@ -972,6 +978,12 @@ export class MedicalRecordService {
         recordId: record.recordId,
         examinedBy: createData.doctorId,
         userId: createData.doctorId,
+        pastMedicalHistory:
+          await this.clinicalExaminationRepository.findInheritedPastMedicalHistory(
+            createData.patientId || "",
+            createData.clinicId ?? "",
+            startUtc,
+          ),
       });
       examinationId = exam.examId;
     }
